@@ -1,0 +1,4 @@
+Name: myx.distro-system
+Title: Common (distro-deploy & distro-source) tools 
+Augments: developer-sdk:recommended
+Provides: myx/myx.distro-system
