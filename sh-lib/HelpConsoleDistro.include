@@ -1,0 +1,12 @@
+echo "'Distro' command provides/lists commands related to distro-image operations." >&2
+echo "Syntax: Distro <commandName> ...<arguments>" >&2
+echo >&2
+echo "	Info:" >&2
+echo "		MMDAPP ROOT: $MMDAPP" >&2
+echo "		MDDC_ORIGIN: ${MDDC_ORIGIN:-"Not Set"}" >&2
+echo "		MDSC_OPTION: ${MDSC_OPTION:-"Not Set"}" >&2
+echo "		MDSC_SOURCE: ${MDSC_SOURCE:-"Not Set"}" >&2
+echo "		MDSC_CACHED: ${MDSC_CACHED:-"Not Set"}" >&2
+echo "		MDSC_OUTPUT: ${MDSC_OUTPUT:-"Not Set"}" >&2
+echo >&2
+set +e ; return 1
