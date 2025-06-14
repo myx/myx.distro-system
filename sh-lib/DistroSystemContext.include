@@ -58,7 +58,7 @@ if ! type Distro >/dev/null 2>&1 ; then
 	Distro(){
 		case "$1" in
 			''|--*)
-				( . "$MDLC_ORIGIN/myx/myx.distro-system/sh-lib/DistroSystemConsole.include" )
+				( . "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/DistroSystemConsole.include" )
 				set +e ; return 1
 			;;
 		esac
@@ -89,7 +89,7 @@ if [ -z "$MDSC_ORIGIN" ] || [ "$MDSC_ORIGIN" == "${MDSC_ORIGIN#$MMDAPP/}" ] ; th
 	; then
 		export MDSC_ORIGIN="$MMDAPP/source"
 	else
-		export MDSC_ORIGIN="${MDLC_ORIGIN:-$MMDAPP/.local}"
+		export MDSC_ORIGIN="${MDLT_ORIGIN:-$MMDAPP/.local}"
 	fi
 	
 	echo "DistroSystemContext: init: $MDSC_ORIGIN" >&2

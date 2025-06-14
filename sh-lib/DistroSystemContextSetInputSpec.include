@@ -31,11 +31,11 @@ fi
 
 case "$1" in
 	--run-from-.local)
-		MDLC_ORIGIN="${MDLC_ORIGIN:-$MMDAPP/.local}"
+		MDLT_ORIGIN="${MDLT_ORIGIN:-$MMDAPP/.local}"
 		MDLC_OPTION="--run-from-.local"
 	;;
 	--run-from-source)
-		MDLC_ORIGIN="${MDLC_ORIGIN:-$MMDAPP/source}"
+		MDLT_ORIGIN="${MDLT_ORIGIN:-$MMDAPP/source}"
 		MDLC_OPTION="--run-from-source"
 	;;
 	*)
@@ -45,7 +45,7 @@ case "$1" in
 esac
 
 if [ -z "${previousSpec:-$MDLC_OPTION}" ] || [ "$previousSpec" != "$MDLC_OPTION" ] ; then
-	export MDLC_ORIGIN
+	export MDLT_ORIGIN
 	export MDLC_OPTION
 	
 	echo "DistroSystemContextSetInputSpec: spec: $MDLC_OPTION" >&2
