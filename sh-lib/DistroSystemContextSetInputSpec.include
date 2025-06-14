@@ -15,7 +15,7 @@ if [ -z "$1" ] || [ "$1" = "--run-from-detect" ] ; then
 		exit 1
 	fi
 elif [ "$1" = "--run-from-source" ] && [ ! -f "$MMDAPP/source/myx/myx.distro-system/sh-lib/DistroSystemContext.include" ] ; then
-	echo "WARNING: DistroSystemContextSetInputSpec: $1 requested but source is not available, defaulting to --run-from-local" >&2
+	echo "🙋 WARNING: DistroSystemContextSetInputSpec: $1 requested but source is not available, defaulting to --run-from-local" >&2
 	set -- "--run-from-.local"
 fi
 
