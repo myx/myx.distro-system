@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ^^^ for syntax checking in the editor only
 
-: "${MMDAPP:?ERROR: MMDAPP is not set}"
+: "${MMDAPP:?⛔ ERROR: MMDAPP is not set}"
 
 if [ -z "$1" ] || [ "$1" = "--run-from-detect" ] ; then
 	if [ ! -z "$MDLC_OPTION" ] ; then
@@ -11,7 +11,7 @@ if [ -z "$1" ] || [ "$1" = "--run-from-detect" ] ; then
 	elif [ -f "$MMDAPP/.local/myx/myx.distro-system/sh-lib/DistroSystemContext.include" ] ; then
 		set -- "--run-from-.local"
 	else
-		echo "ERROR: DistroSystemContextSetInputSpec: --run-from-detect can't find/detect origin" >&2
+		echo "⛔ ERROR: DistroSystemContextSetInputSpec: --run-from-detect can't find/detect origin" >&2
 		exit 1
 	fi
 elif [ "$1" = "--run-from-source" ] && [ ! -f "$MMDAPP/source/myx/myx.distro-system/sh-lib/DistroSystemContext.include" ] ; then
@@ -21,9 +21,9 @@ fi
 
 
 if [ "$adpcChangeSpec" = "true" ] ; then
-	: "${1:?ERROR: DistroSystemContextSetInputSpec: inputSpec argument is required}"
+	: "${1:?⛔ ERROR: DistroSystemContextSetInputSpec: inputSpec argument is required}"
 	if ! DistroSystemContext --is-spec-option "$1" ; then
-		echo "ERROR: DistroSystemContextSetInputSpec: inputSpec argument is invalid: $1" >&2
+		echo "⛔ ERROR: DistroSystemContextSetInputSpec: inputSpec argument is invalid: $1" >&2
 		exit 1
 	fi
 fi
@@ -39,7 +39,7 @@ case "$1" in
 		MDLC_OPTION="--run-from-source"
 	;;
 	*)
-		echo "ERROR: DistroSystemContextSetInputSpec: Invalid input spec: $1" >&2
+		echo "⛔ ERROR: DistroSystemContextSetInputSpec: Invalid input spec: $1" >&2
 		exit 1
 	;;
 esac
