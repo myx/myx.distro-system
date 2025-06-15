@@ -3,22 +3,38 @@
 
 : "${MMDAPP:?⛔ ERROR: MMDAPP is not set}"
 
-if [ -z "$1" ] || [ "$1" = "--run-from-detect" ] ; then
-	if [ ! -z "$MDLC_OPTION" ] ; then
-		set -- "$MDLC_OPTION"
-	elif [ -f "$MMDAPP/source/myx/myx.distro-system/sh-lib/SystemContext.include" ] ; then
-		set -- "--run-from-source"
-	elif [ -f "$MMDAPP/.local/myx/myx.distro-system/sh-lib/SystemContext.include" ] ; then
-		set -- "--run-from-.local"
-	else
-		echo "⛔ ERROR: Context.SetInputSpec: --run-from-detect can't find/detect origin" >&2
-		exit 1
-	fi
-elif [ "$1" = "--run-from-source" ] && [ ! -f "$MMDAPP/source/myx/myx.distro-system/sh-lib/SystemContext.include" ] ; then
-	echo "🙋 WARNING: Context.SetInputSpec: $1 requested but source is not available, defaulting to --run-from-local" >&2
-	set -- "--run-from-.local"
-fi
+case "$1" in
+	''|--run-from-detect|--init-variables)
+		if [ -n "$MDLC_OPTION" ] ; then
+			set -- "$MDLC_OPTION"
+		elif [ -f "$MMDAPP/source/myx/myx.distro-system/sh-lib/SystemContext.include" ] ; then
+			set -- "--run-from-source"
+		elif [ -f "$MMDAPP/.local/myx/myx.distro-system/sh-lib/SystemContext.include" ] ; then
+			set -- "--run-from-.local"
+		else
+			echo "⛔ ERROR: Context.SetInputSpec: ${1:---run-from-detect} can't find/detect origin" >&2
+			exit 1
+		fi
+	;;
+	--run-from-path)
+		if [ -n "$2" ] && [ -f "$2/myx/myx.distro-system/sh-lib/SystemContext.include" ] ; then
+			export MDLT_ORIGIN="$2"
+			export MDSC_INMODE="extern"
+			export MDSC_OPTION="--run-from-path $2"
 
+			echo "LocalContext.SetInputSpec: mode: $MDSC_INMODE, spec: $MDSC_OPTION, origin: $MDLT_ORIGIN" >&2
+			return 0
+		fi
+		echo "🙋 WARNING: Context.SetInputSpec: $1 requested but source is not available at '$2', defaulting to --run-from-.local" >&2
+		set -- "--run-from-.local"
+	;;
+	--run-from-source)
+		if [ ! -f "$MMDAPP/source/myx/myx.distro-system/sh-lib/SystemContext.include" ] ; then
+			echo "🙋 WARNING: Context.SetInputSpec: $1 requested but source is not available, defaulting to --run-from-local" >&2
+			set -- "--run-from-.local"
+		fi
+	;;
+esac
 
 if [ "$adpcChangeSpec" = "true" ] ; then
 	: "${1:?⛔ ERROR: Context.SetInputSpec: inputSpec argument is required}"
@@ -28,14 +44,13 @@ if [ "$adpcChangeSpec" = "true" ] ; then
 	fi
 fi
 
-
 case "$1" in
 	--run-from-.local)
-		MDLT_ORIGIN="${MDLT_ORIGIN:-$MMDAPP/.local}"
+		MDLT_ORIGIN="$MMDAPP/.local"
 		MDLC_OPTION="--run-from-.local"
 	;;
 	--run-from-source)
-		MDLT_ORIGIN="${MDLT_ORIGIN:-$MMDAPP/source}"
+		MDLT_ORIGIN="$MMDAPP/source"
 		MDLC_OPTION="--run-from-source"
 	;;
 	*)

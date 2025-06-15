@@ -8,11 +8,11 @@ case "$1" in
 	;;
 	''|--help)
 		shift
-		( . "$MDSC_ORIGIN/myx/myx.distro-system/sh-lib/HelpConsoleDistro.include" )
+		( . "$MDSC_ORIGIN/myx/myx.distro-system/sh-lib/Help.ConsoleDistro.include" )
 		set +e ; return 1
 	;;
 	*)
-		echo "DistroSourceConsole: Invalid argument: $1" >&2
+		echo "SourceConsole: Invalid argument: $1" >&2
 		set +e ; return 1
 	;;
 esac
