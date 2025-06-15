@@ -14,7 +14,7 @@ local cur="${COMP_WORDS[COMP_CWORD]}"
 if [[ " $cmds " =~ " $cur " ]]; then
 	case "${COMP_WORDS[0]}" in
 	Require)
-		COMPREPLY=( $( ( unset COMP_LINE ; Source --completion-require ) ) )
+		COMPREPLY=( $( ( unset COMP_LINE ; Distro --completion-require ) ) )
 		return 0
 	;;
 	Action)
