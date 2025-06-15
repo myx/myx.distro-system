@@ -1,31 +1,31 @@
 #!/usr/bin/env bash
 # ^^^ for syntax checking in the editor only
 
-    #— pulled from inside your complete -F … function body
+    local cmd sub cur roots_list roots list suggestion filtered
 
-    local cur root cmd verbs_list verbs functions list suggestion filtered
+    cmd=${COMP_WORDS[0]}            # the command you invoked
+    sub=${COMP_WORDS[1]}            # the 1st argument (if any)
+    cur=${COMP_WORDS[COMP_CWORD]}   # what’s under the cursor
 
-    cmd=${COMP_WORDS[0]}             # e.g. “Distro”
-    root=${COMP_WORDS[1]}            # first arg (your sub-command)
-    cur=${COMP_WORDS[COMP_CWORD]}    # token under the cursor
-
-    #— which of these are actual functions in this session?
-    verbs_list="Require Action Source Distro Deploy"
-    verbs=""
-    for v in $verbs_list; do
-        [ "$(type -t "$v")" = function ] && verbs="$verbs $v"
+    #── build the true “root verbs” list
+    roots_list="Require Action Source Distro Deploy"
+    roots=""
+    for v in $roots_list; do
+      [ "$(type -t "$v")" = function ] && roots="$roots $v"
     done
 
-    #— SLOT 1: first word of the command
-    if [ "$COMP_CWORD" -eq 1 ]; then
+    #── SLOT 1: only if the invoked CMD is NOT itself a root
+    if [ "$COMP_CWORD" -eq 1 ] \
+       && ! printf '%s\n' $roots | grep -qx "$cmd"
+    then
         if [ -z "$cur" ]; then
-            # empty prefix → only show your root verbs
-            COMPREPLY=( $(compgen -W "$verbs" -- "") )
+            # no prefix yet → only your roots
+            COMPREPLY=( $(compgen -W "$roots" -- "") )
         else
-            # non-empty → show *all* functions + commands matching prefix
+            # user typed some prefix → roots + system commands
             COMPREPLY=( \
-              $(compgen -A function -- "$cur") \
-              $(compgen -c           -- "$cur") \
+              $(compgen -W "$roots" -- "$cur") \
+              $(compgen -c   -- "$cur") \
             )
         fi
         # dedupe & sort
@@ -33,22 +33,34 @@
         return 0
     fi
 
-    #— SLOT 2+: if the first word was a root verb, handle it specially
-    case "$root" in
+    #── SLOT 2+: if the first word IS one of your roots, dispatch
+    case "$cmd" in
       Require)
         list=$(Distro --completion-require)
         COMPREPLY=( $(compgen -W "$list" -- "$cur") )
         return 0
         ;;
-      Action)
+    Action)
+        # 1) Ensure ListAllActions() is loaded
         Require ListAllActions
-        list=$(ListAllActions --completion)
-        COMPREPLY=( $(
-          printf '%s\n' "$list" |
-            sed 's!/.*!/!'    |
-            grep "^$cur"     |
-            sort -u
-        ) )
+
+        # 2) Grab the full “name[/path/…]” list
+        local out suggestions
+        out=$(ListAllActions --completion)
+
+        # 3) If there’s already a slash in $cur → do full‐path completion
+        if [[ "$cur" == */* ]]; then
+            suggestions=( $( compgen -W "$out" -- "$cur" ) )
+        else
+			suggestions=( $( \
+				printf '%s\n' "$out" | sed 's!/.*!/!' | sort -u | grep "$cur" \
+			) )
+			# prevent bash from appending a space after a match
+            type compopt &>/dev/null && compopt -o nospace
+        fi
+
+        # 6) Return them
+        COMPREPLY=( "${suggestions[@]}" )
         return 0
         ;;
       Source)
@@ -68,16 +80,13 @@
         ;;
     esac
 
-    #— FALLBACK: deeper slots or non-root first word → commands + files,
-    #  but strip out your root verbs so they never reappear
-    COMPREPLY=( \
-      $(compgen -c -- "$cur") \
-      $(compgen -f -- "$cur") \
-    )
+    #── FALLBACK for any deeper slot or non-root CMD:
+    #    regular commands + files, but strip out your roots
+    COMPREPLY=( $(compgen -c -- "$cur") $(compgen -f -- "$cur") )
     filtered=()
     for suggestion in "${COMPREPLY[@]}"; do
-        case " $verbs " in
-          *" $suggestion "*) continue ;;  # drop any root verb
+        case " $roots " in
+          *" $suggestion "*) continue ;;  # never re-list roots here
         esac
         filtered+=("$suggestion")
     done
