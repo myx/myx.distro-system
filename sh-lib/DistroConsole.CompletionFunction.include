@@ -9,7 +9,7 @@ if [ -z "COMP_LINE" ] ; then
 	return 0
 fi
 
-cur="${COMP_WORDS[COMP_CWORD]}"
+local cur="${COMP_WORDS[COMP_CWORD]}"
 
 if [[ " $cmds " =~ " $cur " ]]; then
 	case "${COMP_WORDS[0]}" in
@@ -46,9 +46,37 @@ if [[ " $cmds " =~ " $cur " ]]; then
 	;;
 	esac
 
-	# COMPREPLY=( $(compgen -W "$FUNCTIONS" -- "$cur") )
+	COMPREPLY=( $(compgen -W "$FUNCTIONS" -- "$cur") )
+	return 0
 fi
 
 # If not recognized, fallback to default Bash completion
-echo ">>> DEF "
-compopt -o default
+if type compopt >/dev/null 2>&1; then
+    compopt -o default
+	return 0
+fi
+
+  local cur funcs cmds all
+
+  # current word to complete
+  cur=${COMP_WORDS[COMP_CWORD]}
+
+  # 1) prefix-match functions
+  mapfile -t funcs < <(compgen -A function -- "$cur")
+
+  # 2) prefix-match commands (built-ins, functions, executables in $PATH)
+  mapfile -t cmds  < <(compgen -A command  -- "$cur")
+
+  # merge them
+  all=( "${funcs[@]}" "${cmds[@]}" )
+
+  # 3) if no prefix matches, do a substring search
+  if [ ${#all[@]} -eq 0 ]; then
+    mapfile -t funcs < <(compgen -A function)
+    mapfile -t cmds  < <(compgen -A command)
+    all=( $(printf '%s\n' "${funcs[@]}" "${cmds[@]}" | grep -- "$cur") )
+  fi
+
+  # 4) dedupe & sort, then assign to COMPREPLY
+  COMPREPLY=( $(printf '%s\n' "${all[@]}" | sort -u) )
+
