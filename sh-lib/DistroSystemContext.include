@@ -24,7 +24,7 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 					local adpcChangeSpec="true"
 			
 					[ -z "$MDSC_DETAIL" ] || echo "DistroSystemContext: input spec: $1" >&2
-					. "$MDSC_ORIGIN/myx/myx.distro-source/sh-lib/DistroSystemContextSetInputSpec.include"		
+					. "$MDSC_ORIGIN/myx/myx.distro-source/sh-lib/DistroContext.SetInputSpec.include"		
 					return 0
 				fi
 			;;
@@ -56,6 +56,10 @@ fi
 
 if ! type Distro >/dev/null 2>&1 ; then
 	Distro(){
+		if [[ -n "$COMP_LINE" || -n "$COMP_WORDS" ]] && [ "${1#--completion}" = "$1" ]; then
+			. "$MDSC_ORIGIN/myx/myx.distro-system/sh-lib/DistroConsole.CompletionFunction.include"
+			return 0
+		fi
 		case "$1" in
 			''|--*)
 				( . "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/DistroSystemConsole.include" )
@@ -103,7 +107,7 @@ while true ; do
 	fi 
 	if DistroSystemContext --is-spec-option "$1" ; then
 		[ -n "$MDSC_DETAIL" ] && echo "DistroSystemContext: input spec: $1" >&2
-		. "$MDSC_ORIGIN/myx/myx.distro-source/sh-lib/DistroSystemContextSetInputSpec.include"
+		. "$MDSC_ORIGIN/myx/myx.distro-source/sh-lib/DistroContext.SetInputSpec.include"
 		shift
 		continue
 	fi

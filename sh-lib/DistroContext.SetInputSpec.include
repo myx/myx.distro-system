@@ -11,19 +11,19 @@ if [ -z "$1" ] || [ "$1" = "--run-from-detect" ] ; then
 	elif [ -f "$MMDAPP/.local/myx/myx.distro-system/sh-lib/DistroSystemContext.include" ] ; then
 		set -- "--run-from-.local"
 	else
-		echo "⛔ ERROR: DistroSystemContextSetInputSpec: --run-from-detect can't find/detect origin" >&2
+		echo "⛔ ERROR: Context.SetInputSpec: --run-from-detect can't find/detect origin" >&2
 		exit 1
 	fi
 elif [ "$1" = "--run-from-source" ] && [ ! -f "$MMDAPP/source/myx/myx.distro-system/sh-lib/DistroSystemContext.include" ] ; then
-	echo "🙋 WARNING: DistroSystemContextSetInputSpec: $1 requested but source is not available, defaulting to --run-from-local" >&2
+	echo "🙋 WARNING: Context.SetInputSpec: $1 requested but source is not available, defaulting to --run-from-local" >&2
 	set -- "--run-from-.local"
 fi
 
 
 if [ "$adpcChangeSpec" = "true" ] ; then
-	: "${1:?⛔ ERROR: DistroSystemContextSetInputSpec: inputSpec argument is required}"
+	: "${1:?⛔ ERROR: Context.SetInputSpec: inputSpec argument is required}"
 	if ! DistroSystemContext --is-spec-option "$1" ; then
-		echo "⛔ ERROR: DistroSystemContextSetInputSpec: inputSpec argument is invalid: $1" >&2
+		echo "⛔ ERROR: Context.SetInputSpec: inputSpec argument is invalid: $1" >&2
 		exit 1
 	fi
 fi
@@ -39,7 +39,7 @@ case "$1" in
 		MDLC_OPTION="--run-from-source"
 	;;
 	*)
-		echo "⛔ ERROR: DistroSystemContextSetInputSpec: Invalid input spec: $1" >&2
+		echo "⛔ ERROR: Context.SetInputSpec: Invalid input spec: $1" >&2
 		exit 1
 	;;
 esac
@@ -48,5 +48,5 @@ if [ -z "${previousSpec:-$MDLC_OPTION}" ] || [ "$previousSpec" != "$MDLC_OPTION"
 	export MDLT_ORIGIN
 	export MDLC_OPTION
 	
-	echo "DistroSystemContextSetInputSpec: spec: $MDLC_OPTION" >&2
+	echo "Context.SetInputSpec: spec: $MDLC_OPTION" >&2
 fi

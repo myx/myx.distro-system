@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+# ^^^ for syntax checking in the editor only
+
+local FUNCTIONS="$(compgen -A function)"
+
+## empty input, requires bash 4+ (not default on MacOSX)
+if [ -z "COMP_LINE" ] ; then
+    COMPREPLY=( $FUNCTIONS )
+	return 0
+fi
+
+cur="${COMP_WORDS[COMP_CWORD]}"
+
+if [[ " $cmds " =~ " $cur " ]]; then
+	case "${COMP_WORDS[0]}" in
+	Require)
+		COMPREPLY=( $( ( unset COMP_LINE ; Source --completion-require ) ) )
+		return 0
+	;;
+	Action)
+		Require ListAllActions
+		local PREFIX="$2"
+		if [ -z "$PREFIX" ] ; then
+			COMPREPLY=( $( ListAllActions --completion | sed 's!/.*!/!' | sort -u ) )
+		else
+			COMPREPLY=( $( ListAllActions --completion | grep "^$PREFIX" | sort -u ) )
+		fi
+		# COMPREPLY=( $(compgen -W "start stop reset" -- "$2") )
+		return 0
+	;;
+	Source)
+		COMPREPLY=( $( Distro --completion-source ) )
+		return 0
+	;;
+	Distro)
+		COMPREPLY=( $( Distro --completion-distro ) )
+		return 0
+	;;
+	Deploy)
+		COMPREPLY=( $( Distro --completion-deploy ) )
+		return 0
+	;;
+	*)
+		COMPREPLY=( $(compgen -c -- "$2") )  # Fallback to normal command completion
+		return 0
+	;;
+	esac
+
+	# COMPREPLY=( $(compgen -W "$FUNCTIONS" -- "$cur") )
+fi
+
+# If not recognized, fallback to default Bash completion
+echo ">>> DEF "
+compopt -o default
