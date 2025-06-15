@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# ^^^ for syntax checking in the editor only
+
+case "$1" in 
+	''|--help)
+		shift
+		( . "$MDSC_ORIGIN/myx/myx.distro-system/sh-lib/HelpConsoleDistro.include" )
+		set +e ; return 1
+	;;
+	*)
+		echo "DistroSourceConsole: Invalid argument: $1" >&2
+		set +e ; return 1
+	;;
+esac
