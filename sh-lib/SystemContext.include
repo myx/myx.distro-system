@@ -12,21 +12,40 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 			;;
 			--is-spec-option)
 				case "$2" in
+					# distro-source & distro-deploy
 					--distro-path-auto|--distro-source-only|--distro-from-source|--distro-from-cached|--distro-from-output|--distro-from-distro)
+						return 0
+					;;
+					# distro-.local & distro-remote
+					--init-variables|--run-from-source|--run-from-.local|--run-from-detect|--run-from-path)
 						return 0
 					;;
 				esac
 				set +e ; return 1
 			;;
-			*)
+			--init-variables|--run-from-detect|--distro-path-auto)
+				if \
+					[ -n "$MDLT_ORIGIN" ] && [ -n "$MDLT_OPTION" ] \
+					&& \
+					[ -n "$MDSC_OPTION" ] && [ -n "$MDSC_ORIGIN" ] && [ -n "$MDSC_INMODE" ] \
+				; then
+					return 0
+				fi
+				[ -z "$MDSC_DETAIL" ] || echo "DistroSystemContext: input spec: $1" >&2
+				. "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/SystemContext.SetInputSpec.include"
+				return 0
+			;;
+			--distro-*|--run-from-*|--init-*)
 				if DistroSystemContext --is-spec-option "$1" ; then
 					local previousSpec="$MDSC_OPTION"
 					local adpcChangeSpec="true"
 			
 					[ -z "$MDSC_DETAIL" ] || echo "DistroSystemContext: input spec: $1" >&2
-					. "$MDLT_ORIGIN/myx/myx.distro-source/sh-lib/SystemContext.SetInputSpec.include"
+					. "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/SystemContext.SetInputSpec.include"
 					return 0
 				fi
+			;;
+			*)
 			;;
 		esac
 	}
@@ -100,16 +119,24 @@ if [ -z "$MDLT_ORIGIN" ] || [ "$MDLT_ORIGIN" == "${MDLT_ORIGIN#$MMDAPP/}" ] ; th
 fi
 
 while true ; do
-	if [ "--verbose" = "$1" ] ; then
-		export MDSC_DETAIL="true"
-		shift
-		continue
-	fi 
-	if DistroSystemContext --is-spec-option "$1" ; then
-		[ -n "$MDSC_DETAIL" ] && echo "DistroSystemContext: input spec: $1" >&2
-		. "$MDLT_ORIGIN/myx/myx.distro-source/sh-lib/SystemContext.SetInputSpec.include"
-		shift
-		continue
-	fi
-	break
+	case "$1" in
+		'')
+			return 0
+		;;
+		--verbose)
+			export MDSC_DETAIL="true"
+			shift
+			continue
+		;;
+		--distro-*|--run-from-*|--init-*)
+			if DistroSystemContext --is-spec-option "$1" ; then
+				[ -n "$MDSC_DETAIL" ] && echo "DistroSystemContext: input spec: $1" >&2
+				. "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/SystemContext.SetInputSpec.include"
+				shift
+				continue
+			fi
+			return 0
+		;;
+	esac
+	return 0
 done

@@ -20,7 +20,14 @@ case "$1" in
 			echo "⛔ ERROR: Context.SetInputSpec: ${1:---run-from-detect} can't find/detect origin" >&2
 			exit 1
 		fi
-		set -- "--distro-path-auto"
+		case "$1" in 
+			--distro-*)
+				set -- "$1"
+			;;
+			*)
+				set -- "--distro-path-auto"
+			;;
+		esac
 	;;
 	--run-from-path)
 		if [ -n "$2" ] && [ -f "$2/myx/myx.distro-system/sh-lib/SystemContext.include" ] ; then
@@ -52,7 +59,7 @@ esac
 
 case "$1" in
 	--distro-path-auto)
-		if [ -n "$MDSC_OPTION" ] && [ -n "$MDSC_ORIGIN" ] && [ -n "$MDSC_INMODE" ] && [ -n "$MDSC_SOURCE" ] ; then
+		if [ -n "$MDSC_OPTION" ] && [ -n "$MDSC_ORIGIN" ] && [ -n "$MDSC_INMODE" ] ; then
 			# vars seem to be set...
 			return 0
 		fi
@@ -69,7 +76,7 @@ case "$1" in
 		elif [ -d "$MMDAPP/distro/" ] ; then
 			set -- "--distro-from-distro"
 		else
-			echo "⛔ ERROR: DistroShellContext.SetInputSpec: can't detect proper input source" >&2
+			echo "⛔ ERROR: DistroSystemContext.SetInputSpec: can't detect proper input source" >&2
 			exit 1
 		fi
 	;;
@@ -121,7 +128,7 @@ case "$1" in
 		MDSC_OPTION="--distro-from-distro"
 	;;
 	*)
-		echo "⛔ ERROR: DistroShellContext.SetInputSpec: Invalid input spec: $1" >&2
+		echo "⛔ ERROR: DistroSystemContext.SetInputSpec: Invalid input spec: $1" >&2
 		exit 1
 	;;
 esac
@@ -133,5 +140,5 @@ if [ -z "${previousSpec:-$MDSC_OPTION}" ] || [ "$previousSpec" != "$MDSC_OPTION"
 	export MDSC_OUTPUT
 	export MDSC_OPTION
 	
-	echo "DistroShellContext.SetInputSpec: mode: $MDSC_INMODE, spec: $MDSC_OPTION" >&2
+	echo "DistroSystemContext.SetInputSpec: mode: $MDSC_INMODE, spec: $MDSC_OPTION" >&2
 fi
