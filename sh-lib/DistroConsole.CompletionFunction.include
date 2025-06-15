@@ -1,82 +1,71 @@
 #!/usr/bin/env bash
 # ^^^ for syntax checking in the editor only
 
-local FUNCTIONS="$(compgen -A function)"
+    # — grab the words we need
+    local cur verb roots_list roots suggestion
+    cur=${COMP_WORDS[COMP_CWORD]}      # the word under the cursor
+    verb=${COMP_WORDS[1]}              # the first arg (your sub‐command)
 
-## empty input, requires bash 4+ (not default on MacOSX)
-if [ -z "COMP_LINE" ] ; then
-    COMPREPLY=( $FUNCTIONS )
-	return 0
-fi
+    # — define all the candidates, then filter only actually‐defined functions
+    roots_list="Require Action Source Distro Deploy"
+    roots=""
+    for r in $roots_list; do
+        [ "$(type -t "$r")" = function ] && roots="$roots $r"
+    done
 
-local cur="${COMP_WORDS[COMP_CWORD]}"
+    # 1) SLOT 1 (COMP_CWORD==1): offer exactly those roots
+    if [ "$COMP_CWORD" -eq 1 ]; then
+        COMPREPLY=( $(compgen -W "$roots" -- "$cur") )
+        return 0
+    fi
 
-if [[ " $cmds " =~ " $cur " ]]; then
-	case "${COMP_WORDS[0]}" in
-	Require)
-		COMPREPLY=( $( ( unset COMP_LINE ; Distro --completion-require ) ) )
-		return 0
-	;;
-	Action)
-		Require ListAllActions
-		local PREFIX="$2"
-		if [ -z "$PREFIX" ] ; then
-			COMPREPLY=( $( ListAllActions --completion | sed 's!/.*!/!' | sort -u ) )
-		else
-			COMPREPLY=( $( ListAllActions --completion | grep "^$PREFIX" | sort -u ) )
-		fi
-		# COMPREPLY=( $(compgen -W "start stop reset" -- "$2") )
-		return 0
-	;;
-	Source)
-		COMPREPLY=( $( Distro --completion-source ) )
-		return 0
-	;;
-	Distro)
-		COMPREPLY=( $( Distro --completion-distro ) )
-		return 0
-	;;
-	Deploy)
-		COMPREPLY=( $( Distro --completion-deploy ) )
-		return 0
-	;;
-	*)
-		COMPREPLY=( $(compgen -c -- "$2") )  # Fallback to normal command completion
-		return 0
-	;;
-	esac
+    # 2) SLOT ≥2 & special-verb? dispatch into its handler
+    case "$verb" in
+      Require)
+        COMPREPLY=( $(Distro --completion-require) )
+        return 0
+        ;;
+      Action)
+        # load ListAllActions on demand
+        Require ListAllActions
+        local out
+        out=$(ListAllActions --completion)
+        if [ -z "$cur" ]; then
+            COMPREPLY=( $(
+              printf '%s\n' "$out" |
+              sed 's!/.*!/!' |
+              sort -u
+            ) )
+        else
+            COMPREPLY=( $(
+              printf '%s\n' "$out" |
+              grep "^$cur" |
+              sort -u
+            ) )
+        fi
+        return 0
+        ;;
+      Source)
+        COMPREPLY=( $(Distro --completion-source) )
+        return 0
+        ;;
+      Distro)
+        COMPREPLY=( $(Distro --completion-distro) )
+        return 0
+        ;;
+      Deploy)
+        COMPREPLY=( $(Distro --completion-deploy) )
+        return 0
+        ;;
+    esac
 
-	COMPREPLY=( $(compgen -W "$FUNCTIONS" -- "$cur") )
-	return 0
-fi
+    # 3) FALLBACK for everything else: commands + files, minus the root verbs
+    COMPREPLY=()
+    for suggestion in $(compgen -c -- "$cur") $(compgen -f -- "$cur"); do
+        case " $roots " in
+          *" $suggestion "*) continue ;;  # skip if it’s one of your roots
+        esac
+        COMPREPLY+=("$suggestion")
+    done
 
-# If not recognized, fallback to default Bash completion
-if type compopt >/dev/null 2>&1; then
-    compopt -o default
-	return 0
-fi
-
-  local cur funcs cmds all
-
-  # current word to complete
-  cur=${COMP_WORDS[COMP_CWORD]}
-
-  # 1) prefix-match functions
-  mapfile -t funcs < <(compgen -A function -- "$cur")
-
-  # 2) prefix-match commands (built-ins, functions, executables in $PATH)
-  mapfile -t cmds  < <(compgen -A command  -- "$cur")
-
-  # merge them
-  all=( "${funcs[@]}" "${cmds[@]}" )
-
-  # 3) if no prefix matches, do a substring search
-  if [ ${#all[@]} -eq 0 ]; then
-    mapfile -t funcs < <(compgen -A function)
-    mapfile -t cmds  < <(compgen -A command)
-    all=( $(printf '%s\n' "${funcs[@]}" "${cmds[@]}" | grep -- "$cur") )
-  fi
-
-  # 4) dedupe & sort, then assign to COMPREPLY
-  COMPREPLY=( $(printf '%s\n' "${all[@]}" | sort -u) )
-
+    return 0
