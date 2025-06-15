@@ -1,71 +1,85 @@
 #!/usr/bin/env bash
 # ^^^ for syntax checking in the editor only
 
-    # — grab the words we need
-    local cur verb roots_list roots suggestion
-    cur=${COMP_WORDS[COMP_CWORD]}      # the word under the cursor
-    verb=${COMP_WORDS[1]}              # the first arg (your sub‐command)
+    #— pulled from inside your complete -F … function body
 
-    # — define all the candidates, then filter only actually‐defined functions
-    roots_list="Require Action Source Distro Deploy"
-    roots=""
-    for r in $roots_list; do
-        [ "$(type -t "$r")" = function ] && roots="$roots $r"
+    local cur root cmd verbs_list verbs functions list suggestion filtered
+
+    cmd=${COMP_WORDS[0]}             # e.g. “Distro”
+    root=${COMP_WORDS[1]}            # first arg (your sub-command)
+    cur=${COMP_WORDS[COMP_CWORD]}    # token under the cursor
+
+    #— which of these are actual functions in this session?
+    verbs_list="Require Action Source Distro Deploy"
+    verbs=""
+    for v in $verbs_list; do
+        [ "$(type -t "$v")" = function ] && verbs="$verbs $v"
     done
 
-    # 1) SLOT 1 (COMP_CWORD==1): offer exactly those roots
+    #— SLOT 1: first word of the command
     if [ "$COMP_CWORD" -eq 1 ]; then
-        COMPREPLY=( $(compgen -W "$roots" -- "$cur") )
+        if [ -z "$cur" ]; then
+            # empty prefix → only show your root verbs
+            COMPREPLY=( $(compgen -W "$verbs" -- "") )
+        else
+            # non-empty → show *all* functions + commands matching prefix
+            COMPREPLY=( \
+              $(compgen -A function -- "$cur") \
+              $(compgen -c           -- "$cur") \
+            )
+        fi
+        # dedupe & sort
+        COMPREPLY=( $(printf '%s\n' "${COMPREPLY[@]}" | sort -u) )
         return 0
     fi
 
-    # 2) SLOT ≥2 & special-verb? dispatch into its handler
-    case "$verb" in
+    #— SLOT 2+: if the first word was a root verb, handle it specially
+    case "$root" in
       Require)
-        COMPREPLY=( $(Distro --completion-require) )
+        list=$(Distro --completion-require)
+        COMPREPLY=( $(compgen -W "$list" -- "$cur") )
         return 0
         ;;
       Action)
-        # load ListAllActions on demand
         Require ListAllActions
-        local out
-        out=$(ListAllActions --completion)
-        if [ -z "$cur" ]; then
-            COMPREPLY=( $(
-              printf '%s\n' "$out" |
-              sed 's!/.*!/!' |
-              sort -u
-            ) )
-        else
-            COMPREPLY=( $(
-              printf '%s\n' "$out" |
-              grep "^$cur" |
-              sort -u
-            ) )
-        fi
+        list=$(ListAllActions --completion)
+        COMPREPLY=( $(
+          printf '%s\n' "$list" |
+            sed 's!/.*!/!'    |
+            grep "^$cur"     |
+            sort -u
+        ) )
         return 0
         ;;
       Source)
-        COMPREPLY=( $(Distro --completion-source) )
+        list=$(Distro --completion-source)
+        COMPREPLY=( $(compgen -W "$list" -- "$cur") )
         return 0
         ;;
       Distro)
-        COMPREPLY=( $(Distro --completion-distro) )
+        list=$(Distro --completion-distro)
+        COMPREPLY=( $(compgen -W "$list" -- "$cur") )
         return 0
         ;;
       Deploy)
-        COMPREPLY=( $(Distro --completion-deploy) )
+        list=$(Distro --completion-deploy)
+        COMPREPLY=( $(compgen -W "$list" -- "$cur") )
         return 0
         ;;
     esac
 
-    # 3) FALLBACK for everything else: commands + files, minus the root verbs
-    COMPREPLY=()
-    for suggestion in $(compgen -c -- "$cur") $(compgen -f -- "$cur"); do
-        case " $roots " in
-          *" $suggestion "*) continue ;;  # skip if it’s one of your roots
+    #— FALLBACK: deeper slots or non-root first word → commands + files,
+    #  but strip out your root verbs so they never reappear
+    COMPREPLY=( \
+      $(compgen -c -- "$cur") \
+      $(compgen -f -- "$cur") \
+    )
+    filtered=()
+    for suggestion in "${COMPREPLY[@]}"; do
+        case " $verbs " in
+          *" $suggestion "*) continue ;;  # drop any root verb
         esac
-        COMPREPLY+=("$suggestion")
+        filtered+=("$suggestion")
     done
-
+    COMPREPLY=( "${filtered[@]}" )
     return 0
