@@ -6,15 +6,15 @@
 if [ -z "$1" ] || [ "$1" = "--run-from-detect" ] ; then
 	if [ ! -z "$MDLC_OPTION" ] ; then
 		set -- "$MDLC_OPTION"
-	elif [ -f "$MMDAPP/source/myx/myx.distro-system/sh-lib/DistroSystemContext.include" ] ; then
+	elif [ -f "$MMDAPP/source/myx/myx.distro-system/sh-lib/SystemContext.include" ] ; then
 		set -- "--run-from-source"
-	elif [ -f "$MMDAPP/.local/myx/myx.distro-system/sh-lib/DistroSystemContext.include" ] ; then
+	elif [ -f "$MMDAPP/.local/myx/myx.distro-system/sh-lib/SystemContext.include" ] ; then
 		set -- "--run-from-.local"
 	else
 		echo "⛔ ERROR: Context.SetInputSpec: --run-from-detect can't find/detect origin" >&2
 		exit 1
 	fi
-elif [ "$1" = "--run-from-source" ] && [ ! -f "$MMDAPP/source/myx/myx.distro-system/sh-lib/DistroSystemContext.include" ] ; then
+elif [ "$1" = "--run-from-source" ] && [ ! -f "$MMDAPP/source/myx/myx.distro-system/sh-lib/SystemContext.include" ] ; then
 	echo "🙋 WARNING: Context.SetInputSpec: $1 requested but source is not available, defaulting to --run-from-local" >&2
 	set -- "--run-from-.local"
 fi

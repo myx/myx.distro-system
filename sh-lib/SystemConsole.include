@@ -3,7 +3,7 @@
 
 case "$1" in 
 	--completion-*)
-		. "$MDSC_ORIGIN/myx/myx.distro-system/sh-lib/DistroConsole.CompletionCommands.include"
+		. "$MDSC_ORIGIN/myx/myx.distro-system/sh-lib/SystemConsole.CompletionCommands.include"
 		set +e ; return 1
 	;;
 	''|--help)
