@@ -27,7 +27,7 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 				if \
 					[ -n "$MDLT_ORIGIN" ] && [ -n "$MDLT_OPTION" ] \
 					&& \
-					[ -n "$MDSC_OPTION" ] && [ -n "$MDSC_ORIGIN" ] && [ -n "$MDSC_INMODE" ] \
+					[ -n "$MDSC_OPTION" ] && [ -n "$MDSC_INMODE" ] \
 				; then
 					return 0
 				fi

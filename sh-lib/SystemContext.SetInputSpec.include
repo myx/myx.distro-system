@@ -59,7 +59,7 @@ esac
 
 case "$1" in
 	--distro-path-auto)
-		if [ -n "$MDSC_OPTION" ] && [ -n "$MDSC_ORIGIN" ] && [ -n "$MDSC_INMODE" ] ; then
+		if [ -n "$MDSC_OPTION" ] && [ -n "$MDSC_INMODE" ] ; then
 			# vars seem to be set...
 			return 0
 		fi
