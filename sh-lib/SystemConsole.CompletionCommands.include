@@ -55,13 +55,13 @@ case "$1" in
 		( 
 			MDPATH=""
 			for ITEM in ".local" "system" "deploy" "source" "remote" ; do
-				if [ -d "$MDSC_ORIGIN/myx/myx.distro-$ITEM/sh-scripts" ] ; then
-					MDPATH+=" $MDSC_ORIGIN/myx/myx.distro-$ITEM/sh-scripts"
+				if [ -d "$MDLT_ORIGIN/myx/myx.distro-$ITEM/sh-scripts" ] ; then
+					MDPATH+=" $MDLT_ORIGIN/myx/myx.distro-$ITEM/sh-scripts"
 				fi
 			done
 
 			find $MDPATH -type 'f' -name '*.sh' \
-			| sed -E "s:^$MDSC_ORIGIN/myx/myx.distro-(.local|system|deploy|source|remote)/sh-scripts/::g" \
+			| sed -E "s:^$MDLT_ORIGIN/myx/myx.distro-(.local|system|deploy|source|remote)/sh-scripts/::g" \
 			| sort
 		)
 		return 0

@@ -3,12 +3,12 @@
 
 case "$1" in 
 	--completion-*)
-		. "$MDSC_ORIGIN/myx/myx.distro-system/sh-lib/SystemConsole.CompletionCommands.include"
+		. "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/SystemConsole.CompletionCommands.include"
 		set +e ; return 1
 	;;
 	''|--help)
 		shift
-		( . "$MDSC_ORIGIN/myx/myx.distro-system/sh-lib/Help.ConsoleDistro.include" )
+		( . "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/Help.ConsoleDistro.include" )
 		set +e ; return 1
 	;;
 	*)

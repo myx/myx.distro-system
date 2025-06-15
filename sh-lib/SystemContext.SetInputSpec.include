@@ -4,64 +4,134 @@
 : "${MMDAPP:?⛔ ERROR: MMDAPP is not set}"
 
 case "$1" in
-	''|--run-from-detect|--init-variables)
-		if [ -n "$MDLC_OPTION" ] ; then
-			set -- "$MDLC_OPTION"
+	
+	''|--run-from-detect|--init-variables|--distro-*)
+		if [ -n "$MDLT_OPTION" ] && [ -n "$MDLT_ORIGIN" ] ; then
+			:
 		elif [ -f "$MMDAPP/source/myx/myx.distro-system/sh-lib/SystemContext.include" ] ; then
-			set -- "--run-from-source"
+			export MDLT_ORIGIN="$MMDAPP/source"
+			export MDLC_INMODE="source"
+			export MDLT_OPTION="--run-from-source"
 		elif [ -f "$MMDAPP/.local/myx/myx.distro-system/sh-lib/SystemContext.include" ] ; then
-			set -- "--run-from-.local"
+			export MDLT_ORIGIN="$MMDAPP/.local"
+			export MDLC_INMODE=".local"
+			export MDLT_OPTION="--run-from-.local"
 		else
 			echo "⛔ ERROR: Context.SetInputSpec: ${1:---run-from-detect} can't find/detect origin" >&2
 			exit 1
 		fi
+		set -- "--distro-path-auto"
 	;;
 	--run-from-path)
 		if [ -n "$2" ] && [ -f "$2/myx/myx.distro-system/sh-lib/SystemContext.include" ] ; then
 			export MDLT_ORIGIN="$2"
 			export MDSC_INMODE="extern"
 			export MDSC_OPTION="--run-from-path $2"
-
-			echo "LocalContext.SetInputSpec: mode: $MDSC_INMODE, spec: $MDSC_OPTION, origin: $MDLT_ORIGIN" >&2
-			return 0
+		else
+			echo "🙋 WARNING: Context.SetInputSpec: $1 requested but source is not available at '$2', defaulting to --run-from-.local" >&2
+			export MDLT_ORIGIN="$MMDAPP/.local"
+			export MDLC_INMODE=".local"
+			export MDLT_OPTION="--run-from-.local"
 		fi
-		echo "🙋 WARNING: Context.SetInputSpec: $1 requested but source is not available at '$2', defaulting to --run-from-.local" >&2
-		set -- "--run-from-.local"
+		set -- "--distro-path-auto"
 	;;
 	--run-from-source)
 		if [ ! -f "$MMDAPP/source/myx/myx.distro-system/sh-lib/SystemContext.include" ] ; then
 			echo "🙋 WARNING: Context.SetInputSpec: $1 requested but source is not available, defaulting to --run-from-local" >&2
-			set -- "--run-from-.local"
+			export MDLT_ORIGIN="$MMDAPP/.local"
+			export MDLC_INMODE=".local"
+			export MDLT_OPTION="--run-from-.local"
+		else
+			export MDLT_ORIGIN="$MMDAPP/source"
+			export MDLC_INMODE="source"
+			export MDLT_OPTION="--run-from-source"
+		fi
+		set -- "--distro-path-auto"
+	;;
+esac
+
+case "$1" in
+	--distro-path-auto)
+		if [ -n "$MDSC_OPTION" ] && [ -n "$MDSC_ORIGIN" ] && [ -n "$MDSC_INMODE" ] && [ -n "$MDSC_SOURCE" ] ; then
+			# vars seem to be set...
+			return 0
+		fi
+		if [ -n "$MDSC_OPTION" ] ; then
+			set -- "$MDSC_OPTION"
+		elif [ -d "$MMDAPP/source/" ] && [ -d "$MMDAPP/cached" ] ; then
+			if [ -d "$MMDAPP/output/" ] ; then
+				set -- "--distro-from-output"
+			else
+				set -- "--distro-from-cached"
+			fi
+		elif [ -d "$MMDAPP/source/" ] ; then
+			set -- "--distro-from-source"
+		elif [ -d "$MMDAPP/distro/" ] ; then
+			set -- "--distro-from-distro"
+		else
+			echo "⛔ ERROR: DistroShellContext.SetInputSpec: can't detect proper input source" >&2
+			exit 1
 		fi
 	;;
 esac
 
 if [ "$adpcChangeSpec" = "true" ] ; then
-	: "${1:?⛔ ERROR: Context.SetInputSpec: inputSpec argument is required}"
+	: "${1:?⛔ ERROR: SystemContext.SetInputSpec: inputSpec argument is required}"
 	if ! DistroSystemContext --is-spec-option "$1" ; then
-		echo "⛔ ERROR: Context.SetInputSpec: inputSpec argument is invalid: $1" >&2
+		echo "⛔ ERROR: SystemContext.SetInputSpec: inputSpec argument is invalid: $1" >&2
 		exit 1
 	fi
+	local previousSpec="$MDSC_OPTION"
 fi
 
 case "$1" in
-	--run-from-.local)
-		MDLT_ORIGIN="$MMDAPP/.local"
-		MDLC_OPTION="--run-from-.local"
+	--distro-source-only)
+		MDSC_SOURCE="$MMDAPP/source"
+		MDSC_CACHED=""
+		MDSC_OUTPUT=""
+		MDSC_INMODE="source"
+		MDSC_OPTION="--distro-source-only"
 	;;
-	--run-from-source)
-		MDLT_ORIGIN="$MMDAPP/source"
-		MDLC_OPTION="--run-from-source"
+	--distro-from-source)
+		MDSC_SOURCE="$MMDAPP/source"
+		MDSC_CACHED="$MMDAPP/cached/enhance"
+		MDSC_OUTPUT="$MMDAPP/cached/sources"
+		MDSC_INMODE="source"
+		MDSC_OPTION="--distro-from-source"
+	;;
+	--distro-from-cached)
+		MDSC_SOURCE="$MMDAPP/cached/sources"
+		MDSC_CACHED="$MMDAPP/cached/enhance"
+		MDSC_OUTPUT="$MMDAPP/output/cached"
+		MDSC_INMODE="source"
+		MDSC_OPTION="--distro-from-cached"
+	;;
+	--distro-from-output)
+		MDSC_SOURCE="$MMDAPP/output/distro"
+		MDSC_CACHED="$MMDAPP/output/cached"
+		MDSC_OUTPUT="$MMDAPP/output/distro"
+		MDSC_INMODE="deploy"
+		MDSC_OPTION="--distro-from-output"
+	;;
+	--distro-from-distro)
+		MDSC_SOURCE="$MMDAPP/distro"
+		MDSC_CACHED="$MMDAPP/output/cached"
+		MDSC_OUTPUT="$MMDAPP/output/distro"
+		MDSC_INMODE="deploy"
+		MDSC_OPTION="--distro-from-distro"
 	;;
 	*)
-		echo "⛔ ERROR: Context.SetInputSpec: Invalid input spec: $1" >&2
+		echo "⛔ ERROR: DistroShellContext.SetInputSpec: Invalid input spec: $1" >&2
 		exit 1
 	;;
 esac
 
-if [ -z "${previousSpec:-$MDLC_OPTION}" ] || [ "$previousSpec" != "$MDLC_OPTION" ] ; then
-	export MDLT_ORIGIN
-	export MDLC_OPTION
+if [ -z "${previousSpec:-$MDSC_OPTION}" ] || [ "$previousSpec" != "$MDSC_OPTION" ] ; then
+	export MDSC_INMODE
+	export MDSC_SOURCE
+	export MDSC_CACHED
+	export MDSC_OUTPUT
+	export MDSC_OPTION
 	
-	echo "Context.SetInputSpec: spec: $MDLC_OPTION" >&2
+	echo "DistroShellContext.SetInputSpec: mode: $MDSC_INMODE, spec: $MDSC_OPTION" >&2
 fi

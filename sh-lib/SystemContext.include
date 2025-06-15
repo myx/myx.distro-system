@@ -24,7 +24,7 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 					local adpcChangeSpec="true"
 			
 					[ -z "$MDSC_DETAIL" ] || echo "DistroSystemContext: input spec: $1" >&2
-					. "$MDSC_ORIGIN/myx/myx.distro-source/sh-lib/SystemContext.SetInputSpec.include"
+					. "$MDLT_ORIGIN/myx/myx.distro-source/sh-lib/SystemContext.SetInputSpec.include"
 					return 0
 				fi
 			;;
@@ -36,7 +36,7 @@ if ! type Require >/dev/null 2>&1 ; then
 	Require(){
 		local distroCommand="$1" ; shift
 		if [ -z "$distroCommand" ] || [ "--help" == "$distroCommand" ] ; then
-			( . "$MDSC_ORIGIN/myx/myx.distro-.local/sh-lib/Help.Require.include" )
+			( . "$MDLT_ORIGIN/myx/myx.distro-.local/sh-lib/Help.Require.include" )
 			set +e ; return 1
 		fi
 		if type "${distroCommand%.fn.sh}" >/dev/null 2>&1 ; then
@@ -45,8 +45,8 @@ if ! type Require >/dev/null 2>&1 ; then
 		
 		local ITEM
 		for ITEM in system .local source deploy remote ; do
-			if [ -f "$MDSC_ORIGIN/myx/myx.distro-$ITEM/sh-scripts/${distroCommand%.fn.sh}.fn.sh" ] ; then
-				. "$MDSC_ORIGIN/myx/myx.distro-$ITEM/sh-scripts/${distroCommand%.fn.sh}.fn.sh"
+			if [ -f "$MDLT_ORIGIN/myx/myx.distro-$ITEM/sh-scripts/${distroCommand%.fn.sh}.fn.sh" ] ; then
+				. "$MDLT_ORIGIN/myx/myx.distro-$ITEM/sh-scripts/${distroCommand%.fn.sh}.fn.sh"
 				return 0
 			fi
 		done
@@ -57,7 +57,7 @@ fi
 if ! type Distro >/dev/null 2>&1 ; then
 	Distro(){
 		if [[ -n "$COMP_LINE" || -n "$COMP_WORDS" ]] && [ "${1#--completion}" = "$1" ]; then
-			. "$MDSC_ORIGIN/myx/myx.distro-system/sh-lib/SystemConsole.CompletionFunction.include"
+			. "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/SystemConsole.CompletionFunction.include"
 			return 0
 		fi
 		case "$1" in
@@ -68,7 +68,7 @@ if ! type Distro >/dev/null 2>&1 ; then
 		esac
 		local distroCommand="$1" ; shift
 		if [ -z "$distroCommand" ] ; then
-			( . "$MDSC_ORIGIN/myx/myx.distro-system/sh-lib/Help.ConsoleDistro.include" )
+			( . "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/Help.ConsoleDistro.include" )
 			set +e ; return 1
 		fi
 		if ! type "${distroCommand%.fn.sh}" >/dev/null 2>&1 ; then
@@ -78,7 +78,7 @@ if ! type Distro >/dev/null 2>&1 ; then
 	}
 fi
 
-if [ -z "$MDSC_ORIGIN" ] || [ "$MDSC_ORIGIN" == "${MDSC_ORIGIN#$MMDAPP/}" ] ; then
+if [ -z "$MDLT_ORIGIN" ] || [ "$MDLT_ORIGIN" == "${MDLT_ORIGIN#$MMDAPP/}" ] ; then
 	export MDSC_DETAIL=""
 	export MDSC_INMODE=""
 	export MDSC_SOURCE=""
@@ -91,12 +91,12 @@ if [ -z "$MDSC_ORIGIN" ] || [ "$MDSC_ORIGIN" == "${MDSC_ORIGIN#$MMDAPP/}" ] ; th
 		&& [ -d "$MMDAPP/source/myx/myx.distro-.local" ] \
 		&& [ -d "$MMDAPP/source/myx/myx.common/os-myx.common" ] \
 	; then
-		export MDSC_ORIGIN="$MMDAPP/source"
+		export MDLT_ORIGIN="$MMDAPP/source"
 	else
-		export MDSC_ORIGIN="${MDLT_ORIGIN:-$MMDAPP/.local}"
+		export MDLT_ORIGIN="${MDLT_ORIGIN:=$MMDAPP/.local}"
 	fi
 	
-	echo "DistroSystemContext: init: $MDSC_ORIGIN" >&2
+	echo "DistroSystemContext: init: $MDLT_ORIGIN" >&2
 fi
 
 while true ; do
@@ -107,7 +107,7 @@ while true ; do
 	fi 
 	if DistroSystemContext --is-spec-option "$1" ; then
 		[ -n "$MDSC_DETAIL" ] && echo "DistroSystemContext: input spec: $1" >&2
-		. "$MDSC_ORIGIN/myx/myx.distro-source/sh-lib/SystemContext.SetInputSpec.include"
+		. "$MDLT_ORIGIN/myx/myx.distro-source/sh-lib/SystemContext.SetInputSpec.include"
 		shift
 		continue
 	fi
