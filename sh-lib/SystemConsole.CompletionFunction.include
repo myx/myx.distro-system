@@ -84,12 +84,11 @@ case "$cmd" in
 	;;
 esac
 
-#── FALLBACK for any deeper slot or non-root CMD:
-#    regular commands + files, but strip out your roots
-# 1) try filename‐mode if supported
-if type compopt >/dev/null 2>&1; then
-	compopt -o filenames 2>/dev/null || :
-fi
+#    if $cur looks like a path, bail out (return 1)
+#    so Bash does its native filename completion perfectly.
+case "$cur" in
+	*/*) return 1 ;;    # hand off to the built-in file completer
+esac
 
 # 2) gather everything bash‐ and file‐wise
 COMPREPLY=( $(compgen -c -- "$cur") $(compgen -f -- "$cur") )
@@ -102,6 +101,11 @@ for cand in "${COMPREPLY[@]}"; do
 	esac
 	filtered+=( "$cand" )
 done
+
+# 3) if exactly one match, tack on a trailing space
+if [ "${#filtered[@]}" -eq 1 ]; then
+  return 1
+fi
 
 COMPREPLY=( "${filtered[@]}" )
 return 0
