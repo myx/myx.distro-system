@@ -27,8 +27,12 @@ fi
 case "$cmd" in
 	Require)
 		list=$(Distro --completion-require)
-		COMPREPLY=( $(compgen -W "$list" -- "$cur") )
-		return 0
+		if [ "$COMP_CWORD" -eq 1 ]; then
+			COMPREPLY=( $(compgen -W "$list" -- "$cur") )
+			return 0
+		fi
+		COMPREPLY=()    # eat the TAB, no suggestions
+		return 1
 	;;
 	Action)
 		# 1) Ensure ListAllActions() is loaded
@@ -54,33 +58,95 @@ case "$cmd" in
 		return 0
 	;;
 	Source)
+		local cur list sub
+
+		# word under cursor
+		cur="${COMP_WORDS[COMP_CWORD]}"
+		# grab the vertical list
 		list=$(Distro --completion-source)
-		COMPREPLY=( $(compgen -W "$list" -- "$cur") )
-		# only “consume” if we found matches or there's no input yet
-		if [ ${#COMPREPLY[@]} -gt 0 ] || [ -z "$cur" ]; then
+
+		# 1) 2nd token in flight? offer sub-commands
+		if [ "$COMP_CWORD" -eq 1 ]; then
+			COMPREPLY=( $(compgen -W "$list" -- "$cur") )
 			return 0
 		fi
-		# otherwise fall through so default/file-name completion can fire	
-	;;
+
+		# 2) 3rd token TAB with empty cur? exact-match → help
+		if [ "$COMP_CWORD" -eq 2 ] && [ -z "$cur" ]; then
+			# grep -F = fixed string; -x = whole line; -q = quiet
+			if printf '%s\n' "$list" | grep -Fxq -- "${COMP_WORDS[1]}"; then
+				printf "\r\n\r\n%s\r\n\r\n >>> \$ %s" \
+				"$( ( Source "${COMP_WORDS[1]}" --help ) 2>&1 )" \
+				"${COMP_WORDS[*]}"
+				>&2
+			fi
+			COMPREPLY=()    # eat the TAB, no suggestions
+			return 1
+		fi
+		# 3) otherwise fall through to your manual default+filenames
+    ;;
 	Distro)
+		local cur list sub
+
+		# word under cursor
+		cur="${COMP_WORDS[COMP_CWORD]}"
+		# grab the vertical list
 		list=$(Distro --completion-distro)
-		COMPREPLY=( $(compgen -W "$list" -- "$cur") )
-		# only “consume” if we found matches or there's no input yet
-		if [ ${#COMPREPLY[@]} -gt 0 ] || [ -z "$cur" ]; then
+
+		# 1) 2nd token in flight? offer sub-commands
+		if [ "$COMP_CWORD" -eq 1 ]; then
+			COMPREPLY=( $(compgen -W "$list" -- "$cur") )
 			return 0
+		fi
+
+		# 2) 3rd token TAB with empty cur? exact-match → help
+		if [ "$COMP_CWORD" -eq 2 ] && [ -z "$cur" ]; then
+			# grep -F = fixed string; -x = whole line; -q = quiet
+			if printf '%s\n' "$list" | grep -Fxq -- "${COMP_WORDS[1]}"; then
+				printf "\r\n\r\n%s\r\n\r\n >>> \$ %s" \
+				"$( ( Distro --completion-ignore "${COMP_WORDS[1]}" --help ) 2>&1 )" \
+				"${COMP_WORDS[*]}"
+				>&2
+			fi
+			COMPREPLY=()    # eat the TAB, no suggestions
+			return 1
 		fi
 		# otherwise fall through so default/file-name completion can fire	
 	;;
 	Deploy)
+		local cur list sub
+
+		# word under cursor
+		cur="${COMP_WORDS[COMP_CWORD]}"
+		# grab the vertical list
 		list=$(Distro --completion-deploy)
-		COMPREPLY=( $(compgen -W "$list" -- "$cur") )
-		# only “consume” if we found matches or there's no input yet
-		if [ ${#COMPREPLY[@]} -gt 0 ] || [ -z "$cur" ]; then
+
+		# 1) 2nd token in flight? offer sub-commands
+		if [ "$COMP_CWORD" -eq 1 ]; then
+			COMPREPLY=( $(compgen -W "$list" -- "$cur") )
 			return 0
+		fi
+
+		# 2) 3rd token TAB with empty cur? exact-match → help
+		if [ "$COMP_CWORD" -eq 2 ] && [ -z "$cur" ]; then
+			# grep -F = fixed string; -x = whole line; -q = quiet
+			if printf '%s\n' "$list" | grep -Fxq -- "${COMP_WORDS[1]}"; then
+				printf "\r\n\r\n%s\r\n\r\n >>> \$ %s" \
+				"$( ( Deploy "${COMP_WORDS[1]}" --help ) 2>&1 )" \
+				"${COMP_WORDS[*]}"
+				>&2
+			fi
+			COMPREPLY=()    # eat the TAB, no suggestions
+			return 1
 		fi
 		# otherwise fall through so default/file-name completion can fire	
 	;;
 esac
+
+
+COMPREPLY=( $(compgen -c -- "$cur") $(compgen -f -- "$cur") )
+return 0
+
 
 #    if $cur looks like a path, bail out (return 1)
 #    so Bash does its native filename completion perfectly.
