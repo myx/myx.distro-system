@@ -15,14 +15,12 @@ for v in $roots_list; do
 done
 
 #── SLOT 1: only if the invoked CMD is NOT itself a root
-if [ "$COMP_CWORD" -eq 1 ] && ! printf '%s\n' $roots | grep -qx "$cmd" ; then
-	if [ -z "$cur" ] ; then
-		# no prefix yet → only your roots
-		COMPREPLY=( $(compgen -W "$roots" -- "") )
-		# dedupe & sort
-		COMPREPLY=( $(printf '%s\n' "${COMPREPLY[@]}" | sort -u) )
-		return 0
-	fi
+if [ -z "$cmd" ] || [ "$COMP_CWORD" -eq 1 ] && ! printf '%s\n' $roots | grep -qx "$cmd" ; then
+	# no prefix yet → only your roots
+	COMPREPLY=( $(compgen -W "$roots" -- "") )
+	# dedupe & sort
+	COMPREPLY=( $(printf '%s\n' "${COMPREPLY[@]}" | sort -u) )
+	return 0
 fi
 
 #── SLOT 2+: if the first word IS one of your roots, dispatch
