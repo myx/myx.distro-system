@@ -58,38 +58,55 @@ case "$cmd" in
 		return 0
 	;;
 	Source)
-		local cur list sub
+		local list
 
-		# word under cursor
-		cur="${COMP_WORDS[COMP_CWORD]}"
 		# grab the vertical list
 		list=$(Distro --completion-source)
 
-		# 1) 2nd token in flight? offer sub-commands
+		# 2nd token? complete the subcommands…
 		if [ "$COMP_CWORD" -eq 1 ]; then
 			COMPREPLY=( $(compgen -W "$list" -- "$cur") )
 			return 0
 		fi
 
-		# 2) 3rd token TAB with empty cur? exact-match → help
-		if [ "$COMP_CWORD" -eq 2 ] && [ -z "$cur" ]; then
-			# grep -F = fixed string; -x = whole line; -q = quiet
-			if printf '%s\n' "$list" | grep -Fxq -- "${COMP_WORDS[1]}"; then
-				printf "\r\n\r\n%s\r\n\r\n >>> \$ %s" \
-				"$( ( Source "${COMP_WORDS[1]}" --help ) 2>&1 )" \
-				"${COMP_WORDS[*]}"
-				>&2
-			fi
+		# 3rd-token TAB right after a valid subcommand?
+		if [ "$COMP_CWORD" -eq 2 ] && [ -z "$cur" ] ; then
 			COMPREPLY=()    # eat the TAB, no suggestions
-			return 1
+			# grep -F = fixed string; -x = whole line; -q = quiet
+			if printf '%s\n' "$list" | grep -Fxq -- "$sub"; then
+				# clear out all COMP_* so no accidental recursion
+				(
+					COMP_CWORD= COMP_WORDS=
+
+					echo >&2
+					Source "$sub" --help 1>&2 || true
+					echo >&2
+
+					local CONSOLE_PROMPT
+					CONSOLE_PROMPT="$( \
+						echo ': ::prompt-check::' | ( \
+							env PS1="$( \
+								eval "printf '%b' \"$PS1\"" \
+							)" bash --noprofile --norc -i -s 2>&1 \
+						) \
+						| fgrep ': ::prompt-check::' \
+						| head -n1 \
+						| sed 's|: ::prompt-check::.*$||' \
+					)"
+
+					# redraw prompt + the unfinished line
+					printf '\r\n%b%s' "$CONSOLE_PROMPT" "$COMP_LINE" >&2
+				)
+				
+				return 1
+			fi
+			return 0
 		fi
 		# 3) otherwise fall through to your manual default+filenames
     ;;
 	Distro)
-		local cur list sub
+		local list
 
-		# word under cursor
-		cur="${COMP_WORDS[COMP_CWORD]}"
 		# grab the vertical list
 		list=$(Distro --completion-distro)
 
@@ -102,9 +119,9 @@ case "$cmd" in
 		# 2) 3rd token TAB with empty cur? exact-match → help
 		if [ "$COMP_CWORD" -eq 2 ] && [ -z "$cur" ]; then
 			# grep -F = fixed string; -x = whole line; -q = quiet
-			if printf '%s\n' "$list" | grep -Fxq -- "${COMP_WORDS[1]}"; then
+			if printf '%s\n' "$list" | grep -Fxq -- "$sub"; then
 				printf "\r\n\r\n%s\r\n\r\n >>> \$ %s" \
-				"$( ( Distro --completion-ignore "${COMP_WORDS[1]}" --help ) 2>&1 )" \
+				"$( ( COMP_WORDS="" ; Distro --completion-ignore "$sub" --help ) 2>&1 )" \
 				"${COMP_WORDS[*]}"
 				>&2
 			fi
@@ -114,10 +131,8 @@ case "$cmd" in
 		# otherwise fall through so default/file-name completion can fire	
 	;;
 	Deploy)
-		local cur list sub
+		local list
 
-		# word under cursor
-		cur="${COMP_WORDS[COMP_CWORD]}"
 		# grab the vertical list
 		list=$(Distro --completion-deploy)
 
@@ -130,9 +145,9 @@ case "$cmd" in
 		# 2) 3rd token TAB with empty cur? exact-match → help
 		if [ "$COMP_CWORD" -eq 2 ] && [ -z "$cur" ]; then
 			# grep -F = fixed string; -x = whole line; -q = quiet
-			if printf '%s\n' "$list" | grep -Fxq -- "${COMP_WORDS[1]}"; then
+			if printf '%s\n' "$list" | grep -Fxq -- "$sub"; then
 				printf "\r\n\r\n%s\r\n\r\n >>> \$ %s" \
-				"$( ( Deploy "${COMP_WORDS[1]}" --help ) 2>&1 )" \
+				"$( ( COMP_WORDS="" ; Deploy "$sub" --help ) 2>&1 )" \
 				"${COMP_WORDS[*]}"
 				>&2
 			fi
