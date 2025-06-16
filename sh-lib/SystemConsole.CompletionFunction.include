@@ -100,15 +100,7 @@ for cand in "${COMPREPLY[@]}"; do
 	case " $roots " in
 	*" $cand "*) continue ;;
 	esac
-	# if it's a real dir, make sure it ends with “/”
-	if [ -d "$cand" ]; then
-	case "$cand" in
-		*/) filtered+=( "$cand" ) ;;
-		*)  filtered+=( "$cand/" ) ;;
-	esac
-	else
 	filtered+=( "$cand" )
-	fi
 done
 
 COMPREPLY=( "${filtered[@]}" )
