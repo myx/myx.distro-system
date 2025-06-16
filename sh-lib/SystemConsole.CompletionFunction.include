@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
 # ^^^ for syntax checking in the editor only
 
+set -x
+
 local cmd sub cur roots_list roots list suggestion filtered
 
-cmd=${COMP_WORDS[0]}            # the command you invoked
-sub=${COMP_WORDS[1]}            # the 1st argument (if any)
-cur=${COMP_WORDS[COMP_CWORD]}   # what’s under the cursor
+cmd="${COMP_WORDS[0]}"            # the command you invoked
+sub="${COMP_WORDS[1]}"            # the 1st argument (if any)
+cur="${COMP_WORDS[COMP_CWORD]}"   # what’s under the cursor
 
 #── build the true “root verbs” list
 roots_list="Require Action Source Distro Deploy"
@@ -40,7 +42,7 @@ case "$cmd" in
 	COMPREPLY=( $(compgen -W "$list" -- "$cur") )
 	return 0
 	;;
-Action)
+	Action)
 	# 1) Ensure ListAllActions() is loaded
 	Require ListAllActions
 
@@ -81,36 +83,66 @@ Action)
 esac
 
 #── FALLBACK for any deeper slot or non-root CMD:
-#    regular commands + files, strip out your roots.
-#    Try `compopt -o filenames` if available, else manually add slashes.
-
-# 1) If compopt exists, ask Bash to treat completions as filenames:
-if type compopt &>/dev/null; then
-  compopt -o filenames 2>/dev/null
-  manual_dir_slash=false
-else
-  manual_dir_slash=true
+#    regular commands + files, but strip out your roots
+# 1) try filename‐mode if supported
+if type compopt >/dev/null 2>&1; then
+	compopt -o filenames 2>/dev/null || :
 fi
 
-# 2) Gather commands + file paths
+# 2) gather everything bash‐ and file‐wise
 COMPREPLY=( $(compgen -c -- "$cur") $(compgen -f -- "$cur") )
-
-# 3) Filter out your “roots” and, if needed, append “/” to directories
+echo ">>>> $COMPREPLY" >&2
+# 3) filter & append slashes in one loop
 filtered=()
-for suggestion in "${COMPREPLY[@]}"; do
-  # skip any of the “root” words
-  case " $roots " in
-    *" $suggestion "*) continue ;;
-  esac
-
-  if $manual_dir_slash; then
-    # if it’s an existing directory, add a trailing slash
-    [ -d "$suggestion" ] && suggestion="$suggestion/"
-  fi
-
-  filtered+=("$suggestion")
+for cand in "${COMPREPLY[@]}"; do
+	# drop any “root” words
+	case " $roots " in
+	*" $cand "*) continue ;;
+	esac
+	# if it's a real dir, make sure it ends with “/”
+	if [ -d "$cand" ]; then
+	case "$cand" in
+		*/) filtered+=( "$cand" ) ;;
+		*)  filtered+=( "$cand/" ) ;;
+	esac
+	else
+	filtered+=( "$cand" )
+	fi
 done
 
-# 4) Return filtered list
+COMPREPLY=( "${filtered[@]}" )
+return 0
+	
+#── FALLBACK for any deeper slot or non-root CMD:
+#    regular commands + files, but strip out your roots.
+#    Try compopt; always append “/” on actual dirs.
+
+# 1) Enable filename mode if possible (Bash 4+):
+if type compopt >/dev/null 2>&1; then
+  compopt -o filenames 2>/dev/null || :
+fi
+
+# 2) Pull in all commands + file paths
+COMPREPLY=( $(compgen -c -- "$cur") $(compgen -f -- "$cur") )
+
+# 3) Post-process: every entry that names a real directory gets a trailing “/”
+for i in "${!COMPREPLY[@]}"; do
+  cand=${COMPREPLY[i]}
+  # skip empty or commands
+  [ -d "$cand" ] || continue
+  case "$cand" in
+    */) ;;               # already has slash
+    *) COMPREPLY[i]="$cand/";;
+  esac
+done
+
+# 4) Strip out any “roots” you don’t want re-listed
+filtered=()
+for suggestion in "${COMPREPLY[@]}"; do
+  case " $roots " in
+    *" $suggestion "*) continue;;
+  esac
+  filtered+=( "$suggestion" )
+done
 COMPREPLY=( "${filtered[@]}" )
 return 0
