@@ -1,94 +1,116 @@
 #!/usr/bin/env bash
 # ^^^ for syntax checking in the editor only
 
-    local cmd sub cur roots_list roots list suggestion filtered
+local cmd sub cur roots_list roots list suggestion filtered
 
-    cmd=${COMP_WORDS[0]}            # the command you invoked
-    sub=${COMP_WORDS[1]}            # the 1st argument (if any)
-    cur=${COMP_WORDS[COMP_CWORD]}   # what’s under the cursor
+cmd=${COMP_WORDS[0]}            # the command you invoked
+sub=${COMP_WORDS[1]}            # the 1st argument (if any)
+cur=${COMP_WORDS[COMP_CWORD]}   # what’s under the cursor
 
-    #── build the true “root verbs” list
-    roots_list="Require Action Source Distro Deploy"
-    roots=""
-    for v in $roots_list; do
-      [ "$(type -t "$v")" = function ] && roots="$roots $v"
-    done
+#── build the true “root verbs” list
+roots_list="Require Action Source Distro Deploy"
+roots=""
+for v in $roots_list; do
+	[ "$(type -t "$v")" = function ] && roots="$roots $v"
+done
 
-    #── SLOT 1: only if the invoked CMD is NOT itself a root
-    if [ "$COMP_CWORD" -eq 1 ] \
-       && ! printf '%s\n' $roots | grep -qx "$cmd"
-    then
-        if [ -z "$cur" ]; then
-            # no prefix yet → only your roots
-            COMPREPLY=( $(compgen -W "$roots" -- "") )
-        else
-            # user typed some prefix → roots + system commands
-            COMPREPLY=( \
-              $(compgen -W "$roots" -- "$cur") \
-              $(compgen -c   -- "$cur") \
-            )
-        fi
-        # dedupe & sort
-        COMPREPLY=( $(printf '%s\n' "${COMPREPLY[@]}" | sort -u) )
-        return 0
-    fi
+#── SLOT 1: only if the invoked CMD is NOT itself a root
+if [ "$COMP_CWORD" -eq 1 ] \
+	&& ! printf '%s\n' $roots | grep -qx "$cmd"
+then
+	if [ -z "$cur" ]; then
+		# no prefix yet → only your roots
+		COMPREPLY=( $(compgen -W "$roots" -- "") )
+	else
+		# user typed some prefix → roots + system commands
+		COMPREPLY=( \
+			$(compgen -W "$roots" -- "$cur") \
+			$(compgen -c   -- "$cur") \
+		)
+	fi
+	# dedupe & sort
+	COMPREPLY=( $(printf '%s\n' "${COMPREPLY[@]}" | sort -u) )
+	return 0
+fi
 
-    #── SLOT 2+: if the first word IS one of your roots, dispatch
-    case "$cmd" in
-      Require)
-        list=$(Distro --completion-require)
-        COMPREPLY=( $(compgen -W "$list" -- "$cur") )
-        return 0
-        ;;
-    Action)
-        # 1) Ensure ListAllActions() is loaded
-        Require ListAllActions
+#── SLOT 2+: if the first word IS one of your roots, dispatch
+case "$cmd" in
+	Require)
+	list=$(Distro --completion-require)
+	COMPREPLY=( $(compgen -W "$list" -- "$cur") )
+	return 0
+	;;
+Action)
+	# 1) Ensure ListAllActions() is loaded
+	Require ListAllActions
 
-        # 2) Grab the full “name[/path/…]” list
-        local out suggestions
-        out=$(ListAllActions --completion)
+	# 2) Grab the full “name[/path/…]” list
+	local out suggestions
+	out=$(ListAllActions --completion)
 
-        # 3) If there’s already a slash in $cur → do full‐path completion
-        if [[ "$cur" == */* ]]; then
-            suggestions=( $( compgen -W "$out" -- "$cur" ) )
-        else
-			suggestions=( $( \
-				printf '%s\n' "$out" | sed 's!/.*!/!' | sort -u | grep "$cur" \
-			) )
-			# prevent bash from appending a space after a match
-            type compopt &>/dev/null && compopt -o nospace
-        fi
+	# 3) If there’s already a slash in $cur → do full‐path completion
+	if [[ "$cur" == */* ]]; then
+		suggestions=( $( compgen -W "$out" -- "$cur" ) )
+	else
+		suggestions=( $( \
+			printf '%s\n' "$out" | sed 's!/.*!/!' | sort -u | grep "$cur" \
+		) )
+		# prevent bash from appending a space after a match
+		type compopt &>/dev/null && compopt -o nospace
+	fi
 
-        # 6) Return them
-        COMPREPLY=( "${suggestions[@]}" )
-        return 0
-        ;;
-      Source)
-        list=$(Distro --completion-source)
-        COMPREPLY=( $(compgen -W "$list" -- "$cur") )
-        return 0
-        ;;
-      Distro)
-        list=$(Distro --completion-distro)
-        COMPREPLY=( $(compgen -W "$list" -- "$cur") )
-        return 0
-        ;;
-      Deploy)
-        list=$(Distro --completion-deploy)
-        COMPREPLY=( $(compgen -W "$list" -- "$cur") )
-        return 0
-        ;;
-    esac
+	# 6) Return them
+	COMPREPLY=( "${suggestions[@]}" )
+	return 0
+	;;
+	Source)
+	list=$(Distro --completion-source)
+	COMPREPLY=( $(compgen -W "$list" -- "$cur") )
+	return 0
+	;;
+	Distro)
+	list=$(Distro --completion-distro)
+	COMPREPLY=( $(compgen -W "$list" -- "$cur") )
+	return 0
+	;;
+	Deploy)
+	list=$(Distro --completion-deploy)
+	COMPREPLY=( $(compgen -W "$list" -- "$cur") )
+	return 0
+	;;
+esac
 
-    #── FALLBACK for any deeper slot or non-root CMD:
-    #    regular commands + files, but strip out your roots
-    COMPREPLY=( $(compgen -c -- "$cur") $(compgen -f -- "$cur") )
-    filtered=()
-    for suggestion in "${COMPREPLY[@]}"; do
-        case " $roots " in
-          *" $suggestion "*) continue ;;  # never re-list roots here
-        esac
-        filtered+=("$suggestion")
-    done
-    COMPREPLY=( "${filtered[@]}" )
-    return 0
+#── FALLBACK for any deeper slot or non-root CMD:
+#    regular commands + files, strip out your roots.
+#    Try `compopt -o filenames` if available, else manually add slashes.
+
+# 1) If compopt exists, ask Bash to treat completions as filenames:
+if type compopt &>/dev/null; then
+  compopt -o filenames 2>/dev/null
+  manual_dir_slash=false
+else
+  manual_dir_slash=true
+fi
+
+# 2) Gather commands + file paths
+COMPREPLY=( $(compgen -c -- "$cur") $(compgen -f -- "$cur") )
+
+# 3) Filter out your “roots” and, if needed, append “/” to directories
+filtered=()
+for suggestion in "${COMPREPLY[@]}"; do
+  # skip any of the “root” words
+  case " $roots " in
+    *" $suggestion "*) continue ;;
+  esac
+
+  if $manual_dir_slash; then
+    # if it’s an existing directory, add a trailing slash
+    [ -d "$suggestion" ] && suggestion="$suggestion/"
+  fi
+
+  filtered+=("$suggestion")
+done
+
+# 4) Return filtered list
+COMPREPLY=( "${filtered[@]}" )
+return 0
