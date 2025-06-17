@@ -59,14 +59,6 @@ case "$cmd" in
 		COMPREPLY=( "${suggestions[@]}" )
 		return 0
 	;;
-	Source)
-		# 3) otherwise fall through to your manual default+filenames
-		
-		if COMPREPLY=( $( Source --completion-helper "$COMP_LINE" ) ) ; then
-			return 0
-		fi
-		# otherwise fall through so default/file-name completion can fire	
-    ;;
 	Distro)
 		local list
 
@@ -93,29 +85,15 @@ case "$cmd" in
 		fi
 		# otherwise fall through so default/file-name completion can fire	
 	;;
-	Deploy)
-		local list
-
-		# grab the vertical list
-		list=$(Distro --completion-deploy)
-
-		# 1) 2nd token in flight? offer sub-commands
-		if [ "$COMP_CWORD" -eq 1 ]; then
-			COMPREPLY=( $(compgen -W "$list" -- "$cur") )
+	Source)
+		if COMPREPLY=( $( Source --completion-helper "$COMP_LINE" ) ) ; then
 			return 0
 		fi
-
-		# 2) 3rd token TAB with empty cur? exact-match → help
-		if [ "$COMP_CWORD" -eq 2 ] && [ -z "$cur" ]; then
-			# grep -F = fixed string; -x = whole line; -q = quiet
-			if printf '%s\n' "$list" | grep -Fxq -- "$sub"; then
-				printf "\r\n\r\n%s\r\n\r\n >>> \$ %s" \
-				"$( ( COMP_WORDS="" ; Deploy "$sub" --help ) 2>&1 )" \
-				"${COMP_WORDS[*]}"
-				>&2
-			fi
-			COMPREPLY=()    # eat the TAB, no suggestions
-			return 1
+		# otherwise fall through so default/file-name completion can fire	
+    ;;
+	Deploy)
+		if COMPREPLY=( $( Deploy --completion-helper "$COMP_LINE" ) ) ; then
+			return 0
 		fi
 		# otherwise fall through so default/file-name completion can fire	
 	;;
@@ -127,31 +105,3 @@ COMPREPLY=( $(compgen -c -- "$cur") $(compgen -f -- "$cur") )
 return 0
 
 set +x
-
-
-
-#    if $cur looks like a path, bail out (return 1)
-#    so Bash does its native filename completion perfectly.
-case "$cur" in
-	*/*) return 1 ;;    # hand off to the built-in file completer
-esac
-
-# 2) gather everything bash‐ and file‐wise
-COMPREPLY=( $(compgen -c -- "$cur") $(compgen -f -- "$cur") )
-# 3) filter & append slashes in one loop
-filtered=()
-for cand in "${COMPREPLY[@]}"; do
-	# drop any “root” words
-	case " $roots " in
-	*" $cand "*) continue ;;
-	esac
-	filtered+=( "$cand" )
-done
-
-# 3) if exactly one match, tack on a trailing space
-if [ "${#filtered[@]}" -eq 1 ]; then
-  return 1
-fi
-
-COMPREPLY=( "${filtered[@]}" )
-return 0
