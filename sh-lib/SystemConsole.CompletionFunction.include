@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # ^^^ for syntax checking in the editor only
 
+set -e
+
 local cmd sub cur roots_list roots list suggestion filtered
 
 cmd="${COMP_WORDS[0]}"            # the command you invoked
@@ -58,51 +60,12 @@ case "$cmd" in
 		return 0
 	;;
 	Source)
-		local list
-
-		# grab the vertical list
-		list=$(Distro --completion-source)
-
-		# 2nd token? complete the subcommands…
-		if [ "$COMP_CWORD" -eq 1 ]; then
-			COMPREPLY=( $(compgen -W "$list" -- "$cur") )
-			return 0
-		fi
-
-		# 3rd-token TAB right after a valid subcommand?
-		if [ "$COMP_CWORD" -eq 2 ] && [ -z "$cur" ] ; then
-			COMPREPLY=()    # eat the TAB, no suggestions
-			# grep -F = fixed string; -x = whole line; -q = quiet
-			if printf '%s\n' "$list" | grep -Fxq -- "$sub"; then
-				# clear out all COMP_* so no accidental recursion
-				(
-					COMP_CWORD= COMP_WORDS=
-
-					echo >&2
-					Source "$sub" --help 1>&2 || true
-					echo >&2
-
-					local CONSOLE_PROMPT
-					CONSOLE_PROMPT="$( \
-						echo ': ::prompt-check::' | ( \
-							env PS1="$( \
-								eval "printf '%b' \"$PS1\"" \
-							)" bash --noprofile --norc -i -s 2>&1 \
-						) \
-						| fgrep ': ::prompt-check::' \
-						| head -n1 \
-						| sed 's|: ::prompt-check::.*$||' \
-					)"
-
-					# redraw prompt + the unfinished line
-					printf '\r\n%b%s' "$CONSOLE_PROMPT" "$COMP_LINE" >&2
-				)
-				
-				return 1
-			fi
-			return 0
-		fi
 		# 3) otherwise fall through to your manual default+filenames
+		
+		if COMPREPLY=( $( Source --completion-helper "$COMP_LINE" ) ) ; then
+			return 0
+		fi
+		# otherwise fall through so default/file-name completion can fire	
     ;;
 	Distro)
 		local list
@@ -158,9 +121,13 @@ case "$cmd" in
 	;;
 esac
 
+set +e
 
 COMPREPLY=( $(compgen -c -- "$cur") $(compgen -f -- "$cur") )
 return 0
+
+set +x
+
 
 
 #    if $cur looks like a path, bail out (return 1)
