@@ -60,39 +60,28 @@ case "$cmd" in
 		return 0
 	;;
 	Distro)
-		local list
-
-		# grab the vertical list
-		list=$(Distro --completion-distro)
-
-		# 1) 2nd token in flight? offer sub-commands
-		if [ "$COMP_CWORD" -eq 1 ]; then
-			COMPREPLY=( $(compgen -W "$list" -- "$cur") )
+		if COMPREPLY=( $( Distro --completion-helper-system \
+			"$COMP_LINE" "system" \
+			'^\(Distro\|Source\|Deploy\|Remote\|Build\|Clean\|List\).*.fn.sh$' \
+		) ) ; then
 			return 0
-		fi
-
-		# 2) 3rd token TAB with empty cur? exact-match → help
-		if [ "$COMP_CWORD" -eq 2 ] && [ -z "$cur" ]; then
-			# grep -F = fixed string; -x = whole line; -q = quiet
-			if printf '%s\n' "$list" | grep -Fxq -- "$sub"; then
-				printf "\r\n\r\n%s\r\n\r\n >>> \$ %s" \
-				"$( ( COMP_WORDS="" ; Distro --completion-ignore "$sub" --help ) 2>&1 )" \
-				"${COMP_WORDS[*]}"
-				>&2
-			fi
-			COMPREPLY=()    # eat the TAB, no suggestions
-			return 1
 		fi
 		# otherwise fall through so default/file-name completion can fire	
 	;;
 	Source)
-		if COMPREPLY=( $( Source --completion-helper "$COMP_LINE" ) ) ; then
+		if COMPREPLY=( $( Distro --completion-helper-system \
+			"$COMP_LINE" "source" \
+			'^\(DistroSource\|Source\|ListDistro\|ListAll\|Build\|Clean\|ListSource\).*.fn.sh$' \
+		) ) ; then
 			return 0
 		fi
 		# otherwise fall through so default/file-name completion can fire	
     ;;
 	Deploy)
-		if COMPREPLY=( $( Deploy --completion-helper "$COMP_LINE" ) ) ; then
+		if COMPREPLY=( $( Distro --completion-helper-system \
+			"$COMP_LINE" "deploy" \
+			'^\(DistroDeploy\|Deploy\|ListDistro\|ListAll\|CleanAll\).*.fn.sh$' \
+		) ) ; then
 			return 0
 		fi
 		# otherwise fall through so default/file-name completion can fire	

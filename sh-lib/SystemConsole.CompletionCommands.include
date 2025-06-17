@@ -2,6 +2,13 @@
 # ^^^ for syntax checking in the editor only
 
 case "$1" in
+	--completion-helper-system)
+		shift
+		(
+			. "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/SystemConsole.CompletionHelperSystem.include"
+			SystemConsoleCompletionHelperSystem "$@"
+		)
+	;;
 	--completion-require)
 		shift
 		Distro --completion-all \
@@ -30,22 +37,6 @@ case "$1" in
 		shift
 		Distro --completion-all \
 		| grep '^\(Distro\|Source\|Deploy\|Remote\|Build\|Clean\|List\).*.fn.sh$' \
-		| sort -u \
-		| sed 's:\.fn\.sh$::' 
-		return 0
-	;;
-	--completion-source)
-		shift
-		Distro --completion-all \
-		| grep '^\(DistroSource\|Source\|Build\|Clean\|List\).*.fn.sh$' \
-		| sort -u \
-		| sed 's:\.fn\.sh$::' 
-		return 0
-	;;
-	--completion-deploy)
-		shift
-		Distro --completion-all \
-		| grep '^\(DistroDeploy\|Deploy\|List\).*.fn.sh$' \
 		| sort -u \
 		| sed 's:\.fn\.sh$::' 
 		return 0

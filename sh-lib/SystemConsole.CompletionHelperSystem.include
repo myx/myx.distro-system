@@ -1,0 +1,109 @@
+#!/usr/bin/env bash
+# ^^^ for syntax checking in the editor only
+# --completion-helper <full-input-string> <sys-path-name> <grep-all>
+# COMP_LINE COMP_CWORD COMP_WORDS env variables are required.
+# intended COMPREPLY returned as stdout text
+
+function SystemConsoleCompletionHelperSystem(){
+
+	set -e
+
+	: "${COMP_LINE:?⛔ ERROR: --completion-helper-system: COMP_LINE env variable is empty: $@}"
+	: "${COMP_CWORD:?⛔ ERROR: --completion-helper-system: COMP_CWORD env variable is empty: $@}"
+	: "${COMP_WORDS:?⛔ ERROR: --completion-helper-system: COMP_WORDS env variable is empty: $@}"
+
+	: "${1:?⛔ ERROR: --completion-helper-system: full-input-string argument is empty: $@}"
+
+	local compPrompt="$1" ; shift
+
+	[ "$COMP_LINE" == "$compPrompt" ] || {
+		echo "⛔ ERROR: --completion-helper-system: full-input-string != \$COMP_LINE: $@" >&2
+		set +e ; return 1
+	}
+
+
+	local compSystemName
+	case "${COMP_WORDS[0]}" in
+		Source|Deploy|Distro)
+			compSystemName="${COMP_WORDS[0]}"
+		;;
+		*)
+			echo "⛔ ERROR: --completion-helper-system: must be called to complete 'Source|Deploy|System' commands: ${COMP_WORDS[0]}" >&2
+			set +e ; return 1
+		;;
+	esac
+
+	local compSystemPath="${1:?⛔ ERROR: --completion-helper-system: sys-path is required}" ; shift
+	local compGrepOthers="${1:-'^\(DistroDeploy\|DistroSource\|DistroLocal\|Clean\).*.fn.sh$'}" ; shift
+
+	local list
+
+	# grab the vertical list
+	list=$(
+		{
+			(
+				MDPATH=""
+				for ITEM in ".local" "system" "deploy" "source" "remote" ; do
+					if [ "$ITEM" != "$compSystemPath" ] && [ -d "$MDLT_ORIGIN/myx/myx.distro-$ITEM/sh-scripts" ] ; then
+						MDPATH+=" $MDLT_ORIGIN/myx/myx.distro-$ITEM/sh-scripts"
+					fi
+				done
+
+				find $MDPATH -type 'f' -name '*.fn.sh' \
+				| sed -E "s:^$MDLT_ORIGIN/myx/myx.distro-(.local|system|deploy|source|remote)/sh-scripts/::g"
+			) \
+			| grep "$compGrepOthers"
+
+			(
+				MDPATH="$MDLT_ORIGIN/myx/myx.distro-$compSystemPath/sh-scripts"
+				if [ -d "$MDPATH" ] ; then
+					find $MDPATH -type 'f' -name '*.fn.sh' \
+					| sed -E "s:^$MDLT_ORIGIN/myx/myx.distro-(.local|system|deploy|source|remote)/sh-scripts/::g"
+				fi
+			) \
+			| grep '^.*.fn.sh$'
+		} \
+		| sort -u \
+		| sed 's:\.fn\.sh$::' 
+	)
+
+	# 2nd token? complete the subcommands…
+	if [ "$COMP_CWORD" -eq 1 ]; then
+		# COMPREPLY=( $( compgen -W "$list" -- "$cur" ) )
+		printf '%b' \
+			"$( compgen -W "$list" -- "$cur" )"
+
+		return 0
+	fi
+
+	# 3rd-token TAB right after a valid subcommand?
+	if [ "$COMP_CWORD" -eq 2 ] && [ -z "$cur" ] ; then
+
+		: # COMPREPLY=()    # eat the TAB, no suggestions
+
+		# grep -F = fixed string; -x = whole line; -q = quiet
+		if printf '%s\n' "$list" \
+			| grep -Fxq -- "$sub" \
+		; then
+			# clear out all COMP_* so no accidental recursion
+			(
+				COMP_CWORD= COMP_WORDS=
+
+				echo >&2
+				"$sub.fn.sh" --help 1>&2 || true
+				#$compSystemName "$sub" --help 1>&2 || true
+				echo >&2
+
+				# redraw prompt + the unfinished line
+				. "$MDLT_ORIGIN/myx/myx.distro-.local/sh-lib/LocalTools.EchoBashPrompt.include"
+				DistroLocalEchoBashPrompt "$COMP_LINE" >&2
+			)
+			return 0
+		fi
+
+		return 0
+	fi
+
+	# 3) otherwise fall through to your manual default+filenames
+	set +e ; return 1
+}

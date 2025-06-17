@@ -80,9 +80,6 @@ if ! type Distro >/dev/null 2>&1 ; then
 			return 0
 		fi
 		case "$1" in
-			--completion-ignore)
-				shift
-			;;
 			''|--*)
 				set -e
 				( . "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/SystemConsole.include" )
