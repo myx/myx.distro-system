@@ -128,8 +128,17 @@ while true ; do
 			return 0
 		;;
 		--verbose)
-			export MDSC_DETAIL="true"
-			shift
+			export MDSC_DETAIL="true" ; shift
+			continue
+		;;
+		--no-cache)
+			export MDSC_NO_CACHE=$1 ; shift
+			export useNoCache=$1 ; shift
+			continue
+		;;
+		--no-index)
+			export MDSC_NO_INDEX=$1 ; shift
+			export useNoIndex=$1 ; shift
 			continue
 		;;
 		--distro-*|--run-from-*|--init-*)
