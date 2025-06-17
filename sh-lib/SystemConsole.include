@@ -9,7 +9,7 @@ case "$1" in
 	;;
 	''|--help)
 		shift
-		( . "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/Help.ConsoleDistro.include" )
+		( . "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/help/Help.ConsoleDistro.include" )
 		return 0
 	;;
 	*)
