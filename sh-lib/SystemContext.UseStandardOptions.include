@@ -1,8 +1,5 @@
 #!/usr/bin/env bash
 # ^^^ for syntax checking in the editor only
-
-: "${MMDAPP:?⛔ ERROR: MMDAPP is not set}"
-
 while true ; do
 	case "$1" in
 		--verbose)
@@ -17,8 +14,6 @@ while true ; do
 			local MDSC_NO_INDEX=$1 ; shift
 			continue
 		;;
-		*)
-			break
-		;;
 	esac
+	return 0
 done
