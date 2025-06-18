@@ -5,9 +5,6 @@
 
 while true ; do
 	case "$1" in
-		'')
-			break
-		;;
 		--verbose)
 			local MDSC_DETAIL=true ; shift
 			continue
@@ -20,6 +17,8 @@ while true ; do
 			local MDSC_NO_INDEX=$1 ; shift
 			continue
 		;;
+		*)
+			break
+		;;
 	esac
-	return 0
 done
