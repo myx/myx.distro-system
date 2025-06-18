@@ -29,6 +29,7 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 					&& \
 					[ -n "$MDSC_OPTION" ] && [ -n "$MDSC_INMODE" ] \
 				; then
+					shift
 					return 0
 				fi
 				[ -z "$MDSC_DETAIL" ] || echo "DistroSystemContext: input spec: $1" >&2
@@ -138,13 +139,13 @@ while true ; do
 		;;
 		--distro-*|--run-from-*|--init-*)
 			if DistroSystemContext --is-spec-option "$1" ; then
-				[ -n "$MDSC_DETAIL" ] && echo "DistroSystemContext: input spec: $1" >&2
+				[ -z "$MDSC_DETAIL" ] || echo "DistroSystemContext: input spec: $1" >&2
 				. "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/SystemContext.SetInputSpec.include"
 				shift
 				continue
 			fi
-			return 0
+			break
 		;;
 	esac
-	return 0
+	break
 done
