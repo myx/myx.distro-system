@@ -22,11 +22,13 @@ case "$1" in
 		fi
 		case "$1" in 
 			--distro-*)
-				# set -- "$1"
+				# set -- "$1" "$@"
+			;;
+			'')
+				set -- "--distro-path-auto" "$@"
 			;;
 			*)
-				shift
-				set -- "--distro-path-auto" "$@"
+				shift ;	set -- "--distro-path-auto" "$@"
 			;;
 		esac
 	;;
@@ -41,7 +43,7 @@ case "$1" in
 			export MDLC_INMODE=".local"
 			export MDLT_OPTION="--run-from-.local"
 		fi
-		set -- "--distro-path-auto"
+		shift ; set -- "--distro-path-auto" "$@"
 	;;
 	--run-from-source)
 		if [ ! -f "$MMDAPP/source/myx/myx.distro-system/sh-lib/SystemContext.include" ] ; then
@@ -54,7 +56,7 @@ case "$1" in
 			export MDLC_INMODE="source"
 			export MDLT_OPTION="--run-from-source"
 		fi
-		set -- "--distro-path-auto"
+		shift ; set -- "--distro-path-auto" "$@"
 	;;
 esac
 
@@ -65,17 +67,17 @@ case "$1" in
 			return 0
 		fi
 		if [ -n "$MDSC_OPTION" ] ; then
-			set -- "$MDSC_OPTION"
+			shift ; set -- "$MDSC_OPTION" "$@"
 		elif [ -d "$MMDAPP/source/" ] && [ -d "$MMDAPP/cached" ] ; then
 			if [ -d "$MMDAPP/output/" ] ; then
-				set -- "--distro-from-output"
+				shift ; set -- "--distro-from-output" "$@"
 			else
-				set -- "--distro-from-cached"
+				shift ; set -- "--distro-from-cached" "$@"
 			fi
 		elif [ -d "$MMDAPP/source/" ] ; then
-			set -- "--distro-from-source"
+			shift ; set -- "--distro-from-source" "$@"
 		elif [ -d "$MMDAPP/distro/" ] ; then
-			set -- "--distro-from-distro"
+			shift ; set -- "--distro-from-distro" "$@"
 		else
 			echo "⛔ ERROR: DistroSystemContext.SetInputSpec: can't detect proper input source" >&2
 			exit 1
