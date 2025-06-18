@@ -141,5 +141,6 @@ if [ -z "${previousSpec:-$MDSC_OPTION}" ] || [ "$previousSpec" != "$MDSC_OPTION"
 	export MDSC_OUTPUT
 	export MDSC_OPTION
 	
-	echo "DistroSystemContext.SetInputSpec: mode: $MDSC_INMODE, spec: $MDSC_OPTION, args: $@" >&2
+	echo "DistroSystemContext.SetInputSpec: mode: $MDSC_INMODE, spec: $MDSC_OPTION" >&2
+	# echo "DistroSystemContext.SetInputSpec: mode: $MDSC_INMODE, spec: $MDSC_OPTION, args: $@" >&2
 fi
