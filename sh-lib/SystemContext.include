@@ -107,15 +107,7 @@ if [ -z "$MDLT_ORIGIN" ] || [ "$MDLT_ORIGIN" == "${MDLT_ORIGIN#$MMDAPP/}" ] ; th
 	export MDSC_OUTPUT=""
 	export MDSC_OPTION=""
 
-	if	   [ -f "$MMDAPP/source/myx/myx.distro-system/sh-lib/SystemContext.include" ] \
-		&& [ -d "$MMDAPP/source/myx/myx.distro-system" ] \
-		&& [ -d "$MMDAPP/source/myx/myx.distro-.local" ] \
-		&& [ -d "$MMDAPP/source/myx/myx.common/os-myx.common" ] \
-	; then
-		export MDLT_ORIGIN="$MMDAPP/source"
-	else
-		export MDLT_ORIGIN="${MDLT_ORIGIN:=$MMDAPP/.local}"
-	fi
+	export MDLT_ORIGIN="${MDLT_ORIGIN:=$MMDAPP/.local}"
 	
 	echo "DistroSystemContext: init: $MDLT_ORIGIN" >&2
 fi
