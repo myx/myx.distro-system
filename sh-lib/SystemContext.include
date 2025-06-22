@@ -46,8 +46,6 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 					return 0
 				fi
 			;;
-			*)
-			;;
 		esac
 	}
 fi
@@ -80,18 +78,14 @@ if ! type Distro >/dev/null 2>&1 ; then
 			. "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/SystemConsole.CompletionFunction.include"
 			return 0
 		fi
-		case "$1" in
+		case "$1" in 
 			''|--*)
-				set -e
-				( . "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/SystemConsole.include" )
+				( set -e ; . "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/SystemConsole.include" )
 				return 0
 			;;
 		esac
+
 		local distroCommand="$1" ; shift
-		if [ -z "$distroCommand" ] ; then
-			( . "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/help/Help.ConsoleDistro.include" )
-			set +e ; return 1
-		fi
 		if ! type "${distroCommand%.fn.sh}" >/dev/null 2>&1 ; then
 			. "${distroCommand%.fn.sh}.fn.sh"
 		fi
@@ -139,5 +133,5 @@ while true ; do
 			break
 		;;
 	esac
-	break
+	return 0
 done
