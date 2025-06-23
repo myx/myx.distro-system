@@ -72,6 +72,31 @@ if ! type Require >/dev/null 2>&1 ; then
 	}
 fi
 
+if ! type Action >/dev/null 2>&1 ; then
+	Action(){
+		if [ -z "$1" ] || [ "$1" == "--help" ] ; then
+			( . "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/help/Help.ConsoleAction.include" )
+			set +e ; return 1
+		fi
+		local actionCommand="$1" ; shift
+		case "$actionCommand" in
+			*.sh)
+				( set +e ; . "$MMDAPP/actions/$actionCommand" && echo "$actionCommand: 🏁 finished." ) || {
+					EXITCODE=$?
+					echo "⛔ ERROR: exited with error status ($EXITCODE)" >&2
+					set +e ; return $EXITCODE
+				}
+			;;
+			*.url)
+				open "$MMDAPP/actions/$actionCommand"
+			;;
+			*)
+				echo "Unknown Action Type, source:" >&2
+				myx.common lib/prefix "    " cat "$MMDAPP/actions/$actionCommand"
+		esac
+	}
+fi
+
 if ! type Distro >/dev/null 2>&1 ; then
 	Distro(){
 		if [[ -n "$COMP_LINE" || -n "$COMP_WORDS" ]] && [ "${1#--completion}" = "$1" ]; then
