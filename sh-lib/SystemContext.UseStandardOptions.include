@@ -3,15 +3,15 @@
 while true ; do
 	case "$1" in
 		--verbose)
-			local MDSC_DETAIL=true ; shift
+			local MDSC_DETAIL=true ; export MDSC_DETAIL ; shift
 			continue
 		;;
 		--no-cache)
-			local MDSC_NO_CACHE=$1 ; shift
+			local MDSC_NO_CACHE=$1 ; export MDSC_NO_CACHE ; shift
 			continue
 		;;
 		--no-index)
-			local MDSC_NO_INDEX=$1 ; shift
+			local MDSC_NO_INDEX=$1 ; export MDSC_NO_INDEX ; shift
 			continue
 		;;
 	esac

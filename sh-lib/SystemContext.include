@@ -127,32 +127,12 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 	}
 fi
 
-while true ; do
-	case "$1" in
-		'')
-			return 0
-		;;
-		--verbose)
-			export MDSC_DETAIL=true ; shift
-			continue
-		;;
-		--no-cache)
-			export MDSC_NO_CACHE=$1 ; shift
-			continue
-		;;
-		--no-index)
-			export MDSC_NO_INDEX=$1 ; shift
-			continue
-		;;
-		--distro-*|--run-from-*|--init-*)
-			if DistroSystemContext --is-spec-option "$1" ; then
-				[ -z "$MDSC_DETAIL" ] || echo "DistroSystemContext: input spec: $1" >&2
-				. "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/SystemContext.SetInputSpec.include"
-				shift
-				continue
-			fi
-			break
-		;;
-	esac
-	return 0
-done
+case "$1" in
+	--distro-*|--run-from-*|--init-*)
+		if DistroSystemContext --is-spec-option "$1" ; then
+			[ -z "$MDSC_DETAIL" ] || echo "DistroSystemContext: input spec: $1" >&2
+			. "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/SystemContext.SetInputSpec.include"
+			shift
+		fi
+	;;
+esac
