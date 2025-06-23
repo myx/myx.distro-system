@@ -40,24 +40,27 @@ case "$cmd" in
 		# 1) Ensure ListAllActions() is loaded
 		Require ListAllActions
 
-		# 2) Grab the full “name[/path/…]” list
-		local out suggestions
-		out=$(ListAllActions --completion)
-
 		# 3) If there’s already a slash in $cur → do full‐path completion
 		if [[ "$cur" == */* ]]; then
-			suggestions=( $( compgen -W "$out" -- "$cur" ) )
-		else
-			suggestions=( $( \
-				printf '%s\n' "$out" | sed 's!/.*!/!' | sort -u | grep "$cur" \
-			) )
-			# prevent bash from appending a space after a match
-			type compopt &>/dev/null && compopt -o nospace
+			local line
+			COMPREPLY=()
+			while IFS= read -r line; do
+				[[ $line == "$cur"* ]] && COMPREPLY+=("$line")
+			done < <( ListAllActions --completion )
+			return 0 # don't fall back to filename completion
 		fi
 
-		# 6) Return them
+		local suggestions
+		suggestions=( $(
+			ListAllActions --completion \
+			| sed 's!/.*!/!' \
+			| sort -u \
+			| grep "$cur"
+		) )
+		# prevent bash from appending a space after a match
+		type compopt &>/dev/null && compopt -o nospace
 		COMPREPLY=( "${suggestions[@]}" )
-		return 0
+		return 0 # don't fall back to filename completion
 	;;
 	Distro)
 		if COMPREPLY=( $( Distro --completion-helper-system \
