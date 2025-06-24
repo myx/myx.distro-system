@@ -40,7 +40,7 @@ case "$cmd" in
 			return 0
 		fi
 		COMPREPLY=()    # eat the TAB, no suggestions
-		return 1
+		set +e ; return 1
 	;;
 	Action)
 		# 1) Ensure ListAllActions() is loaded
