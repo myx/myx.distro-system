@@ -24,6 +24,32 @@ function SystemConsoleCompletionHelperSystem(){
 
 	local compSystemName
 	case "${COMP_WORDS[0]}" in
+		*.fn.sh)
+			local cmd="${COMP_WORDS[0]}"
+			if [ "$compPrompt" = "$cmd " ] && command -v "$cmd" >/dev/null 2>&1; then
+				if [ "$COMP_CWORD" -eq 1 ]; then
+					# clear out all COMP_* so no accidental recursion
+					(
+						COMP_CWORD= COMP_WORDS=
+
+						echo >&2
+
+						#( set +e ; Distro --completion-script $cmd </dev/null || true )
+						( set +e ; $cmd --help 1>&2 </dev/null || true )
+						#local HELP_TEXT=$( ( { set +e ; $cmd --help 2>&1 </dev/null || true ; } ) ) ; echo "$HELP_TEXT" >&2
+						echo >&2
+
+						# redraw prompt + the unfinished line
+						. "$MDLT_ORIGIN/myx/myx.distro-.local/sh-lib/LocalTools.EchoBashPrompt.include"
+						DistroLocalEchoBashPrompt "$COMP_LINE" >&2
+					)
+					return 0
+				fi
+				COMPREPLY=()    # eat the TAB, no suggestions
+				set +e ; return 1
+			fi
+			set +e ; return 1
+		;;
 		Source|Deploy|Distro)
 			compSystemName="${COMP_WORDS[0]}"
 		;;

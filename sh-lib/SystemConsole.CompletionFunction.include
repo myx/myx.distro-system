@@ -18,11 +18,17 @@ done
 
 #── SLOT 1: only if the invoked CMD is NOT itself a root
 if [ -z "$cmd" ] || [ "$COMP_CWORD" -eq 1 ] && ! printf '%s\n' $roots | grep -qx "$cmd" ; then
-	# no prefix yet → only your roots
-	COMPREPLY=( $(compgen -W "$roots" -- "") )
-	# dedupe & sort
-	COMPREPLY=( $(printf '%s\n' "${COMPREPLY[@]}" | sort -u) )
-	return 0
+	case "$cmd" in
+		*.fn.sh)
+		;;
+		*)
+			# no prefix yet → only your roots
+			COMPREPLY=( $(compgen -W "$roots" -- "") )
+			# dedupe & sort
+			COMPREPLY=( $(printf '%s\n' "${COMPREPLY[@]}" | sort -u) )
+			return 0
+		;;
+	esac
 fi
 
 #── SLOT 2+: if the first word IS one of your roots, dispatch
@@ -89,11 +95,17 @@ case "$cmd" in
 		fi
 		# otherwise fall through so default/file-name completion can fire	
 	;;
+	*.fn.sh)
+		if COMPREPLY=( $( Distro --completion-helper-system \
+			"$COMP_LINE" "$cmd" \
+		) ) ; then
+			return 0
+		fi
+		# otherwise fall through so default/file-name completion can fire	
+	;;
 esac
 
 set +e
 
 COMPREPLY=( $(compgen -c -- "$cur") $(compgen -f -- "$cur") )
 return 0
-
-set +x
