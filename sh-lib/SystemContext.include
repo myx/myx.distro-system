@@ -89,6 +89,7 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 		case "$1" in
 			--uncache)
 				shift ;	echo "DistroSystemContext: clear cache" >&2
+				rm -rf "$MDLT_ORIGIN"/.cached
 				return 0
 			;;
 			--is-spec-option)
