@@ -56,13 +56,29 @@ case "$cmd" in
 			return 0 # don't fall back to filename completion
 		fi
 
-		local suggestions
-		suggestions=( $(
-			ListAllActions --completion \
-			| sed 's!/.*!/!' \
-			| sort -u \
-			| grep "$cur"
-		) )
+		if [ -n "$cur" ]; then
+
+			COMPREPLY=()
+			while IFS= read -r line; do
+				[[ "$line" != *"$cur"* ]] || COMPREPLY+=("$line")
+			done < <( ListAllActions --completion )
+
+			if [ "${#COMPREPLY[@]}" -eq 1 ]; then 
+				COMPREPLY[0]="${COMPREPLY[0]} "
+			else
+				COMPREPLY+=("")
+			fi
+
+			return 0 # don't fall back to filename completion
+		else
+			local suggestions
+			suggestions=( $(
+				ListAllActions --completion \
+				| sed 's!/.*!/!' \
+				| sort -u
+			) )
+		fi
+
 		# prevent bash from appending a space after a match
 		type compopt &>/dev/null && compopt -o nospace
 		COMPREPLY=( "${suggestions[@]}" )

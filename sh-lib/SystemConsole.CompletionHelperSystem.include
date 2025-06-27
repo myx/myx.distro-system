@@ -96,8 +96,21 @@ function SystemConsoleCompletionHelperSystem(){
 	# 2nd token? complete the subcommands…
 	if [ "$COMP_CWORD" -eq 1 ]; then
 		# COMPREPLY=( $( compgen -W "$list" -- "$cur" ) )
-		printf '%b' \
-			"$( compgen -W "$list" -- "$cur" )"
+
+		local line COMPREPLY=()
+		while IFS= read -r line; do
+			[[ "$line" != *"$cur"* ]] || COMPREPLY+=("$line")
+		done < <( echo "$list" )
+
+		if [ "${#COMPREPLY[@]}" -eq 1 ]; then 
+			COMPREPLY[0]="${COMPREPLY[0]} "
+		else
+			COMPREPLY+=("")
+		fi
+
+		printf '%b\n' "${COMPREPLY[@]}"
+
+		# printf '%b' "$( compgen -W "$list" -- "$cur" )"
 
 		return 0
 	fi
