@@ -47,15 +47,11 @@ case "$cmd" in
 		Require ListAllActions
 
 		if [ -z "$cur" ]; then
-			local suggestions
-			suggestions=( $(
+			COMPREPLY=( $(
 				ListAllActions --completion \
 				| sed 's!/.*!/!' \
 				| sort -u
 			) )
-			# prevent bash from appending a space after a match
-			type compopt &>/dev/null && compopt -o nospace
-			COMPREPLY=( "${suggestions[@]}" )
 			return 0 # don't fall back to filename completion
 		fi
 
@@ -63,32 +59,45 @@ case "$cmd" in
 
 		# 3) If there’s already a slash in $cur → do full‐path completion
 		if [[ "$cur" == */* ]]; then
-			local line prefix part
-			prefix="${cur%%/*}/"
-			part="${cur#*/}"
+
+			# grep prefix matching
 			while IFS= read -r line; do
-			if [[ $line == "$prefix"* ]] && [[ ${line#$prefix} == *"$part"* ]]; then
-				COMPREPLY+=("$line")
-			fi
-			done < <( ListAllActions --completion )
-		else
-			while IFS= read -r line; do
-				[[ $line != *"$cur"* ]] || COMPREPLY+=("$line ")
+				[[ $line != "$cur"* ]] || COMPREPLY+=("$line")
 			done < <( ListAllActions --completion )
 
+			# try grep more
+			if [ "${#COMPREPLY[@]}" -eq 0 ] ; then
+				local line
+				local curPrefix="${cur%/*}/"
+				local curSearch="${cur##*/}"
+				while IFS= read -r line; do
+				if [[ $line == "$curPrefix"* ]] && [[ ${line#$curPrefix} == *"$curSearch"* ]]; then
+					COMPREPLY+=("$line")
+				fi
+				done < <( ListAllActions --completion )
+			fi
+		else
+			# grep all matching
+			while IFS= read -r line; do
+				[[ $line != *"$cur"* ]] || COMPREPLY+=("$line")
+			done < <( ListAllActions --completion )
 		fi
 
 		case "${#COMPREPLY[@]}" in
-			0)
-				return 0
-			;;
-			1)
-				COMPREPLY[0]="${COMPREPLY[0]} "
-				return 0
-			;;
+			# nothing matches
+			0) return 0 ;;
+			# one match - add space force select
+			1) COMPREPLY[0]="${COMPREPLY[0]} " ; return 0 ;;
 		esac
 
-		COMPREPLY+=("$cur<SEARCH>")
+		for idx in "${!COMPREPLY[@]}"; do
+			if [[ ${COMPREPLY[$idx]} != "$cur"* ]]; then
+				# add search token to completion, so it stays typed
+				COMPREPLY+=("  >> matching: $cur")
+				return 0
+			fi
+		done
+
 		return 0
 
 	;;

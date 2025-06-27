@@ -105,7 +105,7 @@ function SystemConsoleCompletionHelperSystem(){
 		if [ "${#COMPREPLY[@]}" -eq 1 ]; then 
 			COMPREPLY[0]="${COMPREPLY[0]} "
 		else
-			COMPREPLY+=("")
+			COMPREPLY+=("$cur<SEARCH>")
 		fi
 
 		printf '%b\n' "${COMPREPLY[@]}"
