@@ -93,7 +93,7 @@ case "$cmd" in
 		for idx in "${!COMPREPLY[@]}"; do
 			if [[ ${COMPREPLY[$idx]} != "$cur"* ]]; then
 				# add search token to completion, so it stays typed
-				COMPREPLY+=(" 🔀[ Filter by: \"$cur\" ]")
+				COMPREPLY+=(" 🔀[ Filter by: \"$cur\" ]:")
 				return 0
 			fi
 		done
@@ -102,12 +102,12 @@ case "$cmd" in
 
 	;;
 	Distro)
-		if COMPREPLY=( $( Distro --completion-helper-system \
+		while IFS= read -r line; do
+			COMPREPLY+=("$line")
+		done < <( Distro --completion-helper-system \
 			"$COMP_LINE" "system" \
 			'^\(Distro\|Source\|Deploy\|Remote\|Build\|Clean\|List\).*.fn.sh$' \
-		) ) ; then
-			return 0
-		fi
+		) && return 0
 		# otherwise fall through so default/file-name completion can fire	
 	;;
 	Source)

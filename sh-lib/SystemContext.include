@@ -83,6 +83,10 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 
 			local distroCommand="$1" ; shift
 			if ! type "${distroCommand%.fn.sh}" >/dev/null 2>&1 ; then
+				if ! command -v "${distroCommand%.fn.sh}.fn.sh" >/dev/null 2>&1; then
+					echo "⛔ ERROR: unknown command: ${distroCommand%.fn.sh}" >&2
+					set +e ; return 1
+				fi
 				. "${distroCommand%.fn.sh}.fn.sh"
 			fi
 

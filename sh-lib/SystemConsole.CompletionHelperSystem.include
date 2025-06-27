@@ -97,21 +97,33 @@ function SystemConsoleCompletionHelperSystem(){
 	if [ "$COMP_CWORD" -eq 1 ]; then
 		# COMPREPLY=( $( compgen -W "$list" -- "$cur" ) )
 
+		if [ -z "$cur" ]; then
+			echo "$list"
+			return 0
+		fi
+
 		local line COMPREPLY=()
 		while IFS= read -r line; do
 			[[ "$line" != *"$cur"* ]] || COMPREPLY+=("$line")
 		done < <( echo "$list" )
 
-		if [ "${#COMPREPLY[@]}" -eq 1 ]; then 
-			COMPREPLY[0]="${COMPREPLY[0]} "
-		else
-			COMPREPLY+=("$cur<SEARCH>")
-		fi
+		case "${#COMPREPLY[@]}" in
+			# nothing matches
+			0) return 0 ;;
+			# one match - add space force select
+			1) printf '%b\n' "${COMPREPLY[@]} " ; return 0 ;;
+		esac
+
+		for idx in "${!COMPREPLY[@]}"; do
+			if [[ ${COMPREPLY[$idx]} != "$cur"* ]]; then
+				# add search token to completion, so it stays typed
+				COMPREPLY+=(" 🔀[ Filter by: \"$cur\" ]:")
+				printf '%b\n' "${COMPREPLY[@]}"
+				return 0
+			fi
+		done
 
 		printf '%b\n' "${COMPREPLY[@]}"
-
-		# printf '%b' "$( compgen -W "$list" -- "$cur" )"
-
 		return 0
 	fi
 
