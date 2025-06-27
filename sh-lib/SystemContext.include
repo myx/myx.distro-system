@@ -81,7 +81,13 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 			if ! type "${distroCommand%.fn.sh}" >/dev/null 2>&1 ; then
 				. "${distroCommand%.fn.sh}.fn.sh"
 			fi
-			"${distroCommand%.fn.sh}" "$@"
+
+			set +e ; "${distroCommand%.fn.sh}" "$@" || {
+				EXITCODE=$?
+				echo "⛔ ERROR: exited with error status ($EXITCODE)" >&2
+				set +e ; return $EXITCODE
+			}
+			return 0
 		}
 	fi
 
