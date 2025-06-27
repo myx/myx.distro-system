@@ -93,7 +93,7 @@ case "$cmd" in
 		for idx in "${!COMPREPLY[@]}"; do
 			if [[ ${COMPREPLY[$idx]} != "$cur"* ]]; then
 				# add search token to completion, so it stays typed
-				COMPREPLY+=("  >> matching: $cur")
+				COMPREPLY+=(" 🔀[ Filter by: \"$cur\" ]")
 				return 0
 			fi
 		done
