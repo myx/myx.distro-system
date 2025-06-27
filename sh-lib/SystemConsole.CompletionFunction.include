@@ -46,43 +46,51 @@ case "$cmd" in
 		# 1) Ensure ListAllActions() is loaded
 		Require ListAllActions
 
-		# 3) If there’s already a slash in $cur → do full‐path completion
-		if [[ "$cur" == */* ]]; then
-			local line
-			COMPREPLY=()
-			while IFS= read -r line; do
-				[[ $line == "$cur"* ]] && COMPREPLY+=("$line")
-			done < <( ListAllActions --completion )
-			return 0 # don't fall back to filename completion
-		fi
-
-		if [ -n "$cur" ]; then
-
-			COMPREPLY=()
-			while IFS= read -r line; do
-				[[ "$line" != *"$cur"* ]] || COMPREPLY+=("$line")
-			done < <( ListAllActions --completion )
-
-			if [ "${#COMPREPLY[@]}" -eq 1 ]; then 
-				COMPREPLY[0]="${COMPREPLY[0]} "
-			else
-				COMPREPLY+=("")
-			fi
-
-			return 0 # don't fall back to filename completion
-		else
+		if [ -z "$cur" ]; then
 			local suggestions
 			suggestions=( $(
 				ListAllActions --completion \
 				| sed 's!/.*!/!' \
 				| sort -u
 			) )
+			# prevent bash from appending a space after a match
+			type compopt &>/dev/null && compopt -o nospace
+			COMPREPLY=( "${suggestions[@]}" )
+			return 0 # don't fall back to filename completion
 		fi
 
-		# prevent bash from appending a space after a match
-		type compopt &>/dev/null && compopt -o nospace
-		COMPREPLY=( "${suggestions[@]}" )
-		return 0 # don't fall back to filename completion
+		COMPREPLY=()
+
+		# 3) If there’s already a slash in $cur → do full‐path completion
+		if [[ "$cur" == */* ]]; then
+			local line prefix part
+			prefix="${cur%%/*}/"
+			part="${cur#*/}"
+			while IFS= read -r line; do
+			if [[ $line == "$prefix"* ]] && [[ ${line#$prefix} == *"$part"* ]]; then
+				COMPREPLY+=("$line")
+			fi
+			done < <( ListAllActions --completion )
+		else
+			while IFS= read -r line; do
+				[[ $line != *"$cur"* ]] || COMPREPLY+=("$line ")
+			done < <( ListAllActions --completion )
+
+		fi
+
+		case "${#COMPREPLY[@]}" in
+			0)
+				return 0
+			;;
+			1)
+				COMPREPLY[0]="${COMPREPLY[0]} "
+				return 0
+			;;
+		esac
+
+		COMPREPLY+=("$cur<SEARCH>")
+		return 0
+
 	;;
 	Distro)
 		if COMPREPLY=( $( Distro --completion-helper-system \
