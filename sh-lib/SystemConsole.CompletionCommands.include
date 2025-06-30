@@ -12,7 +12,7 @@ case "$1" in
 	--completion-script)
 		: "${2:?⛔ ERROR: $1: commandName.fn.sh is required!}"
 		local cmd="$2" 
-		shift ; shift
+		shift 2
 		echo | bash -c "$cmd --help" 1>&2 || true
 		return 0
 	;;
