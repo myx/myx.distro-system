@@ -8,11 +8,10 @@ case "$1" in
 		if [ -n "$MDLT_OPTION" ] && [ -n "$MDLT_ORIGIN" ] ; then
 			:
 		else
-			local MDLT_CONSOLE_ORIGIN ; MDLT_CONSOLE_ORIGIN="$( ( \
-				set -e ; \
-				. "$MMDAPP/.local/MDLT.settings.env" ; \
-				echo "${MDLT_CONSOLE_ORIGIN:-.local}" \
-			) )"
+			local MDLT_CONSOLE_ORIGIN="$(
+				set -- --.local-config-option-select-default MDLT_CONSOLE_ORIGIN .local
+				. "${MDLT_ORIGIN:-"$MMDAPP/.local"}/myx/myx.distro-.local/sh-lib/LocalTools.Config.include"
+			)"
 			MDLC_INMODE="${MDLT_CONSOLE_ORIGIN#$MMDAPP/}"
 			case "$MDLC_INMODE" in
 				.local)
