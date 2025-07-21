@@ -46,13 +46,13 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 				set +e ; return 1
 			fi
 			local actionCommand="$1" ; shift
-			if [ ! -f "$MMDAPP/actions/${actionCommand}" ] ; then
+			if [ ! -x "$MMDAPP/actions/${actionCommand}" ] ; then
 				echo "⛔ ERROR: unknown action: ${actionCommand}" >&2
 				set +e ; return 1
 			fi
 			case "$actionCommand" in
 				*.sh)
-					( set +e ; . "$MMDAPP/actions/$actionCommand" && echo "$actionCommand: 🏁 finished." ) || {
+					( set +e ; "$MMDAPP/actions/$actionCommand" && echo "$actionCommand: 🏁 finished." ) || {
 						EXITCODE=$?
 						echo "⛔ ERROR: exited with error status ($EXITCODE)" >&2
 						set +e ; return $EXITCODE
