@@ -52,7 +52,7 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 			fi
 			case "$actionCommand" in
 				*.sh)
-					( set +e ; "$MMDAPP/actions/$actionCommand" && echo "$actionCommand: 🏁 finished." ) || {
+					( set +e ; "$MMDAPP/actions/$actionCommand" "$@" && echo "$actionCommand: 🏁 finished." ) || {
 						EXITCODE=$?
 						echo "⛔ ERROR: exited with error status ($EXITCODE)" >&2
 						set +e ; return $EXITCODE
