@@ -5,7 +5,7 @@ case "$1" in
 	--completion-helper-system)
 		shift
 		(
-			. "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/SystemConsole.CompletionHelperSystem.include"
+			. "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/SystemConsole.CompletionHelperSystem.fn.include"
 			SystemConsoleCompletionHelperSystem "$@"
 		)
 	;;
