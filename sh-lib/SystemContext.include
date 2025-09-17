@@ -3,7 +3,7 @@
 
 : "${MMDAPP:?⛔ ERROR: MMDAPP is not set}"
 
-if [ -z "$MDLT_ORIGIN" ] || [ "$MDLT_ORIGIN" == "${MDLT_ORIGIN#$MMDAPP/}" ] ; then
+if [ -z "$MDLT_ORIGIN" ] || [ "$MDLT_ORIGIN" = "${MDLT_ORIGIN#$MMDAPP/}" ] ; then
 	export MDSC_DETAIL=""
 	export MDSC_INMODE=""
 	export MDSC_SOURCE=""
@@ -20,7 +20,7 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 	if ! type Require >/dev/null 2>&1 ; then
 		Require(){
 			local distroCommand="$1" ; shift
-			if [ -z "$distroCommand" ] || [ "--help" == "$distroCommand" ] ; then
+			if [ -z "$distroCommand" ] || [ "--help" = "$distroCommand" ] ; then
 				( . "$MDLT_ORIGIN/myx/myx.distro-.local/sh-lib/help/Help.Require.include" )
 				set +e ; return 1
 			fi

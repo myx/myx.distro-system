@@ -16,7 +16,7 @@ function SystemConsoleCompletionHelperSystem(){
 
 	local compPrompt="$1" ; shift
 
-	[ "$COMP_LINE" == "$compPrompt" ] || {
+	[ "$COMP_LINE" = "$compPrompt" ] || {
 		echo "⛔ ERROR: --completion-helper-system: full-input-string != \$COMP_LINE: $@" >&2
 		set +e ; return 1
 	}

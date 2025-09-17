@@ -71,7 +71,7 @@ case "$cmd" in
 				local curPrefix="${cur%/*}/"
 				local curSearch="${cur##*/}"
 				while IFS= read -r line; do
-				if [[ $line == "$curPrefix"* ]] && [[ ${line#$curPrefix} == *"$curSearch"* ]]; then
+				if [[ $line = "$curPrefix"* ]] && [[ ${line#$curPrefix} == *"$curSearch"* ]]; then
 					COMPREPLY+=("$line")
 				fi
 				done < <( ListAllActions --completion )
