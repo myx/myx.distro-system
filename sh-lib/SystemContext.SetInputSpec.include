@@ -103,7 +103,7 @@ case "$1" in
 		fi
 		if [ -n "$MDSC_OPTION" ] ; then
 			shift ; set -- "$MDSC_OPTION" "$@"
-		elif [ -d "$MMDAPP/source/" ] && [ -d "$MMDAPP/cached" ] ; then
+		elif [ -d "$MMDAPP/source/" ] && [ -d "$MMDAPP/.local/source-cache" ] ; then
 			if [ -d "$MMDAPP/output/" ] ; then
 				shift ; set -- "--distro-from-output" "$@"
 			else
@@ -139,14 +139,14 @@ case "$1" in
 	;;
 	--distro-from-source)
 		MDSC_SOURCE="$MMDAPP/source"
-		MDSC_CACHED="$MMDAPP/cached/enhance"
-		MDSC_OUTPUT="$MMDAPP/cached/sources"
+		MDSC_CACHED="$MMDAPP/.local/source-cache/enhance"
+		MDSC_OUTPUT="$MMDAPP/.local/source-cache/sources"
 		MDSC_INMODE="source"
 		MDSC_OPTION="--distro-from-source"
 	;;
 	--distro-from-cached)
-		MDSC_SOURCE="$MMDAPP/cached/sources"
-		MDSC_CACHED="$MMDAPP/cached/enhance"
+		MDSC_SOURCE="$MMDAPP/.local/source-cache/sources"
+		MDSC_CACHED="$MMDAPP/.local/source-cache/enhance"
 		MDSC_OUTPUT="$MMDAPP/output/cached"
 		MDSC_INMODE="source"
 		MDSC_OPTION="--distro-from-cached"

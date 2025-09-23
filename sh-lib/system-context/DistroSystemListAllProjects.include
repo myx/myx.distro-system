@@ -1,45 +1,21 @@
 #!/bin/sh
 # ^^^ for syntax checking in the editor only
 
-[ -z "$MDSC_DETAIL" ] || echo "$MDSC_CMD: DistroSystemListAllProjects.include" >&2
+[ full != "$MDSC_DETAIL" ] || echo "> $MDSC_CMD: DistroSystemListAllProjects.include" >&2
 
 set -e
 
-if [ -n "$MDSC_CACHED" ] && [ -d "$MDSC_CACHED" ] ; then
-	if [ "$MDSC_NO_CACHE" != "--no-cache" ] ; then
-		local cacheFile="$MDSC_CACHED/all-project-names.txt"
-		if [ -n "$MDSC_CACHED" ] && [ -f "$cacheFile" ] && \
-			( [ -z "$BUILD_STAMP" ] || [ "$BUILD_STAMP" -lt "$( date -u -r "$cacheFile" "+%Y%m%d%H%M%S" )" ] ) ; then
-			[ -z "$MDSC_DETAIL" ] || echo "| ListDistroProjects: using cached ($MDSC_OPTION)" >&2
-			cat "$cacheFile"
-			return 0
-		fi
-		if [ -n "$MDSC_CACHED" ] && [ -d "$MDSC_CACHED" ] ; then
-			echo "| ListDistroProjects: caching projects ($MDSC_OPTION)" >&2
-			Distro ListDistroProjects --no-cache --all-projects | tee "$cacheFile"
-			return 0
-		fi
-	fi
-	if [ "$MDSC_NO_INDEX" != "--no-index" ] ; then
-		local indexFile="$MDSC_CACHED/distro-index.inf"
-		if [ -f "$indexFile" ] && \
-			( [ "$MDSC_INMODE" = "deploy" ] || [ -z "$BUILD_STAMP" ] || [ "$BUILD_STAMP" -lt "$( date -u -r "$indexFile" "+%Y%m%d%H%M%S" )" ] )
-		then
-			echo "| ListDistroProjects: using image ($MDSC_OPTION)" >&2
-			local projectName
-			for projectName in $( grep -e "^PRJS=" "$indexFile" | sed "s:^.*=::" | tr ' ' '\n' ) ; do
-				echo "$projectName"
-			done
-			return 0
-		fi
-	fi
-fi
-
-if [ "$MDSC_INMODE" = "source" ] || [ -d "$MDSC_SOURCE" ]; then
-	echo "| ListDistroProjects: scanning all source projects... ($MDSC_OPTION)" >&2
-	. "$MDLT_ORIGIN/myx/myx.distro-source/sh-lib/source-prepare/ScanSourceProjects.include"
-else
-	echo "| ListDistroProjects: scanning all deploy projects... ($MDSC_OPTION)" >&2
-	Distro DistroDeployPrepare --scan-deploy-projects
-fi
-return 0
+case "$MDSC_INMODE" in
+	source)
+		. "$MDLT_ORIGIN/myx/myx.distro-source/sh-lib/source-context/DistroSourceListAllProjects.include"
+		return 0
+	;;
+	deploy)
+		. "$MDLT_ORIGIN/myx/myx.distro-deploy/sh-lib/deploy-context/DistroDeployListAllProjects.include"
+		return 0
+	;;
+	*)
+		echo "⛔ ERROR: $MDSC_CMD: DistroSystemListAllProjects.include: invalid console mode: $MDSC_INMODE" >&2
+		set +e ; return 1
+	;;
+esac

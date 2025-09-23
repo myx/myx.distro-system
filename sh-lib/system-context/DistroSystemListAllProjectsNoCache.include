@@ -1,0 +1,30 @@
+#!/bin/sh
+# ^^^ for syntax checking in the editor only
+
+[ -z "$MDSC_DETAIL" ] || echo "> $MDSC_CMD: DistroSystemListAllProjectsNoCache.include" >&2
+
+set -e
+
+if [ "$MDSC_NO_INDEX" != "--no-index" ] && [ -n "$MDSC_CACHED" ] && [ -d "$MDSC_CACHED" ] ; then
+	local indexFile="$MDSC_CACHED/distro-index.inf"
+	local buildDate="$MDSC_CACHED/build-time-stamp.txt"
+	if [ -f "$indexFile" ] && [ ! "$indexFile" -ot "$buildDate" ] ; then
+		echo "| DistroSystemListAllProjectsNoCache: using image" >&2
+		local projectName
+		for projectName in $( grep -e "^PRJS=" "$indexFile" | sed "s:^.*=::" | tr ' ' '\n' ) ; do
+			echo "$projectName"
+		done
+		return 0
+	fi
+fi
+
+case "$MDSC_INMODE" in
+	source)
+		. "$MDLT_ORIGIN/myx/myx.distro-source/sh-lib/source-prepare/ScanSourceProjects.include"
+		return 0
+	;;
+	*)
+		echo "⛔ ERROR: $MDSC_CMD: DistroSystemListAllProjects.include: invalid console mode: $MDSC_INMODE" >&2
+		set +e ; return 1
+	;;
+esac
