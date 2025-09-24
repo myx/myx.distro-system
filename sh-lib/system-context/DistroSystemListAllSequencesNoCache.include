@@ -34,9 +34,9 @@ if [ "$MDSC_NO_INDEX" != "--no-index" ] && [ -d "$MDSC_CACHED" ] ; then
 		echo "$MDSC_CMD: --all using index ($MDSC_OPTION)" >&2
 		grep -e "^PRJ-SEQ-" "$indexFile" \
 		| sed -e 's:^PRJ-SEQ-::' -e 's:=: :g' -e 's|\\:|:|g' \
-		| awk '{ seq=$1; for(i=2;i<=NF;i++){ l=seq" "$i; if(!s[l]++) print l; } }'
+		| awk '{ seq=$1; for(i=2;i<=NF;i++){ l=seq" "$i; if(l!="" && !s[l]++) print l; } }'
 		return 0
-		
+
 		local sequenceProject projectSequence currentProject
 		grep -e "^PRJ-SEQ-" "$indexFile" \
 		| sed -e 's:^PRJ-SEQ-::' -e 's:=: :g' -e 's|\\:|:|g' \
