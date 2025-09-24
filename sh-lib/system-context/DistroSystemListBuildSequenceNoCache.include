@@ -19,7 +19,18 @@ if [ "$MDSC_NO_INDEX" != "--no-index" ] && [ -d "$MDSC_CACHED" ] ; then
 	fi
 
 	local indexFile="$MDSC_CACHED/distro-index.inf"
-	if [ -f "$indexFile" ] && [ ! "$indexFile" -ot "$buildDate" ] ; then
+
+	if [ ! -f "$indexFile" ] || [ ! -f "$buildDate" ] || [ "$indexFile" -ot "$buildDate" ] ; then
+		case "$MDSC_INMODE" in
+			source)
+				touch "$buildDate"
+				Require DistroSourcePrepare
+				DistroSourcePrepare --rebuild-cached-index
+			;;
+		esac
+	fi
+
+	if [ -f "$indexFile" ] && [ -f "$buildDate" ] && [ ! "$indexFile" -ot "$buildDate" ] ; then
 		echo "$MDSC_CMD: --all using index ($MDSC_OPTION)" >&2
 		awk '/^PRJ-SEQ-/ {
 			sub(/^[^=]*=/, "", $0)

@@ -43,19 +43,15 @@ if [ "$MDSC_NO_INDEX" != "--no-index" ] && [ -d "$MDSC_CACHED" ] ; then
 
 	if [ ! -f "$indexFile" ] || [ ! -f "$buildDate" ] || [ "$indexFile" -ot "$buildDate" ] ; then
 		case "$MDSC_INMODE" in
-			source) 
+			source)
 				touch "$buildDate"
 				Require DistroSourcePrepare
 				DistroSourcePrepare --rebuild-cached-index
 			;;
-			*) 
-				. "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/system-context/DistroSystemListAllProjectsNoIndex.include"
-				return 0
-			;;
 		esac
 	fi
 
-	if [ -f "$indexFile" ] && [ ! "$indexFile" -ot "$buildDate" ] ; then
+	if [ -f "$indexFile" ] && [ -f "$buildDate" ] && [ ! "$indexFile" -ot "$buildDate" ] ; then
 		echo "| DistroSystemListAllProjectsNoCache: using image" >&2
 		grep -e "^PRJS=" "$indexFile" \
 		| sed "s:^.*=::" \
