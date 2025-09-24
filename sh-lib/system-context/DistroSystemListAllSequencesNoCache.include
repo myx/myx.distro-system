@@ -1,0 +1,74 @@
+#!/bin/sh
+# ^^^ for syntax checking in the editor only
+
+[ full != "$MDSC_DETAIL" ] || echo "> $MDSC_CMD: DistroSystemListAllSequencesNoCache.include" >&2
+
+set -e
+
+if [ "$MDSC_NO_INDEX" != "--no-index" ] && [ -d "$MDSC_CACHED" ] ; then
+
+	local buildDate="$MDSC_CACHED/build-time-stamp.txt"
+
+	if [ "$MDSC_NO_CACHE" != "--no-cache" ] ; then
+		indexFile="$MDSC_CACHED/distro-all-sequences.txt"
+		if [ -f "$indexFile" ] && [ -f "$buildDate" ] && [ ! "$indexFile" -ot "$buildDate" ] ; then
+			echo "| DistroSystemListAllSequencesNoCache.include: using input file: ${indexFile#$MMDAPP/}" >&2
+			cat "$indexFile" 
+			return 0
+		fi
+	fi
+
+	local indexFile="$MDSC_CACHED/distro-index.inf"
+
+	if [ ! -f "$indexFile" ] || [ ! -f "$buildDate" ] || [ "$indexFile" -ot "$buildDate" ] ; then
+		case "$MDSC_INMODE" in
+			source)
+				touch "$buildDate"
+				Require DistroSourcePrepare
+				DistroSourcePrepare --rebuild-cached-index
+			;;
+		esac
+	fi
+
+	if [ -f "$indexFile" ] && [ -f "$buildDate" ] && [ ! "$indexFile" -ot "$buildDate" ] ; then
+		echo "$MDSC_CMD: --all using index ($MDSC_OPTION)" >&2
+		grep -e "^PRJ-SEQ-" "$indexFile" \
+		| sed -e 's:^PRJ-SEQ-::' -e 's:=: :g' -e 's|\\:|:|g' \
+		| awk '{ seq=$1; for(i=2;i<=NF;i++){ l=seq" "$i; if(!s[l]++) print l; } }'
+		return 0
+		
+		local sequenceProject projectSequence currentProject
+		grep -e "^PRJ-SEQ-" "$indexFile" \
+		| sed -e 's:^PRJ-SEQ-::' -e 's:=: :g' -e 's|\\:|:|g' \
+		| while read -r sequenceProject projectSequence ; do
+			for currentProject in $projectSequence ; do
+				echo "$sequenceProject" "$currentProject"
+			done
+		done | awk '!x[$0]++'
+		return 0
+	fi
+fi
+
+if [ -z "$MDSC_JAVAC" ] && command -v javac >/dev/null 2>&1 && [ "$MDSC_INMODE" = "source" ] ; then
+	echo "$MDSC_CMD: DistroSystemListAllSequencesNoCache.include extracting from source (java) ($MDSC_OPTION)" >&2
+	Distro DistroSourceCommand \
+		-q \
+		--import-from-source \
+		--select-all \
+		--print-sequence-separate-lines
+	return 0
+fi
+
+Require ListProjectSequence
+
+local sequenceProjectName
+local currentProjectName
+for sequenceProjectName in $( Distro ListDistroSequence --all ) ; do
+	ListProjectSequence "$sequenceProjectName" | while read -r currentProjectName ; do
+		echo "$sequenceProjectName" "$currentProjectName"
+	done
+done
+return 0
+
+# echo "⛔ ERROR: $MDSC_CMD: can't list distro sequence (mode: $MDSC_INMODE)" >&2
+# set +e ; return 1
