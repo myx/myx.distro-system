@@ -1,30 +1,69 @@
 #!/bin/sh
 # ^^^ for syntax checking in the editor only
 
-[ -z "$MDSC_DETAIL" ] || echo "> $MDSC_CMD: DistroSystemListAllProjectsNoCache.include" >&2
+[ full != "$MDSC_DETAIL" ] || echo "> $MDSC_CMD: DistroSystemListAllProjectsNoCache.include" >&2
 
 set -e
 
-if [ "$MDSC_NO_INDEX" != "--no-index" ] && [ -n "$MDSC_CACHED" ] && [ -d "$MDSC_CACHED" ] ; then
-	local indexFile="$MDSC_CACHED/distro-index.inf"
-	local buildDate="$MDSC_CACHED/build-time-stamp.txt"
+local indexFile buildDate
+
+if [ "$MDSC_NO_CACHE" != "--no-cache" ] && [ -d "$MMDAPP/.local/source-cache" ] ; then
+	case "$MDSC_INMODE" in
+		source) 
+			indexFile="$MMDAPP/.local/source-cache/all-projects.index.txt"
+			buildDate="$MMDAPP/.local/source-cache/source-ingest.timestamp.txt" 
+		;;
+		deploy) 
+			indexFile="$MMDAPP/.local/deploy-cache/all-projects.index.txt"
+			buildDate="$MMDAPP/.local/deploy-cache/distro-ingest.timestamp.txt" 
+		;;
+	esac
+
 	if [ -f "$indexFile" ] && [ ! "$indexFile" -ot "$buildDate" ] ; then
-		echo "| DistroSystemListAllProjectsNoCache: using image" >&2
-		local projectName
-		for projectName in $( grep -e "^PRJS=" "$indexFile" | sed "s:^.*=::" | tr ' ' '\n' ) ; do
-			echo "$projectName"
-		done
+		echo "| DistroSystemListAllProjectsNoCache: using input file: ${indexFile#$MMDAPP/}" >&2
+		cat "$indexFile" 
 		return 0
 	fi
 fi
 
-case "$MDSC_INMODE" in
-	source)
-		. "$MDLT_ORIGIN/myx/myx.distro-source/sh-lib/source-prepare/ScanSourceProjects.include"
+if [ "$MDSC_NO_INDEX" != "--no-index" ] && [ -d "$MDSC_CACHED" ] ; then
+	indexFile="$MDSC_CACHED/build-time-stamp.txt"
+	if [ -f "$buildDate" ] && [ -f "$indexFile" ] && [ "$buildDate" -nt "$indexFile" ]; then
+		cp -f "$buildDate" "$indexFile"
+	fi
+
+	buildDate="$MDSC_CACHED/build-time-stamp.txt"
+	indexFile="$MDSC_CACHED/all-project-names.txt"
+	if [ "$MDSC_NO_CACHE" != "--no-cache" ] && [ -f "$indexFile" ] && [ ! "$indexFile" -ot "$buildDate" ] ; then
+		echo "| DistroSystemListAllProjectsNoCache: using input file: ${indexFile#$MMDAPP/}" >&2
+		cat "$indexFile" 
 		return 0
-	;;
-	*)
-		echo "⛔ ERROR: $MDSC_CMD: DistroSystemListAllProjects.include: invalid console mode: $MDSC_INMODE" >&2
-		set +e ; return 1
-	;;
-esac
+	fi
+	
+	buildDate="$MDSC_CACHED/build-time-stamp.txt"
+	indexFile="$MDSC_CACHED/distro-index.inf"
+	
+	if [ ! -f "$indexFile" ] || [ ! -f "$buildDate" ] || [ "$indexFile" -ot "$buildDate" ] ; then
+		case "$MDSC_INMODE" in
+			source) 
+				touch "$buildDate"
+				Require DistroSourcePrepare
+				DistroSourcePrepare --rebuild-cached-index
+			;;
+			*) 
+				. "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/system-context/DistroSystemListAllProjectsNoIndex.include"
+				return 0
+			;;
+		esac
+	fi
+
+	if [ -f "$indexFile" ] && [ ! "$indexFile" -ot "$buildDate" ] ; then
+		echo "| DistroSystemListAllProjectsNoCache: using image" >&2
+		grep -e "^PRJS=" "$indexFile" \
+		| sed "s:^.*=::" \
+		| tr ' ' '\n'
+		return 0
+	fi
+fi
+
+. "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/system-context/DistroSystemListAllProjectsNoIndex.include"
