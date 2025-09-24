@@ -27,22 +27,20 @@ if [ "$MDSC_NO_CACHE" != "--no-cache" ] && [ -d "$MMDAPP/.local/source-cache" ] 
 fi
 
 if [ "$MDSC_NO_INDEX" != "--no-index" ] && [ -d "$MDSC_CACHED" ] ; then
-	indexFile="$MDSC_CACHED/build-time-stamp.txt"
-	if [ -f "$buildDate" ] && [ -f "$indexFile" ] && [ "$buildDate" -nt "$indexFile" ]; then
-		cp -f "$buildDate" "$indexFile"
-	fi
 
 	buildDate="$MDSC_CACHED/build-time-stamp.txt"
-	indexFile="$MDSC_CACHED/all-project-names.txt"
-	if [ "$MDSC_NO_CACHE" != "--no-cache" ] && [ -f "$indexFile" ] && [ ! "$indexFile" -ot "$buildDate" ] ; then
-		echo "| DistroSystemListAllProjectsNoCache: using input file: ${indexFile#$MMDAPP/}" >&2
-		cat "$indexFile" 
-		return 0
+
+	if [ "$MDSC_NO_CACHE" != "--no-cache" ] ; then
+		indexFile="$MDSC_CACHED/all-project-names.txt"
+		if [ -f "$indexFile" ] && [ -f "$buildDate" ] && [ ! "$indexFile" -ot "$buildDate" ] ; then
+			echo "| DistroSystemListAllProjectsNoCache: using input file: ${indexFile#$MMDAPP/}" >&2
+			cat "$indexFile" 
+			return 0
+		fi
 	fi
 	
-	buildDate="$MDSC_CACHED/build-time-stamp.txt"
 	indexFile="$MDSC_CACHED/distro-index.inf"
-	
+
 	if [ ! -f "$indexFile" ] || [ ! -f "$buildDate" ] || [ "$indexFile" -ot "$buildDate" ] ; then
 		case "$MDSC_INMODE" in
 			source) 
