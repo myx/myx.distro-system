@@ -46,8 +46,7 @@ if [ "$MDSC_NO_INDEX" != "--no-index" ] && [ -d "$MDSC_CACHED" ] ; then
 			n = split($0, a, /[[:space:]]+/)
 			for (i = 1; i <= n; i++) {
 				item = a[i]
-				if (item == "") continue
-				if (!seen[item]++) print item
+				if (item != "" && !seen[item]++) print item
 			}
 		}' "$indexFile"
 		return 0
