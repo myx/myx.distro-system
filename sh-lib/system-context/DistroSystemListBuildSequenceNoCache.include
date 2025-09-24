@@ -43,6 +43,7 @@ if [ "$MDSC_NO_INDEX" != "--no-index" ] && [ -d "$MDSC_CACHED" ] ; then
 		echo "$MDSC_CMD: --all using index ($MDSC_OPTION)" >&2
 		awk '/^PRJ-SEQ-/ {
 			sub(/^[^=]*=/, "", $0)
+			if ($0 == "") next
 			n = split($0, a, /[[:space:]]+/)
 			for (i = 1; i <= n; i++) {
 				item = a[i]
