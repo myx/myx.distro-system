@@ -43,7 +43,6 @@ case "$cmd" in
 		set +e ; return 1
 	;;
 	Action)
-		set -x
 		# 1) Ensure ListAllActions() is loaded
 
 		if [ -z "$cur" ]; then
