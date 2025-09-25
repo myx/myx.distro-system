@@ -43,12 +43,12 @@ case "$cmd" in
 		set +e ; return 1
 	;;
 	Action)
+		set -x
 		# 1) Ensure ListAllActions() is loaded
-		Require ListAllActions
 
 		if [ -z "$cur" ]; then
 			COMPREPLY=( $(
-				ListAllActions --completion \
+				ListAllActions.fn.sh --completion \
 				| sed 's!/.*!/!' \
 				| sort -u
 			) )
@@ -63,7 +63,7 @@ case "$cmd" in
 			# grep prefix matching
 			while IFS= read -r line; do
 				[[ $line != "$cur"* ]] || COMPREPLY+=("$line")
-			done < <( ListAllActions --completion )
+			done < <( ListAllActions.fn.sh --completion )
 
 			# try grep more
 			if [ "${#COMPREPLY[@]}" -eq 0 ] ; then
@@ -74,13 +74,13 @@ case "$cmd" in
 				if [[ $line = "$curPrefix"* ]] && [[ ${line#$curPrefix} == *"$curSearch"* ]]; then
 					COMPREPLY+=("$line")
 				fi
-				done < <( ListAllActions --completion )
+				done < <( ListAllActions.fn.sh --completion )
 			fi
 		else
 			# grep all matching
 			while IFS= read -r line; do
 				[[ $line != *"$cur"* ]] || COMPREPLY+=("$line")
-			done < <( ListAllActions --completion )
+			done < <( ListAllActions.fn.sh --completion )
 		fi
 
 		case "${#COMPREPLY[@]}" in
