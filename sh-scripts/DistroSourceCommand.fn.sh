@@ -25,7 +25,7 @@ DistroSourceCommand(){
 
 	# [ -z "${ENV_DISTRO_SOURCE_JAVA-}" ] || { echo "⛔ ERROR: DistroSourceCommand." >&2; set +e; return 1 }
 
-	set -ex
+	set -e
 
 	CHECK_DIR="$MDSC_SOURCE/myx/myx.distro-system"
 	if [ -f "$CHECK_DIR/bin/ru/myx/distro/DistroSourceCommand.class" ] ; then
