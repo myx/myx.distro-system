@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER">
+		<attributes>
+			<attribute name="module" value="true"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="src" path="java"/>
+	<classpathentry kind="lib" path="/!sources/lib/lib.apache-commons-compress/jars/commons-compress-1.12.jar" sourcepath="/!sources/lib/lib.apache-commons-compress/incoming/commons-compress-1.12/apidocs"/>
+	<classpathentry kind="output" path="bin"/>
+</classpath>
