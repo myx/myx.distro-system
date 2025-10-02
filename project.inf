@@ -2,3 +2,6 @@ Name: myx.distro-system
 Title: Common (distro-deploy & distro-source) tools 
 Augments: developer-sdk:recommended
 Provides: myx/myx.distro-system
+Declares: \
+	distro-image-sync:source-prepare-pull:repo:myx/myx.distro-system:main:git@github.com:myx/myx.distro-system.git \
+

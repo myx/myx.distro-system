@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+# ^^^ for syntax checking in the editor only
+
+: "${MMDAPP:?⛔ ERROR: MMDAPP is not set}"
+
+RunJavaClassSystem(){
+	set -e
+	
+	local SRC_NAME=$1 CLS_NAME=$2 CLS_PATH=; shift 2
+	if [ "$1" = -cp ]; then
+		CLS_PATH="$2"
+		shift 2
+	fi
+
+	local DST_PATH="$MMDAPP/.local/temp/javac/$SRC_NAME/java"
+
+	local SRC_PATH="${MDLT_ORIGIN:-$MMDAPP/.local}/$SRC_NAME/java"
+
+	CLS_PATH="$DST_PATH:$CLS_PATH"
+	mkdir -p "$DST_PATH"
+	
+	[ -z "$MDSC_DETAIL" ] || {
+		echo ">> RunJavaClassSystem: Running $CLS_NAME @ $SRC_NAME, class path: $CLS_PATH" >&2
+	}
+	set -x
+	javac \
+		-d "$DST_PATH" \
+		-cp "$CLS_PATH" \
+		-sourcepath "$SRC_PATH" \
+		-g \
+		-parameters "$SRC_PATH/$( 
+			echo "$CLS_NAME" | sed 's/\./\//g' 
+		).java" >&2
+
+	java -cp "$CLS_PATH" "$CLS_NAME" "$@"
+}
