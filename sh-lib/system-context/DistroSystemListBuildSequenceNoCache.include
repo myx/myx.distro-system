@@ -21,7 +21,7 @@ if [ "$MDSC_NO_INDEX" != "--no-index" ] && [ -d "$MDSC_CACHED" ] ; then
 		indexFile="$MDSC_CACHED/distro-sequences.txt"
 		if [ -f "$indexFile" ] && [ -f "$buildDate" ] && [ ! "$indexFile" -ot "$buildDate" ] ; then
 			echo "| DistroSystemListBuildSequenceNoCache.include: using input file: ${indexFile#$MMDAPP/}" >&2
-			cat "$indexFile" | cut -d' ' -f2 | awk '!x[$0]++'
+			awk '$2 && !seen[$2]++ { print $2; }' < "$indexFile"
 			return 0
 		fi
 
