@@ -130,37 +130,37 @@ if [ "$adpcChangeSpec" = "true" ] ; then
 fi
 
 case "$1" in
-	--distro-source-only)
+	--distro-source-only) # --no-cache --no-index
 		MDSC_SOURCE="$MMDAPP/source"
-		MDSC_CACHED=""
-		MDSC_OUTPUT=""
+		MDSC_CACHED=
+		MDSC_OUTPUT=
 		MDSC_INMODE="source"
 		MDSC_OPTION="--distro-source-only"
 	;;
-	--distro-from-source)
+	--distro-from-source) # during source-console
 		MDSC_SOURCE="$MMDAPP/source"
-		MDSC_CACHED="$MMDAPP/.local/source-cache/enhance"
+		MDSC_CACHED="$MMDAPP/.local/system-index"
 		MDSC_OUTPUT="$MMDAPP/.local/source-cache/sources"
 		MDSC_INMODE="source"
 		MDSC_OPTION="--distro-from-source"
 	;;
-	--distro-from-cached)
+	--distro-from-cached) # during source-prepare
 		MDSC_SOURCE="$MMDAPP/.local/source-cache/sources"
-		MDSC_CACHED="$MMDAPP/.local/source-cache/enhance"
-		MDSC_OUTPUT="$MMDAPP/output/cached"
+		MDSC_CACHED="$MMDAPP/.local/system-index"
+		MDSC_OUTPUT="$MMDAPP/.local/output-cache/distro-index"
 		MDSC_INMODE="source"
 		MDSC_OPTION="--distro-from-cached"
 	;;
-	--distro-from-output)
-		MDSC_SOURCE="$MMDAPP/output/distro"
-		MDSC_CACHED="$MMDAPP/output/cached"
+	--distro-from-output) # during source-process
+		MDSC_SOURCE="$MMDAPP/.local/source-cache/sources"
+		MDSC_CACHED="$MMDAPP/.local/output-cache/distro-index"
 		MDSC_OUTPUT="$MMDAPP/output/distro"
-		MDSC_INMODE="deploy"
+		MDSC_INMODE="source"
 		MDSC_OPTION="--distro-from-output"
 	;;
-	--distro-from-distro)
+	--distro-from-distro) # during deploy operations
 		MDSC_SOURCE="$MMDAPP/distro"
-		MDSC_CACHED="$MMDAPP/output/cached"
+		MDSC_CACHED="$MMDAPP/.local/system-index"
 		MDSC_OUTPUT="$MMDAPP/output/distro"
 		MDSC_INMODE="deploy"
 		MDSC_OPTION="--distro-from-distro"

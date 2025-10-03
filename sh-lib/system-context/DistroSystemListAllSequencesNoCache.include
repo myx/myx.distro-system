@@ -10,7 +10,7 @@ if [ "$MDSC_NO_INDEX" != "--no-index" ] && [ -d "$MDSC_CACHED" ] ; then
 	local buildDate="$MDSC_CACHED/build-time-stamp.txt"
 
 	if [ "$MDSC_NO_CACHE" != "--no-cache" ] ; then
-		indexFile="$MDSC_CACHED/distro-all-sequences.txt"
+		indexFile="$MDSC_CACHED/distro-sequences.txt"
 		if [ -f "$indexFile" ] && [ -f "$buildDate" ] && [ ! "$indexFile" -ot "$buildDate" ] ; then
 			echo "| DistroSystemListAllSequencesNoCache.include: using input file: ${indexFile#$MMDAPP/}" >&2
 			cat "$indexFile" 

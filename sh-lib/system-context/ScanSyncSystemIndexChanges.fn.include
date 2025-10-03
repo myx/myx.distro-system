@@ -1,0 +1,41 @@
+#!/bin/sh
+# ^^^ for syntax checking in the editor only
+
+ScanSyncSystemIndexChanges(){
+
+local dryRun=--dry-run
+if [ "$1" = "--execute-sync" ]; then
+	dryRun=; shift
+else
+	[ -z "$MDSC_DETAIL" ] || echo "$MDSC_CMD: scanning source-cache changes ($MDSC_OPTION)" >&2
+fi
+
+local MDSC_CACHED="$1"
+if [ ! -d "$MDSC_CACHED" ] || [ "$MDSC_CACHED" = "$MMDAPP/.local/system-index" ]; then
+	echo "⛔ ERROR: $MDSC_CMD: ScanSyncSystemIndexChanges.fn.include: SRC is invalid: $MDSC_CACHED" >&2
+	set +e ; return 1
+fi
+
+local MDSC_OUTPUT="${2:-$MMDAPP/.local/system-index}"
+if [ ! -d "$MDSC_OUTPUT" ] || [ "$MDSC_CACHED" = "$MDSC_OUTPUT" ]; then
+	echo "⛔ ERROR: $MDSC_CMD: ScanSyncSystemIndexChanges.fn.include: DST is invalid: $MDSC_OUTPUT" >&2
+	set +e ; return 1
+fi
+
+set -e
+rsync -rtpiO -vv $dryRun --delete --delete-excluded \
+	--out-format='%i %n' \
+	--exclude='.*' \
+	--exclude='*.tmp' \
+	"$MDSC_CACHED/" "$MDSC_OUTPUT/" \
+| { grep '^[<>cd]' || [ $? -eq 1 ] ; } \
+| if [ -n "$MDSC_DETAIL" ]; then
+	if [ "full" = "$MDSC_DETAIL" ]; then
+		tee /dev/fd/2
+	else
+		{ fgrep -v '>f..t.' || [ $? -eq 1 ] ; } \
+		| tee /dev/fd/2
+	fi
+fi > /dev/null
+
+}

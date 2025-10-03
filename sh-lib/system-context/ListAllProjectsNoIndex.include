@@ -1,0 +1,15 @@
+#!/bin/sh
+# ^^^ for syntax checking in the editor only
+
+[ full != "$MDSC_DETAIL" ] || echo "> $MDSC_CMD: ListAllProjectsNoIndex.include" >&2
+
+set -e
+
+case "$MDSC_INMODE" in
+	source) . "$MDLT_ORIGIN/myx/myx.distro-source/sh-lib/source-prepare/ScanSourceProjects.include"; return 0; ;;
+	deploy) . "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/deploy-context/ScanDistroProjects.include"; return 0; ;;
+	*)
+		echo "⛔ ERROR: $MDSC_CMD: ListAllProjectsNoIndex.include: invalid console mode: $MDSC_INMODE" >&2
+		set +e ; return 1
+	;;
+esac

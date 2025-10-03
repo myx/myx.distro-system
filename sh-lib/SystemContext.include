@@ -101,11 +101,6 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 
 	DistroSystemContext(){
 		case "$1" in
-			--uncache)
-				shift ;	echo "DistroSystemContext: clear cache" >&2
-				rm -rf "$MDLT_ORIGIN"/.cached
-				return 0
-			;;
 			--is-spec-option)
 				case "$2" in
 					# distro-source & distro-deploy
@@ -137,6 +132,47 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 					. "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/SystemContext.SetInputSpec.include"
 					return 0
 				fi
+			;;
+			--ensure-index-cache-files)
+				local cacheName="$2" cacheExt="$3"
+				shift 3
+				case "$cacheName" in
+					MDSC_IDPALL_NAME)
+					;;
+					MDSC_IDBSEQ_NAME)
+					;;
+					MDSC_IDSEQS_NAME)
+					;;
+					MDSC_IDAPRV_NAME)
+					;;
+					MDSC_IDOPRV_NAME)
+					;;
+					MDSC_IDADCL_NAME)
+					;;
+					MDSC_IDODCL_NAME)
+					;;
+					MDSC_IDAKWD_NAME)
+					;;
+					MDSC_IDOKWD_NAME)
+					;;
+				esac
+			;;
+			--uncache)
+				shift
+				echo "DistroSystemContext: clear cache" >&2
+				rm -rf "$MDLT_ORIGIN"/.cached
+				unset \
+					MDSC_IDPALL_NAME MDSC_IDPALL \
+					MDSC_IDBSEQ_NAME MDSC_IDBSEQ \
+					MDSC_IDSEQS_NAME MDSC_IDSEQS \
+					MDSC_IDOPRV_NAME MDSC_IDOPRV \
+					MDSC_IDAPRV_NAME MDSC_IDAPRV \
+					MDSC_IDODCL_NAME MDSC_IDODCL \
+					MDSC_IDADCL_NAME MDSC_IDADCL \
+					MDSC_IDOKWD_NAME MDSC_IDOKWD \
+					MDSC_IDAKWD_NAME MDSC_IDAKWD \
+				
+				return 0
 			;;
 		esac
 	}

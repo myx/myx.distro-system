@@ -1,7 +1,7 @@
 #!/bin/sh
 # ^^^ for syntax checking in the editor only
 
-[ full != "$MDSC_DETAIL" ] || echo "> $MDSC_CMD: DistroSystemListAllProjectsNoCache.include" >&2
+[ full != "$MDSC_DETAIL" ] || echo "> $MDSC_CMD: ListAllProjectsNoCache.include" >&2
 
 set -e
 
@@ -11,7 +11,7 @@ if [ "$MDSC_NO_CACHE" != "--no-cache" ] && [ -d "$MMDAPP/.local/source-cache" ] 
 	case "$MDSC_INMODE" in
 		source) 
 			indexFile="$MMDAPP/.local/source-cache/all-projects.index.txt"
-			buildDate="$MMDAPP/.local/source-cache/source-ingest.timestamp.txt" 
+			buildDate="$MMDAPP/.local/source-cache/prepare-ingest.timestamp.txt" 
 		;;
 		deploy) 
 			indexFile="$MMDAPP/.local/deploy-cache/all-projects.index.txt"
@@ -20,7 +20,7 @@ if [ "$MDSC_NO_CACHE" != "--no-cache" ] && [ -d "$MMDAPP/.local/source-cache" ] 
 	esac
 
 	if [ -f "$indexFile" ] && [ ! "$indexFile" -ot "$buildDate" ] ; then
-		echo "| DistroSystemListAllProjectsNoCache: using input file: ${indexFile#$MMDAPP/}" >&2
+		echo "| ListAllProjectsNoCache: using input file: ${indexFile#$MMDAPP/}" >&2
 		cat "$indexFile" 
 		return 0
 	fi
@@ -33,7 +33,7 @@ if [ "$MDSC_NO_INDEX" != "--no-index" ] && [ -d "$MDSC_CACHED" ] ; then
 	if [ "$MDSC_NO_CACHE" != "--no-cache" ] ; then
 		indexFile="$MDSC_CACHED/all-project-names.txt"
 		if [ -f "$indexFile" ] && [ -f "$buildDate" ] && [ ! "$indexFile" -ot "$buildDate" ] ; then
-			echo "| DistroSystemListAllProjectsNoCache: using input file: ${indexFile#$MMDAPP/}" >&2
+			echo "| ListAllProjectsNoCache: using input file: ${indexFile#$MMDAPP/}" >&2
 			cat "$indexFile" 
 			return 0
 		fi
@@ -52,7 +52,7 @@ if [ "$MDSC_NO_INDEX" != "--no-index" ] && [ -d "$MDSC_CACHED" ] ; then
 	fi
 
 	if [ -f "$indexFile" ] && [ -f "$buildDate" ] && [ ! "$indexFile" -ot "$buildDate" ] ; then
-		echo "| DistroSystemListAllProjectsNoCache: using image" >&2
+		echo "| ListAllProjectsNoCache: using image" >&2
 		grep -e "^PRJS=" "$indexFile" \
 		| sed "s:^.*=::" \
 		| tr ' ' '\n'
@@ -60,4 +60,4 @@ if [ "$MDSC_NO_INDEX" != "--no-index" ] && [ -d "$MDSC_CACHED" ] ; then
 	fi
 fi
 
-. "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/system-context/DistroSystemListAllProjectsNoIndex.include"
+. "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/system-context/ListAllProjectsNoIndex.include"
