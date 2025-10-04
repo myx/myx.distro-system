@@ -63,7 +63,8 @@ Require ListProjectSequence
 
 local sequenceProjectName
 local currentProjectName
-for sequenceProjectName in $( Distro ListDistroSequence --all ) ; do
+DistroSystemContext --index-build-sequence cat \
+| while read -r sequenceProjectName; do
 	ListProjectSequence "$sequenceProjectName" | while read -r currentProjectName ; do
 		echo "$sequenceProjectName" "$currentProjectName"
 	done

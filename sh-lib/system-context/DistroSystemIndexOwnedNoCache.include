@@ -1,0 +1,71 @@
+#!/bin/sh
+# ^^^ for syntax checking in the editor only
+
+[ full != "$MDSC_DETAIL" ] || echo "> $MDSC_CMD: DistroSystemIndexOwnedNoCache.include" >&2
+
+set -e
+
+if [ -z "$idx" ] || [ -z "$env" ] || [ -z "${cmd:0:1}" ]; then
+	echo "⛔ ERROR: $MDSC_CMD: DistroSystemIndexOwnedNoCache.include: invalid invocation specific vars expected!" >&2
+	set +e ; return 1
+fi
+
+local key
+case "$idx" in
+	declares) key=DCL; ;;
+	keywords) key=KWD; ;;
+	provides) key=PRV; ;;
+	*) 
+		echo "⛔ ERROR: unknown index name: $idx" >&2
+		set +e ; return 1
+	;;
+esac
+
+if [ "$MDSC_NO_INDEX" != "--no-index" ] && [ -f "$MDSC_CACHED/distro-index.inf" ] && [ -d "$MDSC_CACHED" ] ; then
+	if { [ -n "$BUILD_STAMP" ] && [ ! "$BUILD_STAMP" -gt "$( date -u -r "$MDSC_CACHED/distro-index.inf" "+%Y%m%d%H%M%S" )" ]; } \
+		|| [ -f "$MDSC_CACHED/build-time-stamp.txt" ] && [ ! "$MDSC_CACHED/build-time-stamp.txt" -nt "$MDSC_CACHED/distro-index.inf" ] ; then
+		
+		[ -z "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: --all-keywords using index" >&2
+		
+		local projectName extraText
+		grep -e "^PRJ-${key}-" "$MDSC_CACHED/distro-index.inf" \
+		| sort \
+		| sed -e 's:^PRJ-${key}-::' -e 's:=: :g' -e 's|\\:|:|g' \
+		| while read -r projectName extraText ; do
+			echo "$extraText" | tr ' ' '\n' | sed -e "s:^:$projectName :"
+		done
+		
+		return 0
+	fi
+fi
+
+if [ "$MDSC_NO_CACHE" != "--no-cache" ] ; then
+	[ -z "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: --all-keywords env-caching projects ($MDSC_OPTION)" >&2
+	export MDSC_IDOKWD="` ListDistroKeywords --explicit-noop --no-cache --all-keywords `"
+	echo "$MDSC_IDOKWD"
+	return 0
+fi
+
+if [ -z "$MDSC_JAVAC" ] && command -v javac >/dev/null 2>&1 && [ "$MDSC_INMODE" = "source" ] ; then
+	echo "| $MDSC_CMD: --all-keywords extracting from source (java) ($MDSC_OPTION)" >&2
+
+	Distro DistroSourceCommand \
+		-q \
+		--import-from-source \
+		--print-all-keywords-separate-lines
+
+		# --select-all \
+		# --print-keywords-separate-lines
+		
+	return 0
+fi
+
+echo "| $MDSC_CMD: --all-keywords extracting from source (shell) ($MDSC_OPTION)" >&2
+
+Require ListRepositoryKeywords
+local repositoryName
+Distro ListAllRepositories --all-repositories | while read -r repositoryName ; do
+	ListRepositoryKeywords $MDSC_NO_CACHE $MDSC_NO_INDEX $repositoryName || :
+done
+
+return 0

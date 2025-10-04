@@ -60,4 +60,11 @@ if [ "$MDSC_NO_INDEX" != "--no-index" ] && [ -d "$MDSC_CACHED" ] ; then
 	fi
 fi
 
-. "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/system-context/ListAllProjectsNoIndex.include"
+case "$MDSC_INMODE" in
+	source) . "$MDLT_ORIGIN/myx/myx.distro-source/sh-lib/source-prepare/ScanSourceProjects.include"; return 0; ;;
+	deploy) . "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/deploy-context/ScanDistroProjects.include"; return 0; ;;
+	*)
+		echo "⛔ ERROR: $MDSC_CMD: ListAllProjectsNoCache.include: invalid console mode: $MDSC_INMODE" >&2
+		set +e ; return 1
+	;;
+esac

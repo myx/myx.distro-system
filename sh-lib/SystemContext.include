@@ -133,34 +133,70 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 					return 0
 				fi
 			;;
-			--ensure-index-cache-files)
-				local cacheName="$2" cacheExt="$3"
-				shift 3
-				case "$cacheName" in
-					MDSC_IDPALL_NAME)
-					;;
-					MDSC_IDBSEQ_NAME)
-					;;
-					MDSC_IDSEQS_NAME)
-					;;
-					MDSC_IDAPRV_NAME)
-					;;
-					MDSC_IDOPRV_NAME)
-					;;
-					MDSC_IDADCL_NAME)
-					;;
-					MDSC_IDODCL_NAME)
-					;;
-					MDSC_IDAKWD_NAME)
-					;;
-					MDSC_IDOKWD_NAME)
+			--index-*)
+			#--index-namespaces|--index-projects|--index-build-sequence|--index-sequences|--index-declares|--index-keywords|--index-provides|--index-requires|...)
+				[ -n "$2" ] || {
+					echo "⛔ ERROR: SystemContext: command argument required, use 'cat':" "$@" >&2
+					set +e ; return 1
+				}
+				local idx="${1#'--index-'}" cmd="${2:-'cat'}"; shift 2 || :
+				local env
+				case "$idx" in
+					projects) env=MDSC_IDPALL; ;;
+					build-sequence) env=MDSC_IDBSEQ; ;;
+					sequences) env=MDSC_IDSEQS; ;;
+					declares) env=MDSC_IDODCL; ;;
+					merged-declares) env=MDSC_IDADCL; ;;
+					keywords) env=MDSC_IDOKWD; ;;
+					merged-keywords) env=MDSC_IDAKWD; ;;
+					provides) env=MDSC_IDOPRV; ;;
+					merged-provides) env=MDSC_IDAPRV; ;;
+					*) 
+						echo "⛔ ERROR: unknown index name: $idx" >&2
+						set +e ; return 1
 					;;
 				esac
+				if [ "$MDSC_NO_CACHE" != "--no-cache" ] ; then
+					if eval '[ -n "${'$env':0:1}" ]' ; then
+						[ full != "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: DistroSystemContext: --index-* using env-cached ($idx)" >&2
+						if [ 'cat' = "$cmd" ]; then
+							eval 'echo "$'$env'"'
+							return 0
+						fi
+						eval 'echo "$'$env'" | ' "$cmd" "$0"
+						return 0
+					fi
+					if eval '[ -n "${'$env'_NAME:0:1}" ]' ; then
+						[ full != "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: DistroSystemContext: --index-* using env-cached file ($idx)" >&2
+						if [ 'cat' = "$cmd" ]; then
+							eval 'cat "$'$env'_NAME"'
+							return 0
+						fi
+						eval "$cmd" "$0" '"$'$env'_NAME"'
+						return 0
+					fi
+					if [ -d "$MDSC_CACHED" ] ; then
+						local cacheFile="$MDSC_CACHED/distro-$idx.txt"
+						if [ -f "$cacheFile" ]; then
+							if { [ -f "$MDSC_CACHED/distro-index.inf" ] && [ ! "$cacheFile" -nt "$MDSC_CACHED/distro-index.inf" ]; } \
+							|| { [ -n "$BUILD_STAMP" ] && [ ! "$BUILD_STAMP" -gt "$( date -u -r "$cacheFile" "+%Y%m%d%H%M%S" )" ]; } \
+							|| { [ -f "$MDSC_CACHED/build-time-stamp.txt" ] && [ ! "$MDSC_CACHED/build-time-stamp.txt" -nt "$cacheFile" ]; } ; then
+
+								[ full != "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: DistroSystemContext: --index-* using cached ($idx)" >&2
+								"$cmd" "$@" "$cacheFile"
+								return 0
+
+							fi
+						fi
+					fi
+				fi
+				. "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/system-context/DistroSystemIndexRunnerCacheMiss.include"
+				return 0
 			;;
-			--uncache)
+			--uncache|--uncache-index)
 				shift
-				echo "DistroSystemContext: clear cache" >&2
-				rm -rf "$MDLT_ORIGIN"/.cached
+				# echo "DistroSystemContext: clear cache" >&2
+				# rm -rf "$MDLT_ORIGIN"/.cached
 				unset \
 					MDSC_IDPALL_NAME MDSC_IDPALL \
 					MDSC_IDBSEQ_NAME MDSC_IDBSEQ \
