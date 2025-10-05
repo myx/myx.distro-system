@@ -24,7 +24,7 @@ case "$idx" in
 		# ListDistroDeclares.fn.sh --explicit-noop --no-cache --all-declares
 		# ListDistroKeywords.fn.sh --explicit-noop --no-cache --all-keywords
 		# ListDistroProvides.fn.sh --explicit-noop --no-cache --all-provides
-		gen="myx/myx.distro-system/sh-lib/system-context/DistroSystemOwnedIndexNoCache.include" 
+		gen="myx/myx.distro-system/sh-lib/system-context/DistroSystemIndexOwnedNoCache.include" 
 	;;
 	sequences) 
 		# ListDistroSequence.fn.sh --explicit-noop --no-cache --all-projects
@@ -35,7 +35,7 @@ case "$idx" in
 		# ListDistroDeclares.fn.sh --explicit-noop --no-cache --all-declares-merged
 		# ListDistroKeywords.fn.sh --explicit-noop --no-cache --all-keywords-merged
 		# ListDistroProvides.fn.sh --explicit-noop --no-cache --all-provides-merged
-		gen="myx/myx.distro-system/sh-lib/system-context/DistroSystemMergedIndexNoCache.include" 
+		gen="myx/myx.distro-system/sh-lib/system-context/DistroSystemIndexMergedNoCache.include" 
 	;;
 	*) 
 		echo "⛔ ERROR: unknown index name: $idx" >&2
@@ -56,10 +56,10 @@ if [ "$MDSC_NO_CACHE" != "--no-cache" ] && [ -n "${cacheFile:0:1}" ] && [ -d "$M
 	fi
 
 	echo "| $MDSC_CMD: DistroSystemContext: --index-* caching index file ($idx)" >&2
-	. "$MDLT_ORIGIN/$gen" > "$cacheFile.$$.tmp"
+	. "$MDLT_ORIGIN/$gen" >"$cacheFile.$$.tmp"
 	mv -f "$cacheFile.$$.tmp" "$cacheFile" || :
 	eval export "${env}_NAME='$cacheFile'"
-	eval "$cmd" "$0" "$cacheFile"
+	"$cmd" "$@" "$cacheFile"
 	return 0
 
 fi
@@ -71,5 +71,5 @@ if [ 'cat' = "$cmd" ]; then
 	return 0
 fi
 
-. "$MDLT_ORIGIN/$gen" | eval "$cmd" "$0"
+. "$MDLT_ORIGIN/$gen" | "$cmd" "$@"
 return 0

@@ -21,16 +21,15 @@ case "$idx" in
 	;;
 esac
 
-if [ "$MDSC_NO_INDEX" != "--no-index" ] && [ -f "$MDSC_CACHED/distro-index.inf" ] && [ -d "$MDSC_CACHED" ] ; then
+if [ "$MDSC_NO_INDEX" != "--no-index" ] && [ -f "$MDSC_CACHED/distro-index.inf" ] ; then
 	if { [ -n "$BUILD_STAMP" ] && [ ! "$BUILD_STAMP" -gt "$( date -u -r "$MDSC_CACHED/distro-index.inf" "+%Y%m%d%H%M%S" )" ]; } \
 		|| [ -f "$MDSC_CACHED/build-time-stamp.txt" ] && [ ! "$MDSC_CACHED/build-time-stamp.txt" -nt "$MDSC_CACHED/distro-index.inf" ] ; then
 		
-		[ -z "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: --all-keywords using index" >&2
+		[ -z "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: --all-${idx} using index" >&2
 		
 		local projectName extraText
 		grep -e "^PRJ-${key}-" "$MDSC_CACHED/distro-index.inf" \
-		| sort \
-		| sed -e 's:^PRJ-${key}-::' -e 's:=: :g' -e 's|\\:|:|g' \
+		| sed -e 's:^PRJ-'${key}'-::' -e 's:=: :g' -e 's|\\:|:|g' \
 		| while read -r projectName extraText ; do
 			echo "$extraText" | tr ' ' '\n' | sed -e "s:^:$projectName :"
 		done
@@ -39,33 +38,36 @@ if [ "$MDSC_NO_INDEX" != "--no-index" ] && [ -f "$MDSC_CACHED/distro-index.inf" 
 	fi
 fi
 
-if [ "$MDSC_NO_CACHE" != "--no-cache" ] ; then
-	[ -z "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: --all-keywords env-caching projects ($MDSC_OPTION)" >&2
-	export MDSC_IDOKWD="` ListDistroKeywords --explicit-noop --no-cache --all-keywords `"
-	echo "$MDSC_IDOKWD"
+# env caching
+if [ "$MDSC_NO_CACHE" != "--no-cache" ] && [ ! -d "$MDSC_CACHED" ]; then
+	[ -z "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: --all-${idx} env-caching projects ($MDSC_OPTION)" >&2
+	local index="$( MDSC_NO_CACHE=--no-cache . "$MDLT_ORIGIN/$gen" )"
+	eval export "${env}='$index'"
+	echo "$index"
 	return 0
 fi
 
 if [ -z "$MDSC_JAVAC" ] && command -v javac >/dev/null 2>&1 && [ "$MDSC_INMODE" = "source" ] ; then
-	echo "| $MDSC_CMD: --all-keywords extracting from source (java) ($MDSC_OPTION)" >&2
+	echo "| $MDSC_CMD: --all-${idx} extracting from source (java) ($MDSC_OPTION)" >&2
 
 	Distro DistroSourceCommand \
 		-q \
 		--import-from-source \
-		--print-all-keywords-separate-lines
+		--print-all-${idx}-separate-lines
 
 		# --select-all \
-		# --print-keywords-separate-lines
+		# --print-${idx}-separate-lines
 		
 	return 0
 fi
 
-echo "| $MDSC_CMD: --all-keywords extracting from source (shell) ($MDSC_OPTION)" >&2
+echo "| $MDSC_CMD: --all-${idx} extracting from source (shell) ($MDSC_OPTION)" >&2
 
 Require ListRepositoryKeywords
 local repositoryName
-Distro ListAllRepositories --all-repositories | while read -r repositoryName ; do
-	ListRepositoryKeywords $MDSC_NO_CACHE $MDSC_NO_INDEX $repositoryName || :
+Distro ListAllRepositories --all-repositories \
+| while read -r repositoryName ; do
+	ListRepositoryKeywords --no-cache $MDSC_NO_INDEX $repositoryName || :
 done
 
 return 0

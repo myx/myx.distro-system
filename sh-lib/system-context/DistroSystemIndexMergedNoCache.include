@@ -1,0 +1,106 @@
+#!/bin/sh
+# ^^^ for syntax checking in the editor only
+
+[ full != "$MDSC_DETAIL" ] || echo "> $MDSC_CMD: DistroSystemIndexMergedNoCache.include" >&2
+
+set -e
+
+if [ -z "$idx" ] || [ -z "$env" ] || [ -z "${cmd:0:1}" ]; then
+	echo "⛔ ERROR: $MDSC_CMD: DistroSystemIndexMergedNoCache.include: invalid invocation specific vars expected!" >&2
+	set +e ; return 1
+fi
+
+local key
+case "$idx" in
+	declares) key=DCL; ;;
+	keywords) key=KWD; ;;
+	provides) key=PRV; ;;
+	*) 
+		echo "⛔ ERROR: unknown index name: $idx" >&2
+		set +e ; return 1
+	;;
+esac
+
+if [ "$MDSC_NO_INDEX" != "--no-index" ] && [ -f "$MDSC_CACHED/distro-index.inf" ] ; then
+	if [ -z "$BUILD_STAMP" ] || [ ! "$BUILD_STAMP" -gt "`date -u -r "$MDSC_CACHED/distro-index.inf" "+%Y%m%d%H%M%S"`" ] ; then
+
+		[ -z "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: --all-${idx}-merged using index ($MDSC_OPTION)" >&2
+
+		local indexFilter="` \
+			grep -e "^PRJ-${key}-" "$MDSC_CACHED/distro-index.inf" \
+			| sed -e 's:^PRJ-'${key}'-::' -e 's:=: :g' -e 's|\\\\:|:|g' \
+			| while read -r projectName extraText ; do
+				for extraText in $extraText ; do
+					echo "$projectName" "$extraText"
+				done
+			done | cat -n | sort -k 2
+		`"
+		local indexSequence="` \
+			grep -e "^PRJ-SEQ-" "$MDSC_CACHED/distro-index.inf" | sed -e 's:^PRJ-SEQ-::' -e 's:=: :g' \
+			| while read -r projectName extraText ; do
+				for extraText in $extraText ; do
+					echo "$projectName" "$extraText"
+				done
+			done | cat -n | sort -k 3
+		`"
+
+		join -o 2.1,1.1,2.2,1.2,1.3 -12 -23 \
+			<( echo "$indexFilter" ) \
+			<( echo "$indexSequence" ) \
+		| sort -n -k 1,2 | cut -d" " -f 3-
+		
+		return 0 # 2s
+	fi
+fi
+
+# env caching
+if [ "$MDSC_NO_CACHE" != "--no-cache" ] && [ ! -d "$MDSC_CACHED" ]; then
+	[ -z "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: --all-${idx}-merged env-caching projects ($MDSC_OPTION)" >&2
+	local index="$( MDSC_NO_CACHE=--no-cache . "$MDLT_ORIGIN/$gen" )"
+	eval export "${env}='$index'"
+	echo "$index"
+	return 0
+fi
+
+if [ -z "$MDSC_JAVAC" ] && command -v javac >/dev/null 2>&1 && [ "$MDSC_INMODE" = "source" ] ; then
+	echo "| $MDSC_CMD: --all-${idx}-merged extracting from source (java) ($MDSC_OPTION)" >&2
+
+	Require DistroSourceCommand
+	
+	local indexFilter="` \
+		DistroSourceCommand \
+			-q \
+			--import-from-source \
+			--select-all \
+			--print-${idx}-separate-lines \
+		| cat -n | sort -k 2
+	`"
+
+	local indexSequence="` \
+		DistroSourceCommand \
+			-q \
+			--import-from-source \
+			--select-all \
+			--print-sequence-separate-lines \
+		| cat -n | sort -k 3
+	`"
+	
+	join -o 2.1,1.1,2.2,1.2,1.3 -12 -23 \
+		<( echo "$indexFilter" ) \
+		<( echo "$indexSequence" ) \
+	| sort -n -k 1,2 | cut -d" " -f 3-
+	
+	return 0
+fi
+
+echo "| $MDSC_CMD: --all-${idx}-merged extracting from source (shell) ($MDSC_OPTION)" >&2
+
+Require ListProjectKeywords
+
+local sequenceProjectName
+DistroSystemContext --index-build-sequence cat \
+| while read -r sequenceProjectName; do
+	ListProjectKeywords --no-cache $MDSC_NO_INDEX "$sequenceProjectName" --merge-sequence "$@" | sed "s|^|$sequenceProjectName |g"
+done | awk '!x[$0]++'
+
+return 0
