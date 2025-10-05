@@ -159,7 +159,7 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 				if [ "$MDSC_NO_CACHE" != "--no-cache" ] ; then
 					if eval '[ -n "${'$env':0:1}" ]' ; then
 						[ full != "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: DistroSystemContext: --index-* using env-cached ($idx)" >&2
-						if [ 'cat' = "$cmd" ]; then
+						if [ 'cat ' = "$cmd $1" ]; then
 							eval 'echo "$'$env'"'
 							return 0
 						fi
@@ -168,7 +168,7 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 					fi
 					if eval '[ -f "$'$env'_NAME" ]' ; then
 						[ full != "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: DistroSystemContext: --index-* using env-cached file ($idx)" >&2
-						if [ 'cat' = "$cmd" ]; then
+						if [ 'cat ' = "$cmd $1" ]; then
 							eval 'cat "$'$env'_NAME"'
 							return 0
 						fi

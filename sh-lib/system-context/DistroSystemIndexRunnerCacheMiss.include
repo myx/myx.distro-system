@@ -47,7 +47,7 @@ if [ "$MDSC_NO_CACHE" != "--no-cache" ] && [ -n "${cacheFile:0:1}" ] && [ -d "$M
 
 	## Build cache index file
 
-	if [ 'cat' = "$cmd" ]; then
+	if [ 'cat ' = "$cmd $1" ]; then
 		echo "| $MDSC_CMD: DistroSystemContext: --index-* caching+piping index ($idx)" >&2
 		. "$MDLT_ORIGIN/$gen" | tee "$cacheFile.$$.tmp"
 		mv -f "$cacheFile.$$.tmp" "$cacheFile" || :
@@ -66,7 +66,7 @@ fi
 
 echo "| $MDSC_CMD: DistroSystemContext: --index-* no caching ($idx)" >&2
 
-if [ 'cat' = "$cmd" ]; then
+if [ 'cat ' = "$cmd $1" ]; then
 	. "$MDLT_ORIGIN/$gen"
 	return 0
 fi
