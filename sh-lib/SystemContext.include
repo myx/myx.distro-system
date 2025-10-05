@@ -142,16 +142,16 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 				local env
 				case "$idx" in
 					projects) env=MDSC_IDPALL; ;;
-					build-sequence) env=MDSC_IDBSEQ; ;;
-					sequences) env=MDSC_IDSEQS; ;;
+					sequence) env=MDSC_IDBSEQ; ;;
+					sequence-merged) env=MDSC_IDSEQS; ;;
 					declares) env=MDSC_IDODCL; ;;
-					merged-declares) env=MDSC_IDADCL; ;;
+					declares-merged) env=MDSC_IDADCL; ;;
 					keywords) env=MDSC_IDOKWD; ;;
-					merged-keywords) env=MDSC_IDAKWD; ;;
+					keywords-merged) env=MDSC_IDAKWD; ;;
 					provides) env=MDSC_IDOPRV; ;;
-					merged-provides) env=MDSC_IDAPRV; ;;
+					provides-merged) env=MDSC_IDAPRV; ;;
 					*) 
-						echo "⛔ ERROR: unknown index name: $idx" >&2
+						echo "⛔ ERROR: DistroSystemContext: unknown index name: $idx" >&2
 						set +e ; return 1
 					;;
 				esac

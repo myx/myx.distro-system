@@ -16,7 +16,7 @@ case "$idx" in
 		# ListDistroProjects.fn.sh --explicit-noop --no-cache --all-projects
 		gen="myx/myx.distro-system/sh-lib/system-context/ListAllProjectsNoCache.include" 
 	;;
-	build-sequence) 
+	sequence) 
 		# ListDistroSequence.fn.sh --explicit-noop --no-cache --all
 		gen="myx/myx.distro-system/sh-lib/system-context/DistroSystemListBuildSequenceNoCache.include" 
 	;;
@@ -26,19 +26,20 @@ case "$idx" in
 		# ListDistroProvides.fn.sh --explicit-noop --no-cache --all-provides
 		gen="myx/myx.distro-system/sh-lib/system-context/DistroSystemIndexOwnedNoCache.include" 
 	;;
-	sequences) 
+	sequence-merged)
 		# ListDistroSequence.fn.sh --explicit-noop --no-cache --all-projects
 		gen="myx/myx.distro-system/sh-lib/system-context/DistroSystemListAllSequencesNoCache.include" 
 	;;
-	merged-declares|merged-keywords|merged-provides)
-		local idx="${idx#'merged-'}"
+	declares-merged|keywords-merged|provides-merged)
+		local idx="${idx%%'-'}"
+		echo $idx ; exit
 		# ListDistroDeclares.fn.sh --explicit-noop --no-cache --all-declares-merged
 		# ListDistroKeywords.fn.sh --explicit-noop --no-cache --all-keywords-merged
 		# ListDistroProvides.fn.sh --explicit-noop --no-cache --all-provides-merged
 		gen="myx/myx.distro-system/sh-lib/system-context/DistroSystemIndexMergedNoCache.include" 
 	;;
 	*) 
-		echo "⛔ ERROR: unknown index name: $idx" >&2
+		echo "⛔ ERROR: DistroSystemIndexRunnerCacheMiss.include: unknown index name: $idx" >&2
 		set +e ; return 1
 	;;
 esac

@@ -382,7 +382,7 @@ public class Project {
 	if (full) {
 	    Utils.save(//
 		    context.console, //
-		    packageOutput.resolve("project-build-sequence.txt"), //
+		    packageOutput.resolve("project-sequence.txt"), //
 		    this.getBuildSequence(context).stream().map(Project::projectFullName)//
 	    );
 	}

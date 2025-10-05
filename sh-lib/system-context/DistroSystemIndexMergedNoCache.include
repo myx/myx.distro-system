@@ -16,7 +16,7 @@ case "$idx" in
 	keywords) key=KWD; ;;
 	provides) key=PRV; ;;
 	*) 
-		echo "⛔ ERROR: unknown index name: $idx" >&2
+		echo "⛔ ERROR: DistroSystemIndexMergedNoCache.include: unknown index name: $idx" >&2
 		set +e ; return 1
 	;;
 esac
@@ -98,7 +98,7 @@ echo "| $MDSC_CMD: --all-${idx}-merged extracting from source (shell) ($MDSC_OPT
 Require ListProjectKeywords
 
 local sequenceProjectName
-DistroSystemContext --index-build-sequence cat \
+DistroSystemContext --index-sequence cat \
 | while read -r sequenceProjectName; do
 	ListProjectKeywords --no-cache $MDSC_NO_INDEX "$sequenceProjectName" --merge-sequence "$@" | sed "s|^|$sequenceProjectName |g"
 done | awk '!x[$0]++'

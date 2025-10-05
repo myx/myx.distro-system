@@ -16,7 +16,7 @@ case "$idx" in
 	keywords) key=KWD; ;;
 	provides) key=PRV; ;;
 	*) 
-		echo "⛔ ERROR: unknown index name: $idx" >&2
+		echo "⛔ ERROR: DistroSystemIndexOwnedNoCache.include: unknown index name: $idx" >&2
 		set +e ; return 1
 	;;
 esac

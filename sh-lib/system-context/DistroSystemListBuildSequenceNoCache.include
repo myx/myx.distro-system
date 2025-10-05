@@ -11,14 +11,14 @@ if [ "$MDSC_NO_INDEX" != "--no-index" ] && [ -d "$MDSC_CACHED" ] ; then
 
 	if [ "$MDSC_NO_CACHE" != "--no-cache" ] ; then
 
-		indexFile="$MDSC_CACHED/distro-build-sequence.txt"
+		indexFile="$MDSC_CACHED/distro-sequence.txt"
 		if [ -f "$indexFile" ] && [ -f "$buildDate" ] && [ ! "$indexFile" -ot "$buildDate" ] ; then
 			echo "| DistroSystemListBuildSequenceNoCache.include: using input file: ${indexFile#$MMDAPP/}" >&2
 			cat "$indexFile" 
 			return 0
 		fi
 
-		indexFile="$MDSC_CACHED/distro-sequences.txt"
+		indexFile="$MDSC_CACHED/distro-sequence-merged.txt"
 		if [ -f "$indexFile" ] && [ -f "$buildDate" ] && [ ! "$indexFile" -ot "$buildDate" ] ; then
 			echo "| DistroSystemListBuildSequenceNoCache.include: using input file: ${indexFile#$MMDAPP/}" >&2
 			awk '$2 && !seen[$2]++ { print $2; }' < "$indexFile"

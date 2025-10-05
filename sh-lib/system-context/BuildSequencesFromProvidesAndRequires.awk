@@ -1,7 +1,7 @@
 #!/usr/bin/awk -f
 
 # awk file.
-# use `awk -f make-sequences.awk distro-requires.txt distro-provides.txt > distro-sequences.txt`
+# use `awk -f make-sequences.awk distro-requires.txt distro-provides.txt > distro-sequence-merged.txt`
 #
 # input: distro-requires.txt, 2 columns, single space separated: <projectName> <requireValue>
 # input: distro-provides.txt, 2 columns, single space separated: <projectName> <provideValue>
