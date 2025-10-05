@@ -194,6 +194,27 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 				. "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/system-context/DistroSystemIndexRunnerCacheMiss.include"
 				return 0
 			;;
+			--select-index-*)
+				[ -n "${MDSC_SELECT_PROJECTS:0:1}" ] || { 
+					echo "⛔ ERROR: SystemContext: no projects currently selected:" "$@" >&2
+					set +e ; return 1
+				}
+				[ -n "$2" ] || {
+					echo "⛔ ERROR: SystemContext: command argument required, use 'cat':" "$@" >&2
+					set +e ; return 1
+				}
+				local idx="--${1#'--select-'}" cmd="${2:-'cat'}"; shift 2 || :
+				DistroSystemContext "$idx" awk '
+					BEGIN {
+						s = ENVIRON["MDSC_SELECT_PROJECTS"]
+						n = split(s, L, "\n")
+						for (i = 1; i <= n; i++) if (L[i] != "") map[L[i]] = 1
+					}
+					$1 in map { print }
+				' \
+				| "$cmd" "$@"
+				return 0
+			;;
 			--filter-index-*)
 				[ -n "$2" ] || {
 					echo "⛔ ERROR: SystemContext: --filter-index-*, filter spec required" >&2
