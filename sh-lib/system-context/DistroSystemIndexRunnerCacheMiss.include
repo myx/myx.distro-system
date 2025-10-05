@@ -31,8 +31,7 @@ case "$idx" in
 		gen="myx/myx.distro-system/sh-lib/system-context/DistroSystemListAllSequencesNoCache.include" 
 	;;
 	declares-merged|keywords-merged|provides-merged)
-		local idx="${idx%%'-'}"
-		echo $idx ; exit
+		local idx="${idx%'-merged'}"
 		# ListDistroDeclares.fn.sh --explicit-noop --no-cache --all-declares-merged
 		# ListDistroKeywords.fn.sh --explicit-noop --no-cache --all-keywords-merged
 		# ListDistroProvides.fn.sh --explicit-noop --no-cache --all-provides-merged
