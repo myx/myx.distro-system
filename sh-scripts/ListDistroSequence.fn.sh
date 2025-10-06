@@ -52,11 +52,11 @@ ListDistroSequence(){
 
 case "$0" in
 	*/sh-scripts/ListDistroSequence.fn.sh) 
-		if [ -z "$1" ] || [ "$1"="--help" ] ; then
+		if [ -z "$1" ] || [ "$1" = "--help" ] ; then
 			echo "📘 syntax: ListDistroSequence.fn.sh [<options>] --all" >&2
 			echo "📘 syntax: ListDistroSequence.fn.sh [<options>] --all-projects" >&2
 			echo "📘 syntax: ListDistroSequence.fn.sh --help" >&2
-			if [ "$1"="--help" ] ; then
+			if [ "$1" = "--help" ] ; then
 				. "$MDLT_ORIGIN/myx/myx.distro-source/sh-lib/help/Help.ListDistroSequence.include"
 			fi
 			exit 1

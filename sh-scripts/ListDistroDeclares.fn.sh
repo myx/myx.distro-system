@@ -219,12 +219,12 @@ ListDistroDeclares(){
 
 case "$0" in
 	*/sh-scripts/ListDistroDeclares.fn.sh)
-		if [ -z "$1" ] || [ "$1"="--help" ] ; then
+		if [ -z "$1" ] || [ "$1" = "--help" ] ; then
 			echo "📘 syntax: ListDistroDeclares.fn.sh [<options>] --all-declares" >&2
 			# echo "📘 syntax: ListDistroDeclares.fn.sh [<options>] --all-declares-merged" >&2
 			echo "📘 syntax: ListDistroDeclares.fn.sh [<options>] <project-selector> [--merge-sequence]" >&2
 			echo "📘 syntax: ListDistroDeclares.fn.sh [--help]" >&2
-			if [ "$1"="--help" ] ; then
+			if [ "$1" = "--help" ] ; then
 				. "$MDLT_ORIGIN/myx/myx.distro-source/sh-lib/help/HelpSelectProjects.include"
 				. "$MDLT_ORIGIN/myx/myx.distro-source/sh-lib/help/Help.ListDistroDeclares.include"
 			fi

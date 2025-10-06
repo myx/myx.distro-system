@@ -23,7 +23,7 @@ ListDistroProjects(){
 			echo "📘 syntax: ListDistroProjects.fn.sh --all-projects" >&2
 			echo "📘 syntax: ListDistroProjects.fn.sh <project-selector> [<command-options>] [<execute-extra-args>]" >&2
 			echo "📘 syntax: ListDistroProjects.fn.sh [--help]" >&2
-			if [ "$1"="--help" ] ; then
+			if [ "$1" = "--help" ] ; then
 				. "$MDLT_ORIGIN/myx/myx.distro-source/sh-lib/help/HelpSelectProjects.include"
 				. "$MDLT_ORIGIN/myx/myx.distro-source/sh-lib/help/Help.ListDistroProjects.include"
 			fi
@@ -499,7 +499,7 @@ case "$0" in
 	*/sh-scripts/ListDistroProjects.fn.sh) 
 		set -e 
 
-		if [ -z "$1" ] || [ "$1"="--help" ] ; then
+		if [ -z "$1" ] || [ "$1" = "--help" ] ; then
 			ListDistroProjects "${1:-"--help-syntax"}"
 			exit 1
 		fi
