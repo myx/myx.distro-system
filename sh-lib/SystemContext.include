@@ -215,14 +215,32 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 				| "$cmd" "$@"
 				return 0
 			;;
+			# filters index-* by first (key - projectName) column, ENV_NAME arg
 			--filter-index-*)
 				[ -n "$2" ] || {
-					echo "⛔ ERROR: SystemContext: --filter-index-*, filter spec required" >&2
+					echo "⛔ ERROR: SystemContext: variable name is required, MDSC_SELECT_PROJECTS?:" "$@" >&2
 					set +e ; return 1
 				}
-				echo "⛔ ERROR: SystemContext: --filter-index-*, not implements" >&2
-				set +e ; return 1
-
+				local env=$2
+				[ -n "${!env:0:1}" ] || {
+					echo "⛔ ERROR: SystemContext: no projects currently selected ($env variable):" "$@" >&2
+					set +e ; return 1
+				}
+				[ -n "$3" ] || {
+					echo "⛔ ERROR: SystemContext: command argument required, use 'cat':" "$@" >&2
+					set +e ; return 1
+				}
+				local idx="--${1#'--filter-'}" cmd="${3:-'cat'}"; shift 3 || :
+				eval export "$env"
+				DistroSystemContext "$idx" awk -v ev="$env" '
+					BEGIN {
+						s = ENVIRON[ev]
+						n = split(s, L, "\n")
+						for (i = 1; i <= n; i++) if (L[i] != "") map[L[i]] = 1
+					}
+					$1 in map { print }
+				' \
+				| "$cmd" "$@"
 				return 0
 			;;
 			--uncache|--uncache-index)
