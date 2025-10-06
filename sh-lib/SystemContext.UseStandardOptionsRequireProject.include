@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+# ^^^ for syntax checking in the editor only
+
+[ -z "$projectName" ] || {
+	echo "⛔ ERROR: $MDSC_CMD: RequireProjectArgument: projectName variable must be unset: $projectName" >&2
+	set +e ; return 1
+}
+
+set -e
+
+while true ; do
+	case "$1" in
+		--verbose)
+			local MDSC_DETAIL=true ; export MDSC_DETAIL ; shift
+			continue
+		;;
+		--no-cache)
+			local MDSC_NO_CACHE=$1 ; export MDSC_NO_CACHE ; shift
+			continue
+		;;
+		--no-index)
+			local MDSC_NO_INDEX=$1 ; export MDSC_NO_INDEX ; shift
+			continue
+		;;
+		--project)
+			shift
+			continue
+		;;
+		'')
+			echo "⛔ ERROR: $MDSC_CMD: 'projectName' argument is required!" >&2
+			set +e ; return 1
+		;;
+		--project-from-env)
+			projectName="$MDSC_PRJ_NAME" ; [ -n "$projectName" ] || {
+				echo "⛔ ERROR: $MDSC_CMD: --project-from-env: MDSC_PRJ_NAME is not set!" >&2
+				set +e ; return 1
+			}
+			shift
+			return 0
+		;;
+		'.'|--project-from-pwd)
+			projectName="$( Distro ListDistroProjects --project '.' )" ; [ -n "$projectName" ] || {
+				echo "⛔ ERROR: $MDSC_CMD: --project-from-pwd: can't map working directory to project: $(pwd)" >&2
+				set +e ; return 1
+			}
+			shift
+			return 0
+		;;
+		*)
+			projectName="${1#$MDSC_SOURCE/}"; shift
+			[ -f "$MDSC_CACHED/$projectName/project.inf" ] || { [ -f "$MDSC_SOURCE/$projectName/project.inf" ]; } || {
+				echo "⛔ ERROR: $MDSC_CMD: project is invalid or unknown: $projectName" >&2
+				set +e ; return 1
+			}
+			return 0
+		;;
+	esac
+	return 0
+done
