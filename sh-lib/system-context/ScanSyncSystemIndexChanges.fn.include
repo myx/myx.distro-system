@@ -33,10 +33,10 @@ rsync -rtpiO -vv $dryRun --delete --delete-excluded \
 | { grep '^[<>cd]' || [ $? -eq 1 ] ; } \
 | if [ -n "$MDSC_DETAIL" ]; then
 	if [ "full" = "$MDSC_DETAIL" ]; then
-		tee /dev/fd/2
+		tee /dev/stderr
 	else
 		{ fgrep -v '>f..t.' || [ $? -eq 1 ] ; } \
-		| tee /dev/fd/2
+		| tee /dev/stderr
 	fi
 fi > /dev/null
 
