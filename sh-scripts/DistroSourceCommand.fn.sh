@@ -27,21 +27,12 @@ DistroSourceCommand(){
 
 	set -e
 
-	CHECK_DIR="$MDSC_SOURCE/myx/myx.distro-system"
-	if [ -f "$CHECK_DIR/bin/ru/myx/distro/DistroSourceCommand.class" ] ; then
-		[ full != "$MDSC_DETAIL" ] || echo "> DistroSourceCommand: running java source + /bin" >&2
-		java -cp "$CHECK_DIR/bin" ru.myx.distro.DistroSourceCommand \
-			--output-root "$MDSC_OUTPUT" \
-			--source-root "$MDSC_SOURCE" \
-			--cached-root "$MDSC_CACHED" \
-			"$@"
-		return 0
-	fi
+	local CLS_PATH="$MDLT_ORIGIN/lib/lib.tukaani-xz-java/jars/org.tukaani.xz_1.10.0.jar:$MDLT_ORIGIN/lib/lib.apache-commons-compress/jars/commons-compress-1.12.jar"
 
 	CHECK_DIR="$MDLT_ORIGIN/myx/myx.distro-system"
 	if [ -f "$CHECK_DIR/bin/ru/myx/distro/DistroSourceCommand.class" ] ; then
-		[ full != "$MDSC_DETAIL" ] || echo "> DistroSourceCommand: running java origin + local tools" >&2
-		java -cp "$CHECK_DIR/bin" ru.myx.distro.DistroSourceCommand \
+		[ full != "$MDSC_DETAIL" ] || echo "> DistroSourceCommand: running java origin + local tools bin/" >&2
+		java -cp "$CHECK_DIR/bin:$CLS_PATH" ru.myx.distro.DistroSourceCommand \
 			--output-root "$MDSC_OUTPUT" \
 			--source-root "$MDSC_SOURCE" \
 			--cached-root "$MDSC_CACHED" \
@@ -51,8 +42,9 @@ DistroSourceCommand(){
 
 	CHECK_DIR="$MDLT_ORIGIN/temp/javac/myx/myx.distro-system/java"
 	if [ -f "$CHECK_DIR/ru/myx/distro/DistroSourceCommand.class" ] ; then
-		[ full != "$MDSC_DETAIL" ] || echo "> DistroSourceCommand: running java origin temp/javac" >&2
-		java -cp "$CHECK_DIR" ru.myx.distro.DistroSourceCommand \
+		[ full != "$MDSC_DETAIL" ] || echo "> DistroSourceCommand: running java origin + local tools java/" >&2
+		java -cp "$CHECK_DIR:$CLS_PATH" 
+			ru.myx.distro.DistroSourceCommand \
 			--output-root "$MDSC_OUTPUT" \
 			--source-root "$MDSC_SOURCE" \
 			--cached-root "$MDSC_CACHED" \
@@ -63,7 +55,8 @@ DistroSourceCommand(){
 	CHECK_DIR="$MDSC_CACHED/myx/myx.distro-system"
 	if [ -f "$DIR_SRC/java/ru/myx/distro/DistroSourceCommand.class" ] ; then
 		[ full != "$MDSC_DETAIL" ] || echo "> DistroSourceCommand: running java cached + /java" >&2
-		java -cp "$DIR_SRC/bin" ru.myx.distro.DistroSourceCommand \
+		java -cp "$DIR_SRC/bin:$CLS_PATH" \
+			ru.myx.distro.DistroSourceCommand \
 			--output-root "$MDSC_OUTPUT" \
 			--source-root "$MDSC_SOURCE" \
 			--cached-root "$MDSC_CACHED" \
@@ -78,6 +71,8 @@ DistroSourceCommand(){
 		RunJavaClassSystem \
 			"myx/myx.distro-system" \
 			ru.myx.distro.DistroSourceCommand \
+			-cp "$CLS_PATH" \
+			/Users/myx/Workspaces/ws-myx-devops/.local/lib/
 			--output-root "$MDSC_OUTPUT" \
 			--source-root "$MDSC_SOURCE" \
 			--cached-root "$MDSC_CACHED" \
