@@ -48,10 +48,26 @@ while true ; do
 		;;
 		*)
 			projectName="${1#$MDSC_SOURCE/}"; shift
-			[ -f "$MDSC_CACHED/$projectName/project.inf" ] || { [ -f "$MDSC_SOURCE/$projectName/project.inf" ]; } || {
-				echo "⛔ ERROR: $MDSC_CMD: project is invalid or unknown: $projectName" >&2
+			if [ -f "$MDSC_CACHED/$projectName/project.inf" ] || { [ -f "$MDSC_SOURCE/$projectName/project.inf" ]; }; then
+				return 0
+			fi
+			local candidates="$(
+				DistroSystemContext --index-projects awk -v p="$projectName" '
+					index($0, p) { print }
+				'
+			)"
+			[ -n "$candidates" ] || {
+				echo "$MDSC_CMD: ⛔ ERROR: No matching projects is found, was looking for: $projectName" >&2
 				set +e ; return 1
 			}
+			
+			if [ "$candidates" != "$( echo "$candidates" | head -n 1 )" ] ; then
+				echo "$MDSC_CMD: 🙋 STOP: More than one match: $@" >&2
+				printf "Projects: \n%s\n" "$( echo "$candidates" | sed -e 's|^|   |g' )" >&2
+				set +e ; return 2
+			fi
+
+			projectName="$candidates"
 			return 0
 		;;
 	esac
