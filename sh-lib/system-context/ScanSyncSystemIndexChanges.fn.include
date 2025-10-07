@@ -32,7 +32,6 @@ rsync -rtpiO -vv $dryRun --delete --delete-excluded \
 	"$MDSC_CACHED/" "$MDSC_OUTPUT/" \
 | case "$MDSC_DETAIL" in
 	'')
-		## 
 		cat >/dev/null
 	;;
 	full)
