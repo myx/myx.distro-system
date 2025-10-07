@@ -22,6 +22,8 @@ if [ ! -d "$MDSC_OUTPUT" ] || [ "$MDSC_CACHED" = "$MDSC_OUTPUT" ]; then
 	set +e ; return 1
 fi
 
+[ full != "$MDSC_DETAIL" ] || set -x
+
 set -e
 rsync -rtpiO -vv $dryRun --delete --delete-excluded \
 	--out-format='%i %n' \
