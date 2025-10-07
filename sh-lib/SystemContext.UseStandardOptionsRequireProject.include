@@ -62,7 +62,7 @@ while true ; do
 			}
 			
 			if [ "$candidates" != "$( echo "$candidates" | head -n 1 )" ] ; then
-				echo "$MDSC_CMD: 🙋 STOP: More than one match: $@" >&2
+				echo "$MDSC_CMD: 🙋 STOP: More than one match (looking for: '$projectName')" >&2
 				printf "Projects: \n%s\n" "$( echo "$candidates" | sed -e 's|^|   |g' )" >&2
 				set +e ; return 2
 			fi
