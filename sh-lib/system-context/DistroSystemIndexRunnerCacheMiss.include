@@ -66,6 +66,11 @@ fi
 
 echo "| $MDSC_CMD: DistroSystemContext: --index-* no caching ($idx)" >&2
 
+if [ 'echo ' = "$cmd $1" ]; then
+	printf '%s' '/dev/stdin'
+	return 0
+fi
+
 if [ 'cat ' = "$cmd $1" ]; then
 	. "$MDLT_ORIGIN/$gen"
 	return 0

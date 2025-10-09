@@ -194,7 +194,7 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 				. "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/system-context/DistroSystemIndexRunnerCacheMiss.include"
 				return 0
 			;;
-			--select-index-*)
+			--select-intersect-index-*)
 				[ -n "${MDSC_SELECT_PROJECTS:0:1}" ] || { 
 					echo "⛔ ERROR: SystemContext: no projects currently selected:" "$@" >&2
 					set +e ; return 1
@@ -203,7 +203,7 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 					echo "⛔ ERROR: SystemContext: command argument required, use 'cat':" "$@" >&2
 					set +e ; return 1
 				}
-				local idx="--${1#'--select-'}" cmd="${2:-'cat'}"; shift 2 || :
+				local idx="--${1#'--select-intersect-'}" cmd="${2:-'cat'}"; shift 2 || :
 				DistroSystemContext "$idx" awk '
 					BEGIN {
 						s = ENVIRON["MDSC_SELECT_PROJECTS"]
@@ -216,7 +216,7 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 				return 0
 			;;
 			# filters index-* by first (key - projectName) column, ENV_NAME arg
-			--filter-index-*)
+			--intersect-index-*)
 				[ -n "$2" ] || {
 					echo "⛔ ERROR: SystemContext: variable name is required, MDSC_SELECT_PROJECTS?:" "$@" >&2
 					set +e ; return 1
@@ -230,7 +230,120 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 					echo "⛔ ERROR: SystemContext: command argument required, use 'cat':" "$@" >&2
 					set +e ; return 1
 				}
-				local idx="--${1#'--filter-'}" cmd="${3:-'cat'}"; shift 3 || :
+				local idx="--${1#'--intersect-'}" cmd="${3:-'cat'}"; shift 3 || :
+				eval export "$env"
+				DistroSystemContext "$idx" awk -v ev="$env" '
+					BEGIN {
+						s = ENVIRON[ev]
+						n = split(s, L, "\n")
+						for (i = 1; i <= n; i++) if (L[i] != "") map[L[i]] = 1
+					}
+					$1 in map { print }
+				' \
+				| "$cmd" "$@"
+				return 0
+			;;
+			# unrolls '.', '*', '**' by filter prefix
+			--unroll-filter-index-*)
+				[ -n "$2" ] || {
+					echo "⛔ ERROR: SystemContext: filter argument is required:" "$@" >&2
+					set +e ; return 1
+				}
+				local filter=$2
+				[ -n "${filter:0:1}" ] || {
+					echo "⛔ ERROR: SystemContext: filter argument required:" "$@" >&2
+					set +e ; return 1
+				}
+				[ -n "$3" ] || {
+					echo "⛔ ERROR: SystemContext: command argument required, use 'cat':" "$@" >&2
+					set +e ; return 1
+				}
+				local idx="--${1#'--unroll-filter-'}" cmd="${3:-'cat'}" column; shift 3 || :
+				case "${idx#'--index-'}" in
+					declares|keywords|provides) column=2; ;;
+					declares-merged|keywords-merged|provides-merged) column=3; ;;
+					*) 
+						echo "⛔ ERROR: DistroSystemContext: unroll: unknown or unsupported index name: $idx" >&2
+						set +e ; return 1
+					;;
+				esac
+				local sequenceIndex; sequenceIndex=$(DistroSystemContext --index-sequence-merged echo)
+				[ "sequenceIndex" != "/dev/stdin" ] || sequenceIndex=<( DistroSystemContext --index-sequence-merged cat )
+				DistroSystemContext "$idx" awk -v c="$column" -v m="$filter" -v s="$sequenceIndex" '
+					BEGIN {
+						k = c - 1
+
+						# load sequences
+						while ((getline line < s) > 0) {
+							split(line, f, " ")
+							a = f[1]; b = f[2]
+							map1[a] = (map1[a] ? map1[a] SUBSEP b : b)
+							map1_count[a]++
+							map2[b] = (map2[b] ? map2[b] SUBSEP a : a)
+							map2_count[b]++
+						}
+						close(s)
+					}
+					index($c,m)==1 { 
+						r = substr($c,length(m)+1); 
+						pos = index(r, ":")
+						if (pos > 0) {
+							left = substr(r, 1, pos-1)
+							rest = substr(r, pos+1)
+						} else {
+							left = r
+							rest = ""
+						}
+
+						if (left == ".") {
+							n = split(map1[$k], v, SUBSEP)
+							for (i = 1; i <= n; i++) {
+								rm = $k " " v[i] ":" substr(r, pos+1)
+								if (!x[rm]++) print rm
+							}
+							n = split(map2[$k], v, SUBSEP)
+							for (i = 1; i <= n; i++) {
+								rm = $k " " v[i] ":" substr(r, pos+1)
+								if (!x[rm]++) print rm
+							}
+							next
+						}
+						if (left == "*") {
+							rm=$k " " $k ":" substr(r, pos+1);
+							if (!x[rm]++) print rm; 
+							next
+						}
+						if (left == "**") {
+							rm=$k " " $k ":" substr(r, pos+1);
+							if (!x[rm]++) print rm; 
+							next
+						}
+
+						rm=$k " " r; 
+						if (!x[rm]++) print rm; 
+					}
+				' \
+				| "$cmd" "$@"
+				set -x
+				set +x
+				return 0
+			;;
+			# unrolls '.', '*', '**' by filter prefix and matches next argument
+			--unroll-filter-match-index-*)
+				[ -n "$2" ] || {
+					echo "⛔ ERROR: SystemContext: variable name is required, MDSC_SELECT_PROJECTS?:" "$@" >&2
+					set +e ; return 1
+				}
+				local env=$2
+				[ -n "${!env:0:1}" ] || {
+					echo "⛔ ERROR: SystemContext: no projects currently selected ($env variable):" "$@" >&2
+					set +e ; return 1
+				}
+				[ -n "$3" ] || {
+					echo "⛔ ERROR: SystemContext: command argument required, use 'cat':" "$@" >&2
+					set +e ; return 1
+				}
+				local idx="--${1#'--unroll-filter-match-'}" cmd="${3:-'cat'}"; shift 3 || :
 				eval export "$env"
 				DistroSystemContext "$idx" awk -v ev="$env" '
 					BEGIN {

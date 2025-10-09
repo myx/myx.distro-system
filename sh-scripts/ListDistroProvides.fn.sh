@@ -169,7 +169,7 @@ ListDistroProvides(){
 					set +e ; return 1
 				fi
 				local filter="$2"; shift 2
-				DistroSystemContext --filter-index-provides MDSC_SELECT_PROJECTS awk -v f="${filter}:" '
+				DistroSystemContext --intersect-index-provides MDSC_SELECT_PROJECTS awk -v f="${filter}:" '
 				{
 					if (index($2, f) == 1) {
 						out = $1 " " substr($2, length(f) + 1)
@@ -190,7 +190,7 @@ ListDistroProvides(){
 				fi
 				shift
 				
-				DistroSystemContext --select-index-provides-merged awk '
+				DistroSystemContext --select-intersect-index-provides-merged awk '
 					!x[$3]++ { print $0; }
 				'
 				return 0
@@ -205,7 +205,7 @@ ListDistroProvides(){
 					set +e ; return 1
 				fi
 
-				DistroSystemContext --select-index-provides cat
+				DistroSystemContext --select-intersect-index-provides cat
 				return 0
 			;;
 			*)
