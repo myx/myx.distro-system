@@ -267,7 +267,8 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 						set +e ; return 1
 					;;
 				esac
-				local sequenceIndex; sequenceIndex=$(DistroSystemContext --index-sequence-merged echo)
+				set -x
+				local sequenceIndex; sequenceIndex=$( DistroSystemContext --index-sequence-merged echo )
 				[ "sequenceIndex" != "/dev/stdin" ] || sequenceIndex=<( DistroSystemContext --index-sequence-merged cat )
 				DistroSystemContext "$idx" awk -v c="$column" -v m="$filter" -v s="$sequenceIndex" '
 					BEGIN {
