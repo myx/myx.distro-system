@@ -197,6 +197,15 @@ ListDistroProvides(){
 				DistroSystemContext --intersect-unroll-filter-index-provides MDSC_SELECT_PROJECTS "${filter%':'}:" "$@"
 				return 0
 			;;
+			--unroll-filter-and-cut-merged)
+				if [ -z "$2" ] ; then
+					echo "⛔ ERROR: $MDSC_CMD: $1 project provides filter is expected!" >&2
+					set +e ; return 1
+				fi
+				local filter="$2"; shift 2
+				DistroSystemContext --intersect-unroll-filter-index-provides-merged MDSC_SELECT_PROJECTS "${filter%':'}:" "$@"
+				return 0
+			;;
 			--merge-sequence)
 				if [ -n "$2" ] ; then
 					echo "⛔ ERROR: $MDSC_CMD: $1: no extra options allowed ($MDSC_OPTION, $@)" >&2
