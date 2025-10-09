@@ -20,7 +20,7 @@ case "$idx" in
 		set +e ; return 1
 	;;
 esac
-
+set -x
 if [ "$MDSC_NO_INDEX" != "--no-index" ] && [ -f "$MDSC_CACHED/distro-index.inf" ] ; then
 	if [ -z "$BUILD_STAMP" ] || [ ! "$BUILD_STAMP" -gt "`date -u -r "$MDSC_CACHED/distro-index.inf" "+%Y%m%d%H%M%S"`" ] ; then
 
