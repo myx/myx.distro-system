@@ -179,6 +179,16 @@ ListDistroProvides(){
 				'
 				return 0
 			;;
+			--all-unroll-filter-and-cut)
+				if [ -z "$2" ] ; then
+					echo "⛔ ERROR: $MDSC_CMD: $1 project provides filter is expected!" >&2
+					set +e ; return 1
+				fi
+				local filter="$2"; shift 2
+				set -x
+				DistroSystemContext --unroll-filter-index-provides "${filter}" "$@"
+				return 0
+			;;
 			--merge-sequence)
 				if [ -n "$2" ] ; then
 					echo "⛔ ERROR: $MDSC_CMD: $1: no extra options allowed ($MDSC_OPTION, $@)" >&2
