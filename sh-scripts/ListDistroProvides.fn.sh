@@ -185,7 +185,6 @@ ListDistroProvides(){
 					set +e ; return 1
 				fi
 				local filter="$2"; shift 2
-				set -x
 				DistroSystemContext --unroll-filter-index-provides "${filter}" "$@"
 				return 0
 			;;
