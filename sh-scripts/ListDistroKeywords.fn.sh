@@ -190,7 +190,7 @@ ListDistroKeywords(){
 				fi
 				shift
 
-				DistroSystemContext --select-intersect-index-keywords-merged awk '
+				DistroSystemContext --intersect-index-keywords-merged MDSC_SELECT_PROJECTS awk '
 					!x[$3]++ { print $0; }
 				'
 				return 0
@@ -205,7 +205,7 @@ ListDistroKeywords(){
 					set +e ; return 1
 				fi
 
-				DistroSystemContext --select-intersect-index-keywords cat
+				DistroSystemContext --intersect-index-keywords MDSC_SELECT_PROJECTS cat
 				return 0
 			;;
 			*)

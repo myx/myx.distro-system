@@ -194,40 +194,19 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 				. "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/system-context/DistroSystemIndexRunnerCacheMiss.include"
 				return 0
 			;;
-			--select-intersect-index-*)
-				[ -n "${MDSC_SELECT_PROJECTS:0:1}" ] || { 
-					echo "⛔ ERROR: SystemContext: no projects currently selected:" "$@" >&2
-					set +e ; return 1
-				}
-				[ -n "$2" ] || {
-					echo "⛔ ERROR: SystemContext: command argument required, use 'cat':" "$@" >&2
-					set +e ; return 1
-				}
-				local idx="--${1#'--select-intersect-'}" cmd="${2:-'cat'}"; shift 2 || :
-				DistroSystemContext "$idx" awk '
-					BEGIN {
-						s = ENVIRON["MDSC_SELECT_PROJECTS"]
-						n = split(s, L, "\n")
-						for (i = 1; i <= n; i++) if (L[i] != "") map[L[i]] = 1
-					}
-					$1 in map { print }
-				' \
-				| "$cmd" "$@"
-				return 0
-			;;
 			# filters index-* by first (key - projectName) column, ENV_NAME arg
 			--intersect-index-*)
 				[ -n "$2" ] || {
-					echo "⛔ ERROR: SystemContext: variable name is required, MDSC_SELECT_PROJECTS?:" "$@" >&2
+					echo "⛔ ERROR: SystemContext: $1: variable name is required, MDSC_SELECT_PROJECTS?!" >&2
 					set +e ; return 1
 				}
 				local env=$2
 				[ -n "${!env:0:1}" ] || {
-					echo "⛔ ERROR: SystemContext: no projects currently selected ($env variable):" "$@" >&2
+					echo "⛔ ERROR: SystemContext: $1: no projects currently selected ($env variable):" >&2
 					set +e ; return 1
 				}
 				[ -n "$3" ] || {
-					echo "⛔ ERROR: SystemContext: command argument required, use 'cat':" "$@" >&2
+					echo "⛔ ERROR: SystemContext: $1: command argument required, use 'cat':" "$@" >&2
 					set +e ; return 1
 				}
 				local idx="--${1#'--intersect-'}" cmd="${3:-'cat'}"; shift 3 || :
@@ -244,37 +223,57 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 				return 0
 			;;
 			# unrolls '.', '*', '**' by filter prefix
-			--unroll-filter-index-*)
-				[ -n "$2" ] || {
-					echo "⛔ ERROR: SystemContext: filter argument is required:" "$@" >&2
-					set +e ; return 1
-				}
-				local filter=$2
+			--unroll-filter-index-*|--intersect-unroll-filter-index-*)
+				case "$1" in
+					--intersect-*)
+						[ -n "$2" ] || {
+							echo "⛔ ERROR: SystemContext: $1: variable name is required, MDSC_SELECT_PROJECTS?!" >&2
+							set +e ; return 1
+						}
+						local env=$2
+						[ -n "${!env:0:1}" ] || {
+							echo "⛔ ERROR: SystemContext: $1: no projects currently selected ($env variable):" >&2
+							set +e ; return 1
+						}
+						local op="$1" idx="--${1#'--intersect-unroll-filter-'}" filter="$3"
+						shift 3
+					;;
+					*)
+						local op="$1" idx="--${1#'--unroll-filter-'}" filter="$2" env= 
+						shift 2
+					;;
+				esac
 				[ -n "${filter:0:1}" ] || {
-					echo "⛔ ERROR: SystemContext: filter argument required:" "$@" >&2
+					echo "⛔ ERROR: SystemContext: $op: filter argument is required!" >&2
 					set +e ; return 1
 				}
-				[ -n "$3" ] || {
-					echo "⛔ ERROR: SystemContext: command argument required, use 'cat':" "$@" >&2
+				[ -n "$1" ] || {
+					echo "⛔ ERROR: SystemContext: $op: command argument required, use 'cat'" >&2
 					set +e ; return 1
 				}
-				local idx="--${1#'--unroll-filter-'}" cmd="${3:-'cat'}" column project; shift 3 || :
+				local cmd="${1:-'cat'}" column= merged=; shift || :
 				case "${idx#'--index-'}" in
 					declares|keywords|provides) column=2; ;;
 					declares-merged|keywords-merged|provides-merged) 
 						idx="${idx%'-merged'}"
-						column=2; project=y
+						column=2; merged=y
 					;;
 					*) 
 						echo "⛔ ERROR: DistroSystemContext: unroll: unknown or unsupported index name: $idx" >&2
 						set +e ; return 1
 					;;
 				esac
-				local sequenceIndex; sequenceIndex=$( DistroSystemContext --index-sequence-merged echo )
-				[ "sequenceIndex" != "/dev/stdin" ] || sequenceIndex=<( DistroSystemContext --index-sequence-merged cat )
-				DistroSystemContext "$idx" awk -v p="$project" -v c="$column" -v m="$filter" -v s="$sequenceIndex" '
+				local seq; seq=$( DistroSystemContext --index-sequence-merged echo )
+				[ "$seq" != "/dev/stdin" ] || seq=<( DistroSystemContext --index-sequence-merged cat )
+				DistroSystemContext "$idx" awk -v p="$merged" -v c="$column" -v m="$filter" -v s="$seq" -v ev="$env" '
 					BEGIN {
 						k = c - 1
+
+						if (ev != "") {
+							s = ENVIRON[ev]
+							n = split(s, L, "\n")
+							for (i = 1; i <= n; i++) if (L[i] != "") map[L[i]] = 1
+						}
 
 						# load sequences
 						while ((getline line < s) > 0) {
@@ -290,37 +289,30 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 						close(s)
 					}
 					index($c,m)==1 { 
-						r = substr($c,length(m)+1); 
+						r = substr($c,length(m)+1)
 						pos = index(r, ":")
-						h = (p == "y") ? $k " " : ""
 						left = (pos > 0) ? substr(r,1,pos-1) : r
 						rest = (pos > 0) ? substr(r,pos+1) : ""
+						h = (p == "y") ? $k " " : ""
 
 						if (left == ".") {
-							rm = $k " " h rest;
-							if (!x[rm]++) print rm; 
+							if (ev && !$k in map) next
+							rm = $k " " h rest; if (!x[rm]++) print rm
 							next
 						}
 
 						if (left == "*") {
 							n = split(mdown[$k], v, SUBSEP)
-							for (i = 1; i <= n; i++) {
-								rm = v[i] " " h rest
-								if (!x[rm]++) print rm
-							}
+							for (i = 1; i <= n; i++) { rm = v[i] " " h rest; if (!x[rm]++) print rm; }
 							next
 						}
 						if (left == "**") {
 							n = split(mboth[$k], v, SUBSEP)
-							for (i = 1; i <= n; i++) {
-								rm = v[i] " " h rest
-								if (!x[rm]++) print rm
-							}
+							for (i = 1; i <= n; i++) { rm = v[i] " " h rest; if (!x[rm]++) print rm; }
 							next
 						}
 
-						rm = left " " h rest;  
-						if (!x[rm]++) print rm; 
+						rm = left " " h rest; if (!x[rm]++) print rm
 					}
 				' \
 				| "$cmd" "$@"
