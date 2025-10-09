@@ -265,7 +265,7 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 				esac
 				local seq; seq=$( DistroSystemContext --index-sequence-merged echo )
 				[ "$seq" != "/dev/stdin" ] || seq=<( DistroSystemContext --index-sequence-merged cat )
-				DistroSystemContext "$idx" awk -v p="$merged" -v c="$column" -v m="$filter" -v s="$seq" -v ev="$env" '
+				DistroSystemContext "$idx" awk -v p="$merged" -v c="$column" -v mf="$filter" -v sq="$seq" -v ev="$env" '
 					BEGIN {
 						k = c - 1
 
@@ -276,7 +276,7 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 						}
 
 						# load sequences
-						while ((getline line < s) > 0) {
+						while ((getline line < sq) > 0) {
 							split(line, f, " ")
 							a = f[1]; b = f[2]
 							mboth[a] = (mboth[a] ? mboth[a] SUBSEP b : b)
@@ -286,32 +286,38 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 							mdown[b] = (mdown[b] ? mdown[b] SUBSEP a : a)
 							mdown_count[b]++
 						}
-						close(s)
+						close(sq)
 					}
-					index($c,m)==1 { 
-						r = substr($c,length(m)+1)
+					index($c,mf)==1 { 
+						r = substr($c,length(mf)+1)
 						pos = index(r, ":")
 						left = (pos > 0) ? substr(r,1,pos-1) : r
 						rest = (pos > 0) ? substr(r,pos+1) : ""
 						h = (p == "y") ? $k " " : ""
 
 						if (left == ".") {
-							if (ev && !$k in map) next
+							if (ev && !($k in map)) next
 							rm = $k " " h rest; if (!x[rm]++) print rm
 							next
 						}
-
 						if (left == "*") {
 							n = split(mdown[$k], v, SUBSEP)
-							for (i = 1; i <= n; i++) { rm = v[i] " " h rest; if (!x[rm]++) print rm; }
+							for (i = 1; i <= n; i++) { 
+								if (ev && !(v[i] in map)) next
+								rm = v[i] " " h rest; if (!x[rm]++) print rm; 
+							}
 							next
 						}
 						if (left == "**") {
 							n = split(mboth[$k], v, SUBSEP)
-							for (i = 1; i <= n; i++) { rm = v[i] " " h rest; if (!x[rm]++) print rm; }
+							for (i = 1; i <= n; i++) { 
+								if (ev && !(v[i] in map)) next
+								rm = v[i] " " h rest; if (!x[rm]++) print rm; 
+							}
 							next
 						}
 
+						if (ev && !(left in map)) next
 						rm = left " " h rest; if (!x[rm]++) print rm
 					}
 				' \
