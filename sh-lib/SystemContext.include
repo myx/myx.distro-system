@@ -258,10 +258,13 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 					echo "⛔ ERROR: SystemContext: command argument required, use 'cat':" "$@" >&2
 					set +e ; return 1
 				}
-				local idx="--${1#'--unroll-filter-'}" cmd="${3:-'cat'}" column; shift 3 || :
+				local idx="--${1#'--unroll-filter-'}" cmd="${3:-'cat'}" column project; shift 3 || :
 				case "${idx#'--index-'}" in
 					declares|keywords|provides) column=2; ;;
-					declares-merged|keywords-merged|provides-merged) column=3; ;;
+					declares-merged|keywords-merged|provides-merged) 
+						idx="${idx%'-merged'}"
+						column=2; project=y
+					;;
 					*) 
 						echo "⛔ ERROR: DistroSystemContext: unroll: unknown or unsupported index name: $idx" >&2
 						set +e ; return 1
@@ -269,7 +272,7 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 				esac
 				local sequenceIndex; sequenceIndex=$( DistroSystemContext --index-sequence-merged echo )
 				[ "sequenceIndex" != "/dev/stdin" ] || sequenceIndex=<( DistroSystemContext --index-sequence-merged cat )
-				DistroSystemContext "$idx" awk -v c="$column" -v m="$filter" -v s="$sequenceIndex" '
+				DistroSystemContext "$idx" awk -v p="$project" -v c="$column" -v m="$filter" -v s="$sequenceIndex" '
 					BEGIN {
 						k = c - 1
 
@@ -277,49 +280,47 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 						while ((getline line < s) > 0) {
 							split(line, f, " ")
 							a = f[1]; b = f[2]
-							map1[a] = (map1[a] ? map1[a] SUBSEP b : b)
-							map1_count[a]++
-							map2[b] = (map2[b] ? map2[b] SUBSEP a : a)
-							map2_count[b]++
+							mboth[a] = (mboth[a] ? mboth[a] SUBSEP b : b)
+							mboth_count[a]++
+							mboth[b] = (mboth[b] ? mboth[b] SUBSEP a : a)
+							mboth_count[a]++
+							mdown[b] = (mdown[b] ? mdown[b] SUBSEP a : a)
+							mdown_count[b]++
 						}
 						close(s)
 					}
 					index($c,m)==1 { 
 						r = substr($c,length(m)+1); 
 						pos = index(r, ":")
+						h = (p == "y") ? $k " " : ""
 						left = (pos > 0) ? substr(r,1,pos-1) : r
 						rest = (pos > 0) ? substr(r,pos+1) : ""
 
 						if (left == ".") {
-							rm=$k " " $k " " rest;
+							rm = $k " " h rest;
 							if (!x[rm]++) print rm; 
 							next
 						}
 
-						rm=$k " " left " " rest;  
-						if (!x[rm]++) print rm; 
-
 						if (left == "*") {
-							n = split(map2[$k], v, SUBSEP)
+							n = split(mdown[$k], v, SUBSEP)
 							for (i = 1; i <= n; i++) {
-								rm = $k " " v[i] " " rest
+								rm = v[i] " " h rest
 								if (!x[rm]++) print rm
 							}
 							next
 						}
 						if (left == "**") {
-							n = split(map1[$k], v, SUBSEP)
+							n = split(mboth[$k], v, SUBSEP)
 							for (i = 1; i <= n; i++) {
-								rm = $k " " v[i] " " rest
-								if (!x[rm]++) print rm
-							}
-							n = split(map2[$k], v, SUBSEP)
-							for (i = 1; i <= n; i++) {
-								rm = $k " " v[i] " " rest
+								rm = v[i] " " h rest
 								if (!x[rm]++) print rm
 							}
 							next
 						}
+
+						rm = left " " h rest;  
+						if (!x[rm]++) print rm; 
 					}
 				' \
 				| "$cmd" "$@"
