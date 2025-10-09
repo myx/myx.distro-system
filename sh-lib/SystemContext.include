@@ -267,7 +267,6 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 						set +e ; return 1
 					;;
 				esac
-				set -x
 				local sequenceIndex; sequenceIndex=$( DistroSystemContext --index-sequence-merged echo )
 				[ "sequenceIndex" != "/dev/stdin" ] || sequenceIndex=<( DistroSystemContext --index-sequence-merged cat )
 				DistroSystemContext "$idx" awk -v c="$column" -v m="$filter" -v s="$sequenceIndex" '
@@ -288,45 +287,42 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 					index($c,m)==1 { 
 						r = substr($c,length(m)+1); 
 						pos = index(r, ":")
-						if (pos > 0) {
-							left = substr(r, 1, pos-1)
-							rest = substr(r, pos+1)
-						} else {
-							left = r
-							rest = ""
-						}
+						left = (pos > 0) ? substr(r,1,pos-1) : r
+						rest = (pos > 0) ? substr(r,pos+1) : ""
 
 						if (left == ".") {
+							rm=$k " " $k " " rest;
+							if (!x[rm]++) print rm; 
+							next
+						}
+
+						rm=$k " " left " " rest;  
+						if (!x[rm]++) print rm; 
+
+						if (left == "*") {
+							n = split(map2[$k], v, SUBSEP)
+							for (i = 1; i <= n; i++) {
+								rm = $k " " v[i] " " rest
+								if (!x[rm]++) print rm
+							}
+							next
+						}
+						if (left == "**") {
 							n = split(map1[$k], v, SUBSEP)
 							for (i = 1; i <= n; i++) {
-								rm = $k " " v[i] ":" substr(r, pos+1)
+								rm = $k " " v[i] " " rest
 								if (!x[rm]++) print rm
 							}
 							n = split(map2[$k], v, SUBSEP)
 							for (i = 1; i <= n; i++) {
-								rm = $k " " v[i] ":" substr(r, pos+1)
+								rm = $k " " v[i] " " rest
 								if (!x[rm]++) print rm
 							}
 							next
 						}
-						if (left == "*") {
-							rm=$k " " $k ":" substr(r, pos+1);
-							if (!x[rm]++) print rm; 
-							next
-						}
-						if (left == "**") {
-							rm=$k " " $k ":" substr(r, pos+1);
-							if (!x[rm]++) print rm; 
-							next
-						}
-
-						rm=$k " " r; 
-						if (!x[rm]++) print rm; 
 					}
 				' \
 				| "$cmd" "$@"
-				set -x
-				set +x
 				return 0
 			;;
 			# unrolls '.', '*', '**' by filter prefix and matches next argument
