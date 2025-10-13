@@ -16,9 +16,9 @@ if [ ! -d "$MDSC_CACHED" ] || [ "$MDSC_CACHED" = "$MMDAPP/.local/system-index" ]
 	set +e ; return 1
 fi
 
-local MDSC_OUTPUT="${2:-$MMDAPP/.local/system-index}"
-if [ ! -d "$MDSC_OUTPUT" ] || [ "$MDSC_CACHED" = "$MDSC_OUTPUT" ]; then
-	echo "⛔ ERROR: $MDSC_CMD: ScanSyncSystemIndexChanges.fn.include: DST is invalid: $MDSC_OUTPUT" >&2
+local INDEX_ROOT="${2:-$MMDAPP/.local/system-index}"
+if [ ! -d "$INDEX_ROOT" ] || [ "$MDSC_CACHED" = "$INDEX_ROOT" ]; then
+	echo "⛔ ERROR: $MDSC_CMD: ScanSyncSystemIndexChanges.fn.include: DST is invalid: $INDEX_ROOT" >&2
 	set +e ; return 1
 fi
 
@@ -29,7 +29,7 @@ rsync -rtpiO -vv $dryRun --delete --delete-excluded \
 	--out-format='%i %n' \
 	--exclude='.*' \
 	--exclude='*.tmp' \
-	"$MDSC_CACHED/" "$MDSC_OUTPUT/" \
+	"$MDSC_CACHED/" "$INDEX_ROOT/" \
 | case "$MDSC_DETAIL" in
 	'')
 		cat >/dev/null

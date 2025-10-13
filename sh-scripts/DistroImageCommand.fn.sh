@@ -16,7 +16,7 @@ fi
 # Runs DistroCommand by compiling it's source code to a temporary folder 
 #
 DistroImageCommand(){
-	local MDSC_OUTPUT="${MDSC_OUTPUT:-$MMDAPP/output}"
+	local MDSC_OUTPUT="${MDSC_OUTPUT:-$MMDAPP/.local/output-cache}"
 	local MDSC_SOURCE="${MDSC_SOURCE:-$MMDAPP/source}"
 	local MDSC_CACHED="${MDSC_CACHED:-$MMDAPP/.local/output-cache}"
 

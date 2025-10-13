@@ -114,7 +114,7 @@ case "$1" in
 		elif [ -d "$MMDAPP/distro/" ] ; then
 			shift ; set -- "--distro-from-distro" "$@"
 		else
-			echo "⛔ ERROR: DistroSystemContext.SetInputSpec: can't detect proper input source" >&2
+			echo "⛔ ERROR: SystemContext.SetInputSpec: can't detect proper input source" >&2
 			exit 1
 		fi
 	;;
@@ -140,33 +140,33 @@ case "$1" in
 	--distro-from-source) # during source-console
 		MDSC_SOURCE="$MMDAPP/source"
 		MDSC_CACHED="$MMDAPP/.local/system-index"
-		MDSC_OUTPUT="$MMDAPP/.local/source-cache/sources"
+		MDSC_OUTPUT="$MMDAPP/.local/source-cache"
 		MDSC_INMODE="source"
 		MDSC_OPTION="--distro-from-source"
 	;;
 	--distro-from-cached) # during source-prepare
 		MDSC_SOURCE="$MMDAPP/.local/source-cache/sources"
-		MDSC_CACHED="$MMDAPP/.local/system-index"
-		MDSC_OUTPUT="$MMDAPP/.local/output-cache/distro-index"
+		MDSC_CACHED="$MMDAPP/.local/output-cache/prepared"
+		MDSC_OUTPUT="$MMDAPP/.local/output-cache"
 		MDSC_INMODE="source"
 		MDSC_OPTION="--distro-from-cached"
 	;;
 	--distro-from-output) # during source-process
 		MDSC_SOURCE="$MMDAPP/.local/source-cache/sources"
-		MDSC_CACHED="$MMDAPP/.local/output-cache/distro-index"
-		MDSC_OUTPUT="$MMDAPP/output/distro"
+		MDSC_CACHED="$MMDAPP/.local/output-cache/distro"
+		MDSC_OUTPUT="$MMDAPP/.local/output-cache"
 		MDSC_INMODE="source"
 		MDSC_OPTION="--distro-from-output"
 	;;
 	--distro-from-distro) # during deploy operations
 		MDSC_SOURCE="$MMDAPP/distro"
 		MDSC_CACHED="$MMDAPP/.local/system-index"
-		MDSC_OUTPUT="$MMDAPP/output/distro"
+		MDSC_OUTPUT="$MMDAPP/.local/output-cache"
 		MDSC_INMODE="deploy"
 		MDSC_OPTION="--distro-from-distro"
 	;;
 	*)
-		echo "⛔ ERROR: DistroSystemContext.SetInputSpec: Invalid input spec: $1" >&2
+		echo "⛔ ERROR: SystemContext.SetInputSpec: Invalid input spec: $1" >&2
 		exit 1
 	;;
 esac
@@ -178,6 +178,6 @@ if [ -z "${previousSpec:-$MDSC_OPTION}" ] || [ "$previousSpec" != "$MDSC_OPTION"
 	export MDSC_OUTPUT
 	export MDSC_OPTION
 	
-	echo "DistroSystemContext.SetInputSpec: mode: $MDSC_INMODE, spec: $MDSC_OPTION" >&2
-	# echo "DistroSystemContext.SetInputSpec: mode: $MDSC_INMODE, spec: $MDSC_OPTION, args: $@" >&2
+	echo "SystemContext.SetInputSpec: mode: $MDSC_INMODE, spec: $MDSC_OPTION" >&2
+	# echo "SystemContext.SetInputSpec: mode: $MDSC_INMODE, spec: $MDSC_OPTION, args: $@" >&2
 fi
