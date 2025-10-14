@@ -251,12 +251,13 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 					echo "⛔ ERROR: SystemContext: $op: command argument required, use 'cat'" >&2
 					set +e ; return 1
 				}
-				local cmd="${1:-'cat'}" column= merged=; shift || :
+				local cmd="${1:-'cat'}" merged=; shift || :
 				case "${idx#'--index-'}" in
-					declares|keywords|provides) column=2; ;;
+					declares|keywords|provides) 
+					;;
 					declares-merged|keywords-merged|provides-merged) 
 						idx="${idx%'-merged'}"
-						column=2; merged=y
+						merged=y
 					;;
 					*) 
 						echo "⛔ ERROR: DistroSystemContext: unroll: unknown or unsupported index name: $idx" >&2
@@ -265,11 +266,8 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 				esac
 				local seq; seq=$( DistroSystemContext --index-sequence-merged echo )
 				[ "$seq" != "/dev/stdin" ] || seq=<( DistroSystemContext --index-sequence-merged cat )
-				DistroSystemContext "$idx" awk -v p="$merged" -v c="$column" -v mf="$filter" -v sq="$seq" -v ev="$env" '
+				DistroSystemContext "$idx" awk -v p="$merged" -v mf="$filter" -v sq="$seq" -v ev="$env" '
 					BEGIN {
-						k = c - 1
-						k = 1
-
 						if (ev != "") {
 							s = ENVIRON[ev]
 							n = split(s, L, "\n")
@@ -289,30 +287,30 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 						}
 						close(sq)
 					}
-					index($c,mf)==1 { 
-						r = substr($c,length(mf)+1)
+					index($2,mf)==1 { 
+						r = substr($2,length(mf)+1)
 						pos = index(r, ":")
 						left = (pos > 0) ? substr(r,1,pos-1) : r
 						rest = (pos > 0) ? substr(r,pos+1) : ""
-						h = (p == "y") ? $k " " : ""
+						h = (p == "y") ? $1 " " : ""
 
 						if (left == ".") {
-							if (ev && !($k in map)) next
-							rm = $k " " h rest; if (!x[rm]++) print rm
+							if (ev && !($1 in map)) next
+							rm = $1 " " h rest; if (!x[rm]++) print rm
 							next
 						}
 						if (left == "*") {
-							n = split(mdown[$k], v, SUBSEP)
+							n = split(mdown[$1], v, SUBSEP)
 							for (i = 1; i <= n; i++) { 
-								if (ev && !($k in map) && !(v[i] in map)) next
+								if (ev && !(v[i] in map)) next
 								rm = v[i] " " h rest; if (!x[rm]++) print rm; 
 							}
 							next
 						}
 						if (left == "**") {
-							n = split(mboth[$k], v, SUBSEP)
+							n = split(mboth[$1], v, SUBSEP)
 							for (i = 1; i <= n; i++) { 
-								if (ev && !($k in map) && !(v[i] in map)) next
+								if (ev && !(v[i] in map)) next
 								rm = v[i] " " h rest; if (!x[rm]++) print rm; 
 							}
 							next
