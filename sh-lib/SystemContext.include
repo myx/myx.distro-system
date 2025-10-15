@@ -271,19 +271,18 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 						if (ev != "") {
 							s = ENVIRON[ev]
 							n = split(s, L, "\n")
-							for (i = 1; i <= n; i++) if (L[i] != "") map[L[i]] = 1
+							for (i = 1; i <= n; i++) {
+								if (L[i] != "") map[L[i]] = 1
+							}
 						}
 
 						# load sequences
 						while ((getline line < sq) > 0) {
 							split(line, f, " ")
 							a = f[1]; b = f[2]
-							mboth[a] = (mboth[a] ? mboth[a] SUBSEP b : b)
-							mboth_count[a]++
-							mboth[b] = (mboth[b] ? mboth[b] SUBSEP a : a)
-							mboth_count[a]++
-							mdown[a] = (mdown[a] ? mdown[a] SUBSEP b : b)
-							mdown_count[b]++
+							mboth[a] = (mboth[a] ? mboth[a] "\n" b : b)
+							mboth[b] = (mboth[b] ? mboth[b] "\n" a : a)
+							mdown[b] = (mdown[b] ? mdown[b] "\n" a : a)
 						}
 						close(sq)
 
@@ -310,18 +309,18 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 							next
 						}
 						if (left == "*") {
-							n = split(mdown[$1], v, SUBSEP)
-							for (i = 1; i <= n; i++) { 
-								if (ev && !(v[i] in map)) next
+							n = split(mdown[$1], v, "\n")
+							for (i = n; i >= 1; i--) { 
+								if (ev && !(v[i] in map)) continue
 								vars["."] = v[i]
 								rm = v[i] " " h vars[pfix] rest; if (!x[rm]++) print rm; 
 							}
 							next
 						}
 						if (left == "**") {
-							n = split(mboth[$1], v, SUBSEP)
+							n = split(mboth[$1], v, "\n")
 							for (i = 1; i <= n; i++) { 
-								if (ev && !(v[i] in map)) next
+								if (ev && !(v[i] in map)) continue
 								vars["."] = v[i]
 								rm = v[i] " " h vars[pfix] rest; if (!x[rm]++) print rm; 
 							}
