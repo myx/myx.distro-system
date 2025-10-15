@@ -286,24 +286,36 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 							mdown_count[b]++
 						}
 						close(sq)
-					}
+
+						vars["."] = ""
+						vars["*"] = ""
+  					}
 					index($2,mf)==1 { 
 						r = substr($2,length(mf)+1)
 						pos = index(r, ":")
 						left = (pos > 0) ? substr(r,1,pos-1) : r
 						rest = (pos > 0) ? substr(r,pos+1) : ""
 						h = (p == "y") ? $1 " " : ""
+						pfix = substr(rest,1,1)
+						if (pfix == "." || pfix == "*") {
+							rest = substr(rest,2)
+							pfix = "."
+						}else{
+							pfix = ""
+						}
 
 						if (left == ".") {
 							if (ev && !($1 in map)) next
-							rm = $1 " " h rest; if (!x[rm]++) print rm
+							vars["."] = $1
+							rm = $1 " " h vars[pfix] rest; if (!x[rm]++) print rm
 							next
 						}
 						if (left == "*") {
 							n = split(mdown[$1], v, SUBSEP)
 							for (i = 1; i <= n; i++) { 
 								if (ev && !(v[i] in map)) next
-								rm = v[i] " " h rest; if (!x[rm]++) print rm; 
+								vars["."] = v[i]
+								rm = v[i] " " h vars[pfix] rest; if (!x[rm]++) print rm; 
 							}
 							next
 						}
@@ -311,13 +323,14 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 							n = split(mboth[$1], v, SUBSEP)
 							for (i = 1; i <= n; i++) { 
 								if (ev && !(v[i] in map)) next
-								rm = v[i] " " h rest; if (!x[rm]++) print rm; 
+								vars["."] = v[i]
+								rm = v[i] " " h vars[pfix] rest; if (!x[rm]++) print rm; 
 							}
 							next
 						}
 
 						if (ev && !(left in map)) next
-						rm = left " " h rest; if (!x[rm]++) print rm
+						rm = left " " h vars[pfix] rest; if (!x[rm]++) print rm
 					}
 				' \
 				| "$cmd" "$@"
