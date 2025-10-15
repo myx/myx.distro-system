@@ -282,13 +282,12 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 							mboth_count[a]++
 							mboth[b] = (mboth[b] ? mboth[b] SUBSEP a : a)
 							mboth_count[a]++
-							mdown[b] = (mdown[b] ? mdown[b] SUBSEP a : a)
+							mdown[a] = (mdown[a] ? mdown[a] SUBSEP b : b)
 							mdown_count[b]++
 						}
 						close(sq)
 
 						vars["."] = ""
-						vars["*"] = ""
   					}
 					index($2,mf)==1 { 
 						r = substr($2,length(mf)+1)
