@@ -319,7 +319,7 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 						}
 						if (left == "**") {
 							n = split(mboth[$1], v, "\n")
-							for (i = 1; i <= n; i++) { 
+							for (i = n; i >= 1; i--) { 
 								if (ev && !(v[i] in map)) continue
 								vars["."] = v[i]
 								rm = v[i] " " h vars[pfix] rest; if (!x[rm]++) print rm; 
