@@ -15,7 +15,7 @@ ListDistroDeclares(){
 
 	set -e
 	
-	while true ; do
+	while [ $# -gt 0 ]; do
 		case "$1" in
 			--all-*|--add-*-column)
 				break
@@ -30,16 +30,6 @@ ListDistroDeclares(){
 				fi
 				shift; break
 			;;
-			--set-env)
-				shift
-				if [ -z "$1" ] ; then
-					echo "⛔ ERROR: $MDSC_CMD: --set-env env variable argument expected!" >&2
-					set +e ; return 1
-				fi
-				local envName="$1" ; shift
-				eval "$envName='` $MDSC_CMD --explicit-noop "$@" `'"
-				return 0
-			;;
 			--*)
 				Distro ListDistroProjects --select-execute-default ListDistroDeclares "$@"
 				return 0
@@ -52,7 +42,7 @@ ListDistroDeclares(){
 
 	local indexColumns=""
 
-	while true ; do
+	while [ $# -gt 0 ]; do
 		. "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/SystemContext.UseStandardOptions.include"
 		case "$1" in
 			--all-declares)
@@ -91,26 +81,46 @@ ListDistroDeclares(){
 					DistroSystemContext --index-projects cat
 				)"
 
-				indexFiltered="`
-					case "${columnMatch}:${columnOp}" in
-						*::--add-own|*::--filter-own)
+				case "${columnMatch}:${columnOp}" in
+					*::--add-own|*::--filter-own)
+						indexFiltered="$(
 							DistroSystemContext --index-declares \
-							awk -v m="$columnMatch" 'index($2,m)==1 { ro=$1 " " substr($2,length(m)+1); if (!x[ro]++) print ro; }'
-						;;
-						*::--add-merged|*::--filter-merged)
+							awk -v m="$columnMatch" '
+								index($2,m)==1 {
+									ro=$1 " " substr($2,length(m)+1)
+									if (!x[ro]++) print ro
+								}
+							'
+						)"
+					;;
+					*::--add-merged|*::--filter-merged)
+						indexFiltered="$(
 							DistroSystemContext --index-declares-merged \
-							awk -v m="$columnMatch" 'index($3,m)==1 { rm=$1 " " substr($3,length(m)+1); if (!x[rm]++) print rm; }'
-						;;
-						*:--add-own|*:--filter-own)
+							awk -v m="$columnMatch" '
+								index($3,m)==1 {
+									rm=$1 " " substr($3,length(m)+1)
+									if (!x[rm]++) print rm
+								}
+							'
+						)"
+					;;
+					*:--add-own|*:--filter-own)
+						indexFiltered="$(
 							DistroSystemContext --index-declares \
-							awk -v m="$columnMatch" '$2==m && !x[$0]++ { print; }'
-						;;
-						*:--add-merged|*:--filter-merged)
+							awk -v m="$columnMatch" '
+								$2==m && !x[$0]++ { print; }
+							'
+						)"
+					;;
+					*:--add-merged|*:--filter-merged)
+						indexFiltered="$(
 							DistroSystemContext --index-declares-merged \
-							awk -v m="$columnMatch" '$3==m { r= $1 " " $3; if (!x[r]++) print r; }'
-						;;
-					esac
-				`"
+							awk -v m="$columnMatch" '
+								$3==m { r= $1 " " $3; if (!x[r]++) print r; }
+							'
+						)"
+					;;
+				esac
 
 				case "$columnOp" in
 					--add-own|--add-merged)
@@ -120,7 +130,7 @@ ListDistroDeclares(){
 									{ print $1, $2; map[$1]=1 }
 									next
 								}
-								!($1 in map) && !map[$1]++ { print $1, "-" }
+								!($1 in map) && !seen[$1]++ { print $1 " -" }
 							' \
 							<(printf "%s\n" "$indexFiltered") \
 							<(printf "%s\n" "$indexCurrent")
@@ -128,9 +138,9 @@ ListDistroDeclares(){
 					;;
 				esac
 
-				indexColumns="`
+				indexColumns="$(
 					awk '
-						NR==FNR { key[$1]=$2; next }
+						NR==FNR { key[$1]= (key[$1] ? key[$1] "|" $2 : $2); next }
 						$1 in key {
 							out = $0 " " key[$1]
 							if (!seen[out]++) print out
@@ -138,7 +148,7 @@ ListDistroDeclares(){
 					' \
 						<(printf "%s\n" "$indexFiltered") \
 						<(printf "%s\n" "$indexCurrent")
-				`"
+				)"
 				
 				if [ -z "$indexColumns" ] ; then
 					echo "⛔ ERROR: $MDSC_CMD: ${columnOp}-declares-column $columnMatch no projects selected!" >&2
@@ -153,6 +163,7 @@ ListDistroDeclares(){
 					set +e ; return 1
 				fi
 				local filter="$2"; shift 2
+				# DistroSystemContext --filter-index-declares "${filter}" cat
 				DistroSystemContext --index-declares awk -v f="${filter%':'}:" '
 				{
 					if (index($2, f) == 1) {
@@ -169,6 +180,7 @@ ListDistroDeclares(){
 					set +e ; return 1
 				fi
 				local filter="$2"; shift 2
+				# DistroSystemContext --intersect-filter-index-declares MDSC_SELECT_PROJECTS "${filter}" cat
 				DistroSystemContext --intersect-index-declares MDSC_SELECT_PROJECTS awk -v f="${filter%':'}:" '
 				{
 					if (index($2, f) == 1) {
@@ -216,23 +228,10 @@ ListDistroDeclares(){
 					set +e ; return 1
 				fi
 				shift
-				
+
 				DistroSystemContext --intersect-index-declares-merged MDSC_SELECT_PROJECTS awk '
 					!x[$3]++ { print $0; }
 				'
-				return 0
-			;;
-			'')
-				if [ -n "$indexColumns" ] ; then
-					echo "$indexColumns"
-					return 0
-				fi
-				if [ -z "${MDSC_SELECT_PROJECTS:0:1}" ] ; then
-					echo "⛔ ERROR: $MDSC_CMD: no projects selected!" >&2
-					set +e ; return 1
-				fi
-
-				DistroSystemContext --intersect-index-declares MDSC_SELECT_PROJECTS cat
 				return 0
 			;;
 			*)
@@ -242,6 +241,17 @@ ListDistroDeclares(){
 		esac
 	done
 
+	if [ -n "$indexColumns" ] ; then
+		echo "$indexColumns"
+		return 0
+	fi
+	if [ -z "${MDSC_SELECT_PROJECTS:0:1}" ] ; then
+		echo "⛔ ERROR: $MDSC_CMD: no projects selected!" >&2
+		set +e ; return 1
+	fi
+
+	DistroSystemContext --intersect-index-declares MDSC_SELECT_PROJECTS cat
+	return 0
 }
 
 case "$0" in
