@@ -14,9 +14,7 @@ ListDistroProjects(){
 
 	set -e
 
-	local selectProjects=""
-
-	local executeDefault=""
+	local selectProjects= executeDefault=
 	
 	case "$1" in
 		''|--help|--help-syntax)
@@ -31,7 +29,7 @@ ListDistroProjects(){
 		;;
 	esac
 	
-	while true ; do
+	while [ $# -gt 0 ] ; do
 		. "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/SystemContext.UseStandardOptions.include"
 		case "$1" in
 			--select-from-env)
@@ -40,7 +38,7 @@ ListDistroProjects(){
 					set +e ; return 1
 				fi
 				shift
-				local selectProjects="${MDSC_SELECT_PROJECTS}"
+				selectProjects="${MDSC_SELECT_PROJECTS}"
 				continue
 			;;
 			--all-projects)
@@ -63,7 +61,6 @@ ListDistroProjects(){
 				## Replaces selection with 'all projects'
 				##
 				shift
-				local selectProjects
 				selectProjects="$( 
 					DistroSystemContext --index-projects cat
 				)"
@@ -74,7 +71,6 @@ ListDistroProjects(){
 				## Replaces selection with 'all projects sequence'
 				##
 				shift
-				local selectProjects
 				selectProjects="$( 
 					DistroSystemContext --index-sequence cat
 				)"
@@ -85,7 +81,7 @@ ListDistroProjects(){
 				## Replaces selection with 'no projects selected'
 				##
 				shift
-				local selectProjects=
+				selectProjects=
 				continue
 			;;
 			--select-changed)
@@ -93,12 +89,10 @@ ListDistroProjects(){
 				## Unions selection with 'changed projects'
 				##
 				shift
-				local selectProjects
-				Require ListChangedSourceProjects
 				selectProjects="$( 
 					awk '$0 && !x[$0]++' \
 					<( echo "$selectProjects" ) \
-					<( ListChangedSourceProjects $MDSC_NO_CACHE $MDSC_NO_INDEX --all ) 
+					<( Distro ListChangedSourceProjects $MDSC_NO_CACHE $MDSC_NO_INDEX --all ) 
 				)"
 				continue
 			;;
@@ -123,7 +117,6 @@ ListDistroProjects(){
 					continue
 				fi
 
-				local selectProjects
 				selectProjects="$(
 					printf "%s\n%s" "$selectProjects" "$matchingProjects" \
 					| awk '$0 && !x[$0]++'
@@ -145,11 +138,10 @@ ListDistroProjects(){
 
 				if [ -z "$matchingProjects" ] ; then
 					echo "ListDistroProjects: 🙋 WARNING: No matching projects found (search: $selectVariant $selectArgument)." >&2
-					local selectProjects=
+					selectProjects=
 					continue
 				fi
 
-				local selectProjects
 				selectProjects="$(
 					grep -Fx -f \
 						<( echo "$matchingProjects" ) \
@@ -179,7 +171,6 @@ ListDistroProjects(){
 					continue
 				fi
 
-				local selectProjects
 				selectProjects="$(
 					grep -Fvx -f \
 						<( echo "$matchingProjects" ) \
@@ -428,7 +419,8 @@ ListDistroProjects(){
 				local selectVariant="--${1#--select-}" ; shift
 
 				selectProjects="$( 
-					MDSC_SELECT_PROJECTS="$selectProjects" ListDistroProjects --select-from-env $selectVariant 
+					MDSC_SELECT_PROJECTS="$selectProjects" \
+					ListDistroProjects --select-from-env $selectVariant 
 				)"
 				continue
 			;;
@@ -456,43 +448,80 @@ ListDistroProjects(){
 			;;
 
 			--select-execute-default)
-				shift
-				if [ -z "$1" ] ; then
-					echo "⛔ ERROR: ListDistroProjects: --select-execute-default command is expected!" >&2
+				[ -n "$2" ] || {
+					echo "⛔ ERROR: ListDistroProjects: $1 command is expected!" >&2
 					set +e ; return 1
-				fi
-				local executeDefault="$1" ; shift
+				}
+				executeDefault="$2" ; shift 2
 				continue
 			;;
 			--select-execute-command)
-				shift
-				if [ -z "$1" ] ; then
-					echo "⛔ ERROR: ListDistroProjects: --select-execute-command command is expected!" >&2
+				[ -n "$2" ] || {
+					echo "⛔ ERROR: ListDistroProjects: $1 command is expected!" >&2
 					set +e ; return 1
-				fi
-				local executeCommand="$1" ; shift
+				}
+				executeDefault="$2" ; shift 2
 
-				export MDSC_SELECT_PROJECTS="$selectProjects"
-				$executeCommand --select-from-env $MDSC_NO_CACHE $MDSC_NO_INDEX "$@"
+				MDSC_SELECT_PROJECTS="$selectProjects" \
+				$executeDefault --select-from-env $MDSC_NO_CACHE $MDSC_NO_INDEX "$@"
+
 				return 0
 			;;
-			*)
-				if [ -z "$executeDefault" ] ; then
-					if [ -z "$1" ] ; then
-						echo "$selectProjects"
-						return 0
-					fi
-
-					echo "⛔ ERROR: ListDistroProjects: invalid option ($1), expecting <command name> <args...>: $1" >&2
+			--save-to-env|--save-to-env-and-continue)
+				[ -z "$2" ] || {
+					echo "⛔ ERROR: $MDSC_CMD: $1, no extra options allowed" >&2
 					set +e ; return 1
-				fi
-				export MDSC_SELECT_PROJECTS="$selectProjects"
-				[ -z "$MDSC_DETAIL" ] || echo "* ListDistroProjects:" $executeDefault --select-from-env $MDSC_NO_CACHE $MDSC_NO_INDEX "$@" >&2
-				$executeDefault --select-from-env $MDSC_NO_CACHE $MDSC_NO_INDEX "$@"
+				}
+				MDSC_SELECT_PROJECTS="$selectProjects"
+				case "$1" in
+					*-and-continue)
+						[ -z "$2" ] || {
+							echo "⛔ ERROR: $MDSC_CMD: $1, no extra options allowed" >&2
+							set +e ; return 1
+						}
+						shift
+						continue
+					;;
+				esac
 				return 0
+			;;
+			--save-to-var|--save-to-var-and-continue)
+				local envName="$2"
+				eval "$envName"='"$selectProjects"'
+				case "$1" in
+					*-and-continue)
+						[ -z "$3" ] || {
+							echo "⛔ ERROR: $MDSC_CMD: $1, no extra options allowed" >&2
+							set +e ; return 1
+						}
+						return 0
+					;;
+				esac
+				shift 2
+				continue
+			;;
+			*)
+				break
 			;;
 		esac
 	done
+
+	if [ -z "$executeDefault" ] ; then
+		if [ -z "$1" ] ; then
+			echo "$selectProjects"
+			return 0
+		fi
+
+		echo "⛔ ERROR: ListDistroProjects: invalid option ($1), expecting <command name> <args...>: $1" >&2
+		set +e ; return 1
+	fi
+
+	[ -z "$MDSC_DETAIL" ] || echo "* ListDistroProjects:" $executeDefault --select-from-env $MDSC_NO_CACHE $MDSC_NO_INDEX "$@" >&2
+
+	MDSC_SELECT_PROJECTS="$selectProjects" \
+	$executeDefault --select-from-env $MDSC_NO_CACHE $MDSC_NO_INDEX "$@"
+
+	return 0
 }
 
 case "$0" in
