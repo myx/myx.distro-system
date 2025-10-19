@@ -1,0 +1,77 @@
+echo >&2
+echo "  Options:" >&2
+echo >&2
+echo "    --no-index" >&2
+echo "                Use no index." >&2
+echo >&2
+echo "    --no-cache" >&2
+echo "                Use no cache." >&2
+echo >&2
+echo "    --select-execute-default <command>" >&2
+echo "                Execute command after selection finished. If arguments remain, they are passed to the" >&2
+echo "                command. MDSC_SELECT_PROJECTS env variable is exported into command's environment" >&2
+echo "                (Use --select-from-env in selectors to use selection)." >&2
+echo >&2
+echo "    --print-selected" >&2
+echo "                Immediately print projects currently selected. (and continue)" >&2
+echo >&2
+echo "    --{projects|declares|[merged-]provides|[merged-]keywords|one-project} <glob>" >&2
+echo "                Print project list according to criteria and exit. Described below." >&2
+echo >&2
+echo "    --projects <project-name-glob>" >&2
+echo "                Print project list and exit. Search by project name substring." >&2
+echo >&2
+echo "    --declares <declares-value-prefix>" >&2
+echo "                Print project list and exit. Search by project declares value prefix." >&2
+echo >&2
+echo "    --provides <provides-value-prefix>" >&2
+echo "                Print project list and exit. Search by own project provides value prefix." >&2
+echo >&2
+echo "    --merged-provides <provides-value-prefix>" >&2
+echo "                Print project list and exit. Search by merged project provides value prefix." >&2
+echo >&2
+echo "    --keywords <exact-keyword>" >&2
+echo "                Print project list and exit. Search by own project keyword." >&2
+echo >&2
+echo "    --merged-keywords <exact-keyword>" >&2
+echo "                Print project list and exit. Search by merged project keyword." >&2
+echo >&2
+echo "    --one-project <project-name-glob>" >&2
+echo "                Print single project and exit or fail with error message. Search by project name substring." >&2
+echo >&2
+echo "    --required" >&2
+echo "    --required-projects" >&2
+echo "                Prints projects that are required for selected projects." >&2
+echo >&2
+echo "    --required" >&2
+echo "    --required-projects" >&2
+echo "                Prints projects that are derived/affected by selected projects." >&2
+echo >&2
+echo "    --select-execute-command <command>" >&2
+echo "                Execute command immediately with current selection. If arguments remain, they are passed" >&2
+echo "                to command. MDSC_SELECT_PROJECTS env variable is exported into command's environment" >&2
+echo "                (Use --select-from-env in selectors to use selection)." >&2
+echo >&2
+echo "  Examples:" >&2
+echo >&2
+
+echo "    ListDistroProjects.fn.sh --distro-from-source --select-all 2> /dev/null | sort" >&2
+echo "    ListDistroProjects.fn.sh --distro-from-cached --select-all | sort" >&2
+echo "    ListDistroProjects.fn.sh --distro-source-only --select-all | sort" >&2
+
+echo "    ListDistroProjects.fn.sh --all-projects | sort" >&2
+echo "    ListDistroProjects.fn.sh --select-sequence | sort" >&2
+echo "    ListDistroProjects.fn.sh --select-all | sort" >&2
+echo "    ListDistroProjects.fn.sh --select-none | sort" >&2
+echo "    ListDistroProjects.fn.sh --select-changed | sort" >&2
+echo "    ListDistroProjects.fn.sh --select-from-env | sort" >&2
+
+echo "    ListDistroProjects.fn.sh --select-projects my --select-projects common --select-projects ndss --remove-projects prv --filter-projects tbd | sort" >&2
+echo "    ListDistroProjects.fn.sh --select-merged-keywords l6 --filter-provides deploy-ssh-target: 2> /dev/null | sort" >&2
+echo "    ListDistroProjects.fn.sh --select-merged-provides deploy-keyword:l6 --filter-provides deploy-ssh-target: 2> /dev/null | sort" >&2
+
+echo "    ListDistroProjects.fn.sh --projects ndss | sort" >&2
+echo "    ListDistroProjects.fn.sh --provides image-execute:deploy-l6route-config: | sort" >&2
+echo "    ListDistroProjects.fn.sh --provides deploy-keyword:l6 | sort" >&2
+echo "    ListDistroProjects.fn.sh --keywords l6 | sort" >&2
+echo >&2

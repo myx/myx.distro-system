@@ -1,0 +1,22 @@
+echo >&2
+echo "  Options:" >&2
+echo >&2
+echo "    --no-index" >&2
+echo "                Use no index." >&2
+echo >&2
+echo "    --no-cache" >&2
+echo "                Use no cache." >&2
+echo >&2
+echo "    --all" >&2
+echo "                Print build-sequence for whole distro and exit. One column." >&2
+echo >&2
+echo "    --all-projects" >&2
+echo "                Print build-sequence for each distro project and exit. Two columns." >&2
+echo >&2
+echo "  Examples:" >&2
+echo >&2
+echo "    ListDistroSequence.fn.sh --all" >&2
+echo "    ListDistroSequence.fn.sh --distro-from-source --all" >&2
+echo "    ListDistroSequence.fn.sh --distro-from-cached --all" >&2
+echo "    ListDistroSequence.fn.sh --distro-source-only --no-cache --no-index --all" >&2
+echo >&2

@@ -57,7 +57,7 @@ case "$0" in
 			echo "📘 syntax: ListDistroSequence.fn.sh [<options>] --all-projects" >&2
 			echo "📘 syntax: ListDistroSequence.fn.sh --help" >&2
 			if [ "$1" = "--help" ] ; then
-				. "$MDLT_ORIGIN/myx/myx.distro-source/sh-lib/help/Help.ListDistroSequence.include"
+				. "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/help/Help.ListDistroSequence.include"
 			fi
 			exit 1
 		fi

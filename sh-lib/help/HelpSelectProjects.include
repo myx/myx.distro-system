@@ -1,0 +1,66 @@
+echo >&2
+echo "  Project <selector> syntax (multiple selectors allowed):" >&2
+echo >&2
+echo "    --select-{all|sequence|changed|none|from-env} " >&2
+echo "    --{select|filter|remove}-{projects|declares|[merged-]provides|[merged-]keywords|one-project} <filter>" >&2
+echo "                Various methods to update current selection. Described below." >&2
+echo >&2
+echo "    --select-all" >&2
+echo "                Add all projects to current selection." >&2
+echo >&2
+echo "    --select-sequence" >&2
+echo "                Add all projects in build sequence in build order." >&2
+echo >&2
+echo "    --select-changed" >&2
+echo "                Add projects considered changed in current build (defaults to all projects)." >&2
+echo >&2
+echo "    --select-none" >&2
+echo "                Clear current selection." >&2
+echo >&2
+echo "    --select-from-env" >&2
+echo "                Fill selection with projects selected in current build context." >&2
+echo >&2
+echo "    --select-projects <project-name-glob>" >&2
+echo "    --filter-projects <project-name-glob>" >&2
+echo "    --remove-projects <project-name-glob>" >&2
+echo "                Update selection with projects matched by project full name substring." >&2
+echo >&2
+echo "    --select-declares <declares-value-prefix>" >&2
+echo "    --filter-declares <declares-value-prefix>" >&2
+echo "    --remove-declares <declares-value-prefix>" >&2
+echo "                Update selection with projects matched by project declares value prefix." >&2
+echo >&2
+echo "    --select-provides <provides-value-prefix>" >&2
+echo "    --filter-provides <provides-value-prefix>" >&2
+echo "    --remove-provides <provides-value-prefix>" >&2
+echo "                Update selection with projects matched by own project provides value prefix." >&2
+echo >&2
+echo "    --select-merged-provides <provides-value-prefix>" >&2
+echo "    --filter-merged-provides <provides-value-prefix>" >&2
+echo "    --remove-merged-provides <provides-value-prefix>" >&2
+echo "                Update selection with projects matched by merged project provides value prefix." >&2
+echo >&2
+echo "    --select-keywords <exact-keyword>" >&2
+echo "    --filter-keywords <exact-keyword>" >&2
+echo "    --remove-keywords <exact-keyword>" >&2
+echo "                Update selection with projects matched by own project keyword." >&2
+echo >&2
+echo "    --select-merged-keywords <exact-keyword>" >&2
+echo "    --filter-merged-keywords <exact-keyword>" >&2
+echo "    --remove-merged-keywords <exact-keyword>" >&2
+echo "                Update selection with projects matched by merged project keyword." >&2
+echo >&2
+echo "    --select-one-project <project-name-glob>" >&2
+echo "    --filter-one-project <project-name-glob>" >&2
+echo "    --remove-one-project <project-name-glob>" >&2
+echo "                Update selection with projects matched by project full name substring. Fail if" >&2
+echo "                matched project count is not exactly one." >&2
+echo >&2
+echo "    --select-required" >&2
+echo "    --select-required-projects" >&2
+echo "                Select projects that are required for currently selected projects." >&2
+echo >&2
+echo "    --select-all-affected" >&2
+echo "    --select-affected-projects" >&2
+echo "                Select projects that are derived/affected by currently selected projects." >&2
+echo >&2

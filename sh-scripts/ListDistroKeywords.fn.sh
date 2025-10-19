@@ -235,8 +235,8 @@ case "$0" in
 			echo "📘 syntax: ListDistroKeywords.fn.sh <project-selector> [--merge-sequence]" >&2
 			echo "📘 syntax: ListDistroKeywords.fn.sh [--help]" >&2
 			if [ "$1" = "--help" ] ; then
-				. "$MDLT_ORIGIN/myx/myx.distro-source/sh-lib/help/HelpSelectProjects.include"
-				. "$MDLT_ORIGIN/myx/myx.distro-source/sh-lib/help/Help.ListDistroKeywords.include"
+				. "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/help/HelpSelectProjects.include"
+				. "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/help/Help.ListDistroKeywords.include"
 			fi
 			exit 1
 		fi
