@@ -97,9 +97,9 @@ case "$0" in
 		# DistroSourceCommand.fn.sh --import-from-source --select-repository lib --print-provides
 		# DistroSourceCommand.fn.sh -q --import-from-source --select-repository lib --print-provides-separate-lines
 		
-		# DistroSourceCommand.fn.sh -q --import-from-source --select-project ndm/cloud-infra/setup.assets-infra/setup.host-n1h1.ndm9.xyz --print-provides-separate-lines
-		# DistroSourceCommand.fn.sh -q --import-from-source --select-providers cloud-infra/setup.host-n1h1.ndm9.xyz --print-provides-separate-lines
-		# DistroSourceCommand.fn.sh -q --import-from-source --select-providers cloud-infra/setup.host-n1h1.ndm9.xyz --select-required --print-provides-separate-lines
+		# DistroSourceCommand.fn.sh -q --import-from-source --select-project ndm/cloud-infra/setup.assets-infra/setup.host-n1h1.example.org --print-provides-separate-lines
+		# DistroSourceCommand.fn.sh -q --import-from-source --select-providers cloud-infra/setup.host-n1h1.example.org --print-provides-separate-lines
+		# DistroSourceCommand.fn.sh -q --import-from-source --select-providers cloud-infra/setup.host-n1h1.example.org --select-required --print-provides-separate-lines
 		
 		# DistroSourceCommand.fn.sh --import-from-source --select-project lib/util.repository-lib --print-provides
 		# DistroSourceCommand.fn.sh --import-from-source --select-providers ndm/location-c1 --print-provides
