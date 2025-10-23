@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 # ^^^ for syntax checking in the editor only
 
 [ full != "$MDSC_DETAIL" ] || echo "> $MDSC_CMD: DistroSystemIndexMergedNoCache.include" >&2
