@@ -43,11 +43,11 @@ case "$cmd" in
 		set +e ; return 1
 	;;
 	Action)
-		# 1) Ensure ListAllActions() is loaded
+		# 1) Ensure AllActions() is loaded
 
 		if [ -z "$cur" ]; then
 			COMPREPLY=( $(
-				ListAllActions.fn.sh --completion \
+				AllActions.fn.sh --completion \
 				| sed 's!/.*!/!' \
 				| sort -u
 			) )
@@ -62,7 +62,7 @@ case "$cmd" in
 			# grep prefix matching
 			while IFS= read -r line; do
 				[[ $line != "$cur"* ]] || COMPREPLY+=("$line")
-			done < <( ListAllActions.fn.sh --completion )
+			done < <( AllActions.fn.sh --completion )
 
 			# try grep more
 			if [ "${#COMPREPLY[@]}" -eq 0 ] ; then
@@ -73,13 +73,13 @@ case "$cmd" in
 				if [[ $line = "$curPrefix"* ]] && [[ ${line#$curPrefix} == *"$curSearch"* ]]; then
 					COMPREPLY+=("$line")
 				fi
-				done < <( ListAllActions.fn.sh --completion )
+				done < <( AllActions.fn.sh --completion )
 			fi
 		else
 			# grep all matching
 			while IFS= read -r line; do
 				[[ $line != *"$cur"* ]] || COMPREPLY+=("$line")
-			done < <( ListAllActions.fn.sh --completion )
+			done < <( AllActions.fn.sh --completion )
 		fi
 
 		case "${#COMPREPLY[@]}" in
@@ -105,14 +105,14 @@ case "$cmd" in
 			COMPREPLY+=("$line")
 		done < <( Distro --completion-helper-system \
 			"$COMP_LINE" "system" \
-			'^\(Distro\|Source\|Deploy\|Remote\|Build\|Clean\|List\).*.fn.sh$' \
+			'^\(All\Distro\|Build\|Clean\|List\).*.fn.sh$' \
 		) && return 0
 		# otherwise fall through so default/file-name completion can fire	
 	;;
 	Source)
 		if COMPREPLY=( $( Distro --completion-helper-system \
 			"$COMP_LINE" "source" \
-			'^\(DistroSource\|Source\|ListDistro\|ListAll\|Build\|Clean\|ListSource\).*.fn.sh$' \
+			'^\(DistroSource\|Source\|ListDistro\|Build\|Clean\|ListSource\).*.fn.sh$' \
 		) ) ; then
 			return 0
 		fi
@@ -121,7 +121,7 @@ case "$cmd" in
 	Deploy)
 		if COMPREPLY=( $( Distro --completion-helper-system \
 			"$COMP_LINE" "deploy" \
-			'^\(DistroDeploy\|Deploy\|ListDistro\|ListAll\|CleanAll\).*.fn.sh$' \
+			'^\(DistroDeploy\|Deploy\|ListDistro\|CleanAll\).*.fn.sh$' \
 		) ) ; then
 			return 0
 		fi

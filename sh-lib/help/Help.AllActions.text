@@ -1,0 +1,36 @@
+📘 syntax: AllActions.fn.sh --default
+📘 syntax: AllActions.fn.sh --scripts
+
+	Summary:
+
+		This command lists all actions and displays this list in various forms.
+
+	Options:
+
+		--no-index
+			Use no index.
+
+		--no-cache
+			Use no cache.
+
+		--all-actions
+		--default
+			Lists all actions in two column form. Declaring projects in first column, action
+			names in second column.
+
+		--full
+			Lists all actions in two column form. Declaring projects in first column, action
+			full paths (from source root) in second column.
+
+		--scripts
+			Lists all actions full paths (from source root) in one column.
+
+		--completion
+			Lists all actions names in one column.
+
+	Examples:
+
+		AllActions.fn.sh --default
+		AllActions.fn.sh --full
+		AllActions.fn.sh --scripts
+		AllActions.fn.sh --completion

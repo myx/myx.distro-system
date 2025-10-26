@@ -65,7 +65,7 @@ echo "| $MDSC_CMD: --all-${idx} extracting from source (shell) ($MDSC_OPTION)" >
 
 Require ListRepositoryKeywords
 local repositoryName
-Distro ListAllRepositories --all-repositories \
+Distro AllNamespaces --all-namespaces \
 | while read -r repositoryName ; do
 	ListRepositoryKeywords --no-cache $MDSC_NO_INDEX $repositoryName || :
 done
