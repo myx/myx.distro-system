@@ -27,7 +27,7 @@ class DistroBuildSourceContext {
 	this.output = output;
 	this.source = source;
 	this.distro = output.resolve("distro");
-	this.cached = output.resolve("cached");
+	this.cached = output.resolve("distro");
     }
 
     public void addJavaClassPath(final Path javaCompileOutputPath) {

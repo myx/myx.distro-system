@@ -131,19 +131,18 @@ public class MakeCompileJava {
 
     MakeCompileJava(final Path sourceRoot, final Path outputRoot) throws Exception {
 	this.sourceRoot = sourceRoot;
-	this.outputRoot = outputRoot;
+	this.outputRoot = outputRoot.resolve("distro");
 
 	this.compiler = ToolProvider.getSystemJavaCompiler();
 
-	this.compileLog = outputRoot.resolve("cached").resolve("compile.log.txt");
+	this.compileLog = outputRoot.resolve("make-java-compile.log.txt");
 
 	this.diagnostics = new DiagnosticOutput(this);
 
 	this.log("RUN: Compilator created, unixtime: " + System.currentTimeMillis());
 
 	{
-	    for (final String classPath : Files
-		    .readAllLines(outputRoot.resolve("cached").resolve("distro-classpath.txt"))) {
+	    for (final String classPath : Files.readAllLines(outputRoot.resolve("distro-classpath.txt"))) {
 		this.classPaths.add(new File(classPath));
 
 		this.log("      class-path: " + classPath);
@@ -151,8 +150,7 @@ public class MakeCompileJava {
 
 	}
 	{
-	    for (final String sourcePath : Files
-		    .readAllLines(outputRoot.resolve("cached").resolve("java-sourcepath.txt"))) {
+	    for (final String sourcePath : Files.readAllLines(outputRoot.resolve("java-sourcepath.txt"))) {
 		this.sourcePaths.add(new File(sourcePath));
 
 		this.log("      source-path: " + sourcePath);

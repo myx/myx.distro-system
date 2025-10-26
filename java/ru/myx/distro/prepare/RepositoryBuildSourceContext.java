@@ -29,7 +29,7 @@ class RepositoryBuildSourceContext {
 	this.repositories = repositories;
 	this.source = repositories.source.resolve(repository.name);
 	this.distro = repositories.distro.resolve(repository.name);
-	this.cached = repositories.cached.resolve(repository.name);
+	this.cached = repositories.distro.resolve(repository.name);
     }
 
     public void addJavaClassPath(final Path javaCompileOutputPath) {
