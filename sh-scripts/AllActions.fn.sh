@@ -79,7 +79,7 @@ AllActions(){
 			return 0
 		fi
 
-		echo "$MDSC_CMD: caching repositories ($MDSC_OPTION)" >&2
+		[ -z "$MDSC_DETAIL" ] || echo "$MDSC_CMD: caching all actions ($MDSC_OPTION)" >&2
 		. "$MDLT_ORIGIN/myx/myx.distro-source/sh-lib/source-prepare/ScanSourceActions.include" \
 		| tee "$cacheFile.$$.tmp" | eval sed "$sedEx"
 		mv -f "$cacheFile.$$.tmp" "$cacheFile"
