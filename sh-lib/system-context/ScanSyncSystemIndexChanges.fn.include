@@ -35,11 +35,9 @@ rsync -rtpiO -vv $dryRun --delete --delete-excluded \
 		cat >/dev/null
 	;;
 	full)
-		echo full detsil
 		{ grep '^[<>cd]' || [ $? -eq 1 ] ; } >&2
 	;;
 	*)
-		echo detsil
 		{ grep '^[<>cd]' || [ $? -eq 1 ] ; } \
 		| { fgrep -v '>f..t.' || [ $? -eq 1 ] ; } >&2
 	;;
