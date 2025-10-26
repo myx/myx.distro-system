@@ -73,7 +73,7 @@ public class DistroImageCommand extends AbstractDistroCommand {
 	    AbstractCommand.registerOperation(operations, context -> {
 		context.repositories.buildPrepareCompileIndex(//
 			context, //
-			context.outputRoot.resolve("cached").normalize()//
+			context.outputRoot.resolve("distro").normalize()//
 		);
 		return true;
 	    }, "--prepare-build-compile-index");
