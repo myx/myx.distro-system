@@ -133,6 +133,7 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 					return 0
 				fi
 			;;
+			## important command pair relation: 'cat' & 'echo' - use echo to get indexfilename, use cat to get value. 
 			--index-*)
 				[ -n "$2" ] || {
 					echo "⛔ ERROR: SystemContext: command argument required, use 'cat':" "$@" >&2

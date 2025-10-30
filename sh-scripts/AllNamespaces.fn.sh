@@ -16,7 +16,7 @@ AllNamespaces(){
 	while [ $# -gt 0 ]; do
 		. "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/SystemContext.UseStandardOptions.include"
 		case "$1" in
-			--all-repositories|--all-namespaces)
+			--|--all-repositories|--all-namespaces)
 				shift ; break
 			;;
 			--source-namespaces)

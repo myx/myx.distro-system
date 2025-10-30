@@ -33,8 +33,7 @@ if [ "$MDSC_NO_INDEX" != "--no-index" ] && [ -d "$MDSC_CACHED" ] ; then
 		case "$MDSC_INMODE" in
 			source)
 				touch "$buildDate"
-				Require DistroSourcePrepare
-				DistroSourcePrepare --rebuild-cached-index
+				Distro DistroSourcePrepare --rebuild-cached-index
 			;;
 		esac
 	fi
