@@ -44,13 +44,10 @@ BEGIN {
         if (line == "") continue
 
         # split on first '=' or ':' using regexp match to get position
-        if (match(line, /[=:]/)) {
-            sep_pos = RSTART
-            key = substr(line, 1, sep_pos - 1)
-            value = substr(line, sep_pos + 1)
-        } else {
-            continue
-        }
+		if (!match(line, /[=:]/)) continue
+
+		key = substr(line, 1, RSTART - 1)
+		value = substr(line, RSTART + 1)
 
         sub(/^[ \t]+/, "", key); sub(/[ \t]+$/, "", key)
         sub(/^[ \t]+/, "", value); sub(/[ \t]+$/, "", value)
