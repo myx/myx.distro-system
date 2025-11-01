@@ -56,7 +56,7 @@ ListDistroKeywords(){
 				return 0
 			;;
 			--all-keywords-merged)
-				if [ -n "$1" ] ; then
+				if [ -n "$2" ] ; then
 					echo "⛔ ERROR: $MDSC_CMD: $1: no extra options allowed ($MDSC_OPTION, $@)" >&2
 					set +e ; return 1
 				fi
