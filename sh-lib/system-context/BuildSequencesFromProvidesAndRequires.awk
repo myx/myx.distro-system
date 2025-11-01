@@ -141,7 +141,10 @@ END {
 		requires_count[cur]=new_n
 		for (j=1; j<=new_n; j++) requires[cur,j]=new[j]
 
-		for (j=new_n; j>=1; j--) print cur " " requires[cur,j]
+		for (j=new_n; j>=1; j--) {
+			out = cur " " requires[cur,j]
+			if(!seen[out]++) print out
+		}
 		for (j=1; j<=new_n; j++) delete new[j]
 
       continue
