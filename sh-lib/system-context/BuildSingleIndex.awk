@@ -22,7 +22,7 @@ BEGIN {
 	}
 
     remainder = ""
-    while ((getline raw < filepath) > 0) {
+    while ((getline raw < filepath) > 0 || remainder != "") {
         line = raw
         sub(/\r$/, "", line)
 
