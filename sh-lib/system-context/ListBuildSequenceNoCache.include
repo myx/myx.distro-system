@@ -1,39 +1,39 @@
 #!/bin/sh
 # ^^^ for syntax checking in the editor only
 
-[ full != "$MDSC_DETAIL" ] || echo "> $MDSC_CMD: DistroSystemListBuildSequenceNoCache.include" >&2
+[ full != "$MDSC_DETAIL" ] || echo "> $MDSC_CMD: ListBuildSequenceNoCache.include" >&2
 
 set -e
 
 if [ "$MDSC_NO_INDEX" != "--no-index" ] && [ -d "$MDSC_CACHED" ] ; then
 
-	local buildDate="$MDSC_CACHED/build-time-stamp.txt"
+	local indexFile= buildDate="$MDSC_CACHED/build-time-stamp.txt"
 
 	if [ "$MDSC_NO_CACHE" != "--no-cache" ] ; then
 
 		indexFile="$MDSC_CACHED/distro-sequence.txt"
 		if [ -f "$indexFile" ] && [ -f "$buildDate" ] && [ ! "$indexFile" -ot "$buildDate" ] ; then
-			echo "| DistroSystemListBuildSequenceNoCache.include: using input file: ${indexFile#$MMDAPP/}" >&2
+			echo "| ListBuildSequenceNoCache.include: using input file: ${indexFile#$MMDAPP/}" >&2
 			cat "$indexFile" 
 			return 0
 		fi
 
 		indexFile="$MDSC_CACHED/distro-sequence-merged.txt"
 		if [ -f "$indexFile" ] && [ -f "$buildDate" ] && [ ! "$indexFile" -ot "$buildDate" ] ; then
-			echo "| DistroSystemListBuildSequenceNoCache.include: using input file: ${indexFile#$MMDAPP/}" >&2
-			awk '$2 && !seen[$2]++ { print $2; }' < "$indexFile"
+			echo "| ListBuildSequenceNoCache.include: using input file: ${indexFile#$MMDAPP/}" >&2
+			awk '$2 && !seen[$2]++ { print $2; }' "$indexFile"
 			return 0
 		fi
 
 	fi
 
-	local indexFile="$MDSC_CACHED/distro-index.inf"
+	indexFile="$MDSC_CACHED/distro-index.inf"
 
 	if [ ! -f "$indexFile" ] || [ ! -f "$buildDate" ] || [ "$indexFile" -ot "$buildDate" ] ; then
 		case "$MDSC_INMODE" in
 			source)
-				touch "$buildDate"
-				Distro DistroSourcePrepare --rebuild-cached-index
+				# date -u "+%Y%m%d%H%M%S" > "$buildDate"
+				# Distro DistroSourcePrepare --rebuild-cached-index
 			;;
 		esac
 	fi
@@ -58,8 +58,8 @@ if [ "$MDSC_NO_INDEX" != "--no-index" ] && [ -d "$MDSC_CACHED" ] ; then
 	fi
 fi
 
-if [ -z "$MDSC_JAVAC" ] && command -v javac >/dev/null 2>&1 && [ "$MDSC_INMODE" = "source" ] ; then
-	echo "$MDSC_CMD: DistroSystemListBuildSequenceNoCache.include extracting from source (java) ($MDSC_OPTION)" >&2
+if [ javac = "$MDSC_JAVAC" ] && command -v javac >/dev/null 2>&1 && [ "$MDSC_INMODE" = "source" ] ; then
+	echo "$MDSC_CMD: ListBuildSequenceNoCache.include extracting from source (java) ($MDSC_OPTION)" >&2
 	Distro DistroSourceCommand \
 		-q \
 		--import-from-source \
@@ -69,5 +69,4 @@ if [ -z "$MDSC_JAVAC" ] && command -v javac >/dev/null 2>&1 && [ "$MDSC_INMODE" 
 	return 0
 fi
 
-echo "⛔ ERROR: $MDSC_CMD: can't list distro sequence (mode: $MDSC_INMODE)" >&2
-set +e ; return 1
+DistroSystemContext --index-sequence-merged awk '$2 && !seen[$2]++ { print $2; }'

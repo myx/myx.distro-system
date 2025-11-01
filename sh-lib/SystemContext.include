@@ -151,6 +151,7 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 					keywords-merged) env=MDSC_IDAKWD; ;;
 					provides) env=MDSC_IDOPRV; ;;
 					provides-merged) env=MDSC_IDAPRV; ;;
+					requires) env=MDSC_IDOREQ; ;;
 					*) 
 						echo "⛔ ERROR: DistroSystemContext: unknown index name: $idx" >&2
 						set +e ; return 1
