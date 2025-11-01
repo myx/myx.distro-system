@@ -23,7 +23,7 @@ BEGIN {
 
     remainder = ""
     while ((getline raw < filepath) > 0 || remainder != "") {
-        line = raw
+        line = raw; raw = ""
         sub(/\r$/, "", line)
 
         # continuation: ends with unescaped backslash
