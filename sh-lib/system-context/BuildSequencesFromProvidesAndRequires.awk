@@ -70,7 +70,7 @@ END {
   # --- load requiresMap (resolve requireValue -> provider projects); report missing once per requireValue ---
   while ((getline < REQ) > 0) {
     if ($0 == "") continue
-    p = $1; rv = $2
+    p = $1; rv = $2; sub(/:.*/, "", rv)
     if (!proj_seen[p]) proj_seen[p] = 1
     left[p] = 1
     if (provider_count[rv] > 0) {
