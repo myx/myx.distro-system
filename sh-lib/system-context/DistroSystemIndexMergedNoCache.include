@@ -53,10 +53,3 @@ awk '
 < /dev/null
 
 return 0
-
-join -1 2 -2 2 -o 2.1,1.1,2.2,1.2 \
-	<( echo "$indexFilter" ) \
-	<( echo "$indexSequence" ) \
-| sort -n -k 1,2 | cut -d" " -f 3-
-
-return 0 # 2s
