@@ -22,14 +22,14 @@ case "$idx" in
 	;;
 esac
 
-if [ "$MDSC_NO_INDEX" != "--no-index" ] && [ -f "$MDSC_CACHED/distro-index.inf" ] ; then
-	if { [ -n "$BUILD_STAMP" ] && [ ! "$BUILD_STAMP" -gt "$( date -u -r "$MDSC_CACHED/distro-index.inf" "+%Y%m%d%H%M%S" )" ]; } \
-		|| [ -f "$MDSC_CACHED/build-time-stamp.txt" ] && [ ! "$MDSC_CACHED/build-time-stamp.txt" -nt "$MDSC_CACHED/distro-index.inf" ] ; then
+if [ "$MDSC_NO_INDEX" != "--no-index" ] && [ -f "$MDSC_CACHED/distro-index.env.inf.txt" ] ; then
+	if { [ -n "$BUILD_STAMP" ] && [ ! "$BUILD_STAMP" -gt "$( date -u -r "$MDSC_CACHED/distro-index.env.inf.txt" "+%Y%m%d%H%M%S" )" ]; } \
+		|| [ -f "$MDSC_CACHED/build-time-stamp.txt" ] && [ ! "$MDSC_CACHED/build-time-stamp.txt" -nt "$MDSC_CACHED/distro-index.env.inf.txt" ] ; then
 		
 		[ -z "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: --all-${idx} using index" >&2
 		
 		local projectName extraText
-		grep -e "^PRJ-${key}-" "$MDSC_CACHED/distro-index.inf" \
+		grep -e "^PRJ-${key}-" "$MDSC_CACHED/distro-index.env.inf.txt" \
 		| sed -e 's:^PRJ-'${key}'-::' -e 's:=: :g' -e 's|\\:|:|g' \
 		| while read -r projectName extraText ; do
 			echo "$extraText" | tr ' ' '\n' | sed -e "s:^:$projectName :"
@@ -76,7 +76,7 @@ fi
 
 awk '
 	/^PRJ-'$key'-/ {
-		line = substr($0, 9); sub(/[:=]/, " ", line)
+		line = substr($0, 9); sub(/[:=]/, " ", line); gsub(/\\:/, ":", line)
 		n = split(line, a)
 		seq = a[1]; for (i = 2; i <= n; i++) {
 			pair = seq " " a[i]

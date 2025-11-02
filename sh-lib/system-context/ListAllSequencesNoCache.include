@@ -18,7 +18,7 @@ if [ "$MDSC_NO_INDEX" != "--no-index" ] && [ -d "$MDSC_CACHED" ] ; then
 		fi
 	fi
 
-	local indexFile="$MDSC_CACHED/distro-index.inf"
+	local indexFile="$MDSC_CACHED/distro-index.env.inf.txt"
 
 	if [ -f "$indexFile" ] && [ -f "$buildDate" ] && [ ! "$indexFile" -ot "$buildDate" ] ; then
 		[ -z "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: ListAllSequencesNoCache.include: using '$indexFile'" >&2

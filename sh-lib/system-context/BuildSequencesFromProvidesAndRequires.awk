@@ -81,7 +81,10 @@ END {
         if (!(t in left)) left[t] = 0
       }
     } else {
-      if (!missing_reported[rv]) { print "⛔ MISSING: no provider for " rv > "/dev/stderr"; missing_reported[rv] = 1 }
+		if (!missing_reported[rv]) { 
+			print "⛔ MISSING: no provider for " rv > "/dev/stderr"
+			missing_reported[rv] = 1
+		}
     }
   }
   close(REQ)
@@ -115,8 +118,8 @@ END {
 		visited[r] = 1
 		}
     }
-      # clear work array slots
-      for (k = 1; k <= work_n; k++) delete work[k]
+	# clear work array slots
+	for (k = 1; k <= work_n; k++) delete work[k]
 
     if (unflushed == 0) {
 		qt--    # remove project from queue (pop from right)

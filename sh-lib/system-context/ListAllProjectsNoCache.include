@@ -65,7 +65,7 @@ if [ "$MDSC_NO_INDEX" != "--no-index" ] && [ -d "$MDSC_CACHED" ] ; then
 
 	fi
 	
-	indexFile="$MDSC_CACHED/distro-index.inf"
+	indexFile="$MDSC_CACHED/distro-index.env.inf.txt"
 
 	if [ -f "$indexFile" ] && [ -f "$buildDate" ] && [ ! "$indexFile" -ot "$buildDate" ] ; then
 		echo "| ListAllProjectsNoCache: using image" >&2
