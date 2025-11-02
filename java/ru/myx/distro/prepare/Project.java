@@ -151,15 +151,6 @@ public class Project {
 	    Project.updateList(info.getProperty("Provides", "").split("\\s+"), this.lstProvides);
 	    Project.updateList(info.getProperty("Requires", "").split("\\s+"), this.lstRequires);
 	    Project.updateList(info.getProperty("Augments", "").split("\\s+"), this.lstAugments);
-
-	    // deploy-keyword: from Provides added to keywords for time being
-	    for (OptionListItem item : this.lstProvides) {
-		if ("deploy-keyword".equals(item.name)) {
-		    for (String keyword : item.keys) {
-			this.lstKeywords.add(new OptionListItem(keyword));
-		    }
-		}
-	    }
 	}
 	if (repo != null) {
 	    repo.addKnown(this);
