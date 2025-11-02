@@ -76,6 +76,8 @@ public class Repository {
 
     private final Map<String, Set<Project>> byDeclares = new LinkedHashMap<>();
 
+    private final Map<String, Set<Project>> byAugments = new LinkedHashMap<>();
+
     private final Map<String, Set<Project>> byProvides = new LinkedHashMap<>();
 
     public final String fetch;
@@ -107,6 +109,15 @@ public class Repository {
 	if (set == null) {
 	    set = new LinkedHashSet<>();
 	    this.byDeclares.put(declares.getName(), set);
+	}
+	set.add(project);
+    }
+
+    public void addAugments(final Project project, final OptionListItem augments) {
+	Set<Project> set = this.byAugments.get(augments.getName());
+	if (set == null) {
+	    set = new LinkedHashSet<>();
+	    this.byAugments.put(augments.getName(), set);
 	}
 	set.add(project);
     }
@@ -301,6 +312,12 @@ public class Repository {
     public Map<String, Set<Project>> getKeywords() {
 	final Map<String, Set<Project>> result = new LinkedHashMap<>();
 	result.putAll(this.byKeywords);
+	return result;
+    }
+
+    public Map<String, Set<Project>> getAugments() {
+	final Map<String, Set<Project>> result = new LinkedHashMap<>();
+	result.putAll(this.byAugments);
 	return result;
     }
 

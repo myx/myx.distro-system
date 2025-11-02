@@ -126,6 +126,8 @@ public class Project {
 
     private final OptionList lstRequires = new OptionList();
 
+    private final OptionList lstAugments = new OptionList();
+
     public final String name;
 
     /**
@@ -142,11 +144,13 @@ public class Project {
 	this.lstKeywords.add(new OptionListItem(this.getName()));
 	this.lstProvides.add(new OptionListItem(this.getName()));
 	this.lstProvides.add(new OptionListItem(this.getFullName()));
+	this.lstAugments.add(new OptionListItem(this.getFullName()));
 	if (info != null) {
 	    Project.updateList(info.getProperty("Declares", "").split("\\s+"), this.lstDeclares);
 	    Project.updateList(info.getProperty("Keywords", "").split("\\s+"), this.lstKeywords);
 	    Project.updateList(info.getProperty("Provides", "").split("\\s+"), this.lstProvides);
 	    Project.updateList(info.getProperty("Requires", "").split("\\s+"), this.lstRequires);
+	    Project.updateList(info.getProperty("Augments", "").split("\\s+"), this.lstAugments);
 
 	    // deploy-keyword: from Provides added to keywords for time being
 	    for (OptionListItem item : this.lstProvides) {
@@ -311,6 +315,7 @@ public class Project {
 	    info.setProperty("Keywords", this.lstKeywords.toString());
 	    info.setProperty("Provides", this.lstProvides.toString());
 	    info.setProperty("Requires", this.lstRequires.toString());
+	    info.setProperty("Augments", this.lstAugments.toString());
 
 	    Utils.save(//
 		    context.console, //
@@ -394,10 +399,12 @@ public class Project {
 		this.lstDeclares.toString());
 	info.setProperty("PRJ-KWD-" + this.getFullName(), //
 		this.lstKeywords.toString());
-	info.setProperty("PRJ-PRV-" + this.getFullName(), //
-		this.lstProvides.toString());
+	info.setProperty("PRJ-AUG-" + this.getFullName(), //
+		this.lstAugments.toString());
 	info.setProperty("PRJ-REQ-" + this.getFullName(), //
 		this.lstRequires.toString());
+	info.setProperty("PRJ-PRV-" + this.getFullName(), //
+		this.lstProvides.toString());
 	info.setProperty("PRJ-SEQ-" + this.getFullName(), //
 		this.getBuildSequence(context).stream()//
 			.map(Project::projectFullName)//
@@ -614,6 +621,10 @@ public class Project {
 	return this.lstDeclares;
     }
 
+    public OptionList getAugments() {
+	return this.lstAugments;
+    }
+
     public OptionList getKeywords() {
 	return this.lstKeywords;
     }
@@ -700,6 +711,7 @@ public class Project {
     public void loadFromLocalIndex(final Repository repository, final Properties info) {
 	Project.updateList(info.getProperty("PRJ-DCL-" + this.name, "").split("\\s+"), this.lstDeclares);
 	Project.updateList(info.getProperty("PRJ-KWD-" + this.name, "").split("\\s+"), this.lstKeywords);
+	Project.updateList(info.getProperty("PRJ-AUG-" + this.name, "").split("\\s+"), this.lstAugments);
 	Project.updateList(info.getProperty("PRJ-PRV-" + this.name, "").split("\\s+"), this.lstProvides);
 	Project.updateList(info.getProperty("PRJ-REQ-" + this.name, "").split("\\s+"), this.lstRequires);
 	Project.updateList(info.getProperty("PRJ-GET-" + this.name, "").split("\\s+"), this.lstContains);
@@ -712,6 +724,11 @@ public class Project {
 	for (final OptionListItem keywords : this.lstKeywords) {
 	    this.repo.addKeywords(this, keywords);
 	    this.repo.distro.addKeywords(this, keywords);
+	}
+
+	for (final OptionListItem augments : this.lstAugments) {
+	    this.repo.addAugments(this, augments);
+	    this.repo.distro.addAugments(this, augments);
 	}
 
 	for (final OptionListItem provides : this.lstProvides) {

@@ -23,6 +23,8 @@ public final class Distro {
 
     private final Map<String, Set<Project>> byDeclares = new LinkedHashMap<>();
 
+    private final Map<String, Set<Project>> byAugments = new LinkedHashMap<>();
+
     private final Map<String, Set<Project>> byKeywords = new LinkedHashMap<>();
 
     private final Map<String, Set<Project>> byProvides = new LinkedHashMap<>();
@@ -51,6 +53,15 @@ public final class Distro {
 	if (set == null) {
 	    set = new HashSet<>();
 	    this.byDeclares.put(provides.getName(), set);
+	}
+	set.add(project);
+    }
+
+    public void addAugments(final Project project, final OptionListItem augments) {
+	Set<Project> set = this.byAugments.get(augments.getName());
+	if (set == null) {
+	    set = new HashSet<>();
+	    this.byAugments.put(augments.getName(), set);
 	}
 	set.add(project);
     }
@@ -283,6 +294,12 @@ public final class Distro {
 	return result;
     }
 
+    public Map<String, Set<Project>> getAugments() {
+	final Map<String, Set<Project>> result = new LinkedHashMap<>();
+	result.putAll(this.byAugments);
+	return result;
+    }
+
     public Map<String, Set<Project>> getProvides() {
 	final Map<String, Set<Project>> result = new LinkedHashMap<>();
 	result.putAll(this.byProvides);
@@ -296,6 +313,15 @@ public final class Distro {
 	    return Collections.singleton(projectExact);
 	}
 	return this.byDeclares.get(requireString);
+    }
+
+    public Set<Project> getAugments(final OptionListItem name) {
+	final String requireString = name.getName();
+	final Project projectExact = this.getProject(requireString);
+	if (projectExact != null) {
+	    return Collections.singleton(projectExact);
+	}
+	return this.byAugments.get(requireString);
     }
 
     public Set<Project> getKeywords(final OptionListItem name) {
