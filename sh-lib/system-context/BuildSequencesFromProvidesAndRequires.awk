@@ -67,7 +67,6 @@ BEGIN {
 		{
 			rv = $2
 
-			print ">>> 2: " rv > "/dev/stderr"
 			sub(/:.*/, "", rv)                        # strip suffix after first colon
 			if (rv == "") continue
 			left[prj] = 1
