@@ -113,7 +113,7 @@ END {
 		# seed work list with prj's immediate requires (preserve order)
 		work_n = 0
 		rc = requires_count[prj] + 0
-		for (i = 1; i <= rc; i++) work[++work_n] = requires[prj, i]
+		for (i = rc; i >= 1; i--) work[++work_n] = requires[prj, i]
 
 		# scan work left-to-right, expanding flushed entries inline, pushing unmet to right
 		idx = 1
