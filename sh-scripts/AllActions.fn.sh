@@ -32,25 +32,25 @@ AllActions(){
 		;;
 	esac
 
-	local sedEx=
+	local sedEx="-e 's:^$MMDAPP/source/::' -e 's:^$MDSC_SOURCE/::' -e 's:/actions/: :'"
 
 	. "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/SystemContext.UseStandardOptions.include"
 	while [ $# -gt 0 ]; do
 		case "$1" in
 			--completion)
-				sedEx="-e 's:^$MMDAPP/source/::' -e 's:^$MDSC_SOURCE/::' -e 's:^.*/actions/::'"
+				sedEx="-e 's:^$MMDAPP/source/::' -e 's:^$MDSC_SOURCE/::' -e 's:^$MDLT_ORIGIN/::' -e 's:^.*/actions/::'"
 				shift ; break
 			;;
 			--scripts)
-				sedEx="-e \"s:^$MMDAPP/source/::\" -e \"s:^$MDSC_SOURCE/::\""
+				sedEx="-e \"s:^$MMDAPP/source/::\" -e \"s:^$MDSC_SOURCE/::\" -e 's:^$MDLT_ORIGIN/::'"
 				shift ;	break
 			;;
 			--full)
-				sedEx="-e 's:^$MMDAPP/source/::' -e 's:^$MDSC_SOURCE/::' -e 's:^\(.*\)/actions/:\1 \1/actions/:'"
+				sedEx="-e 's:^$MMDAPP/source/::' -e 's:^$MDSC_SOURCE/::' -e 's:^$MDLT_ORIGIN/::' -e 's:^\(.*\)/actions/:\1 \1/actions/:'"
 				shift ; break
 			;;
 			--default|--all-actions)
-				sedEx="-e 's:^$MMDAPP/source/::' -e 's:^$MDSC_SOURCE/::' -e 's:/actions/: :'"
+				sedEx="-e 's:^$MMDAPP/source/::' -e 's:^$MDSC_SOURCE/::' -e 's:^$MDLT_ORIGIN/::' -e 's:/actions/: :'"
 				break
 			;;
 			--help|--help-syntax)
