@@ -31,11 +31,12 @@ fi
 if [ "$MDSC_NO_INDEX" != "--no-index" ] && [ -d "$MDSC_CACHED" ] ; then
 
 	buildDate="$MDSC_CACHED/build-time-stamp.txt"
+	[ -f "$buildDate" ] || date -u "+%Y%m%d%H%M%S" > "$buildDate"
 
 	if [ "$MDSC_NO_CACHE" != "--no-cache" ] ; then
 
 		indexFile="$MDSC_CACHED/distro-sequence.txt"
-		if [ -f "$indexFile" ] && [ -f "$buildDate" ]; then
+		if [ -f "$indexFile" ]; then
 			if [ ! "$indexFile" -ot "$buildDate" ] ; then
 				echo "| ListAllProjectsNoCache: using input file: ${indexFile#$MMDAPP/}" >&2
 				cat "$indexFile"
@@ -44,7 +45,7 @@ if [ "$MDSC_NO_INDEX" != "--no-index" ] && [ -d "$MDSC_CACHED" ] ; then
 		fi
 
 		indexFile="$MDSC_CACHED/distro-projects.txt"
-		if [ -f "$indexFile" ] && [ -f "$buildDate" ]; then
+		if [ -f "$indexFile" ]; then
 			if [ ! "$indexFile" -ot "$buildDate" ] ; then
 				echo "| ListAllProjectsNoCache: using input file: ${indexFile#$MMDAPP/}" >&2
 				cat "$indexFile"
@@ -52,28 +53,19 @@ if [ "$MDSC_NO_INDEX" != "--no-index" ] && [ -d "$MDSC_CACHED" ] ; then
 			fi
 		fi
 
-		if [ ! -f "$indexFile" ] || [ ! -f "$buildDate" ] || [ "$indexFile" -ot "$buildDate" ] ; then
-			case "$MDSC_INMODE" in
-				source)
-					date -u "+%Y%m%d%H%M%S" > "$buildDate"
-					. "$MDLT_ORIGIN/myx/myx.distro-source/sh-lib/source-prepare/ScanSourceProjects.include" | tee "$indexFile.$$.tmp"
-					mv -f -- "$indexFile.$$.tmp" "$indexFile"
-					return 0
-				;;
-			esac
-		fi
 
 	fi
 	
 	indexFile="$MDSC_CACHED/distro-index.env.inf.txt"
 
-	if [ -f "$indexFile" ] && [ -f "$buildDate" ] && [ ! "$indexFile" -ot "$buildDate" ] ; then
-		echo "| ListAllProjectsNoCache: using image" >&2
+	if [ -f "$indexFile" ] && [ ! "$indexFile" -ot "$buildDate" ] ; then
+		echo "| ListAllProjectsNoCache: using index" >&2
 		grep -e "^PRJS=" "$indexFile" \
 		| sed "s:^.*=::" \
 		| tr ' ' '\n'
 		return 0
 	fi
+
 fi
 
 case "$MDSC_INMODE" in

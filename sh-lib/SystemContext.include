@@ -140,7 +140,7 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 					set +e ; return 1
 				}
 				local idx="${1#'--index-'}" cmd="${2:-'cat'}"; shift 2 || :
-				local env
+				local env cacheFile=
 				case "$idx" in
 					projects) env=MDSC_IDPALL; ;;
 					sequence) env=MDSC_IDBSEQ; ;;
@@ -179,7 +179,7 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 						return 0
 					fi
 					if [ -d "$MDSC_CACHED" ] ; then
-						local cacheFile="$MDSC_CACHED/distro-$idx.txt"
+						cacheFile="$MDSC_CACHED/distro-$idx.txt"
 						if [ -f "$cacheFile" ]; then
 							if { [ -f "$MDSC_CACHED/distro-index.env.inf.txt" ] && [ ! "$cacheFile" -nt "$MDSC_CACHED/distro-index.env.inf.txt" ]; } \
 							|| { [ -n "$BUILD_STAMP" ] && [ ! "$BUILD_STAMP" -gt "$( date -u -r "$cacheFile" "+%Y%m%d%H%M%S" )" ]; } \
