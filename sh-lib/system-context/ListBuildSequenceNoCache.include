@@ -29,15 +29,6 @@ if [ "$MDSC_NO_INDEX" != "--no-index" ] && [ -d "$MDSC_CACHED" ] ; then
 
 	indexFile="$MDSC_CACHED/distro-index.env.inf.txt"
 
-	if [ ! -f "$indexFile" ] || [ ! -f "$buildDate" ] || [ "$indexFile" -ot "$buildDate" ] ; then
-		case "$MDSC_INMODE" in
-			source)
-				# date -u "+%Y%m%d%H%M%S" > "$buildDate"
-				# Distro DistroSourcePrepare --rebuild-cached-index
-			;;
-		esac
-	fi
-
 	if [ -f "$indexFile" ] && [ -f "$buildDate" ] && [ ! "$indexFile" -ot "$buildDate" ] ; then
 		echo "$MDSC_CMD: --all using index ($MDSC_OPTION)" >&2
 		awk '/^PRJ-SEQ-/ {
@@ -49,11 +40,6 @@ if [ "$MDSC_NO_INDEX" != "--no-index" ] && [ -d "$MDSC_CACHED" ] ; then
 				if (item!="" && !seen[item]++) print item
 			}
 		}' "$indexFile"
-		return 0
-
-		for ITEM in ` grep "^PRJ-SEQ-" "$indexFile" | sed 's|^.*=||g' | awk '!x[$0]++' ` ; do
-			echo $ITEM
-		done | awk '!x[$0]++'
 		return 0
 	fi
 fi

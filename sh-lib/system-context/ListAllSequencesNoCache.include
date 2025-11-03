@@ -10,12 +10,13 @@ if [ "$MDSC_NO_INDEX" != "--no-index" ] && [ -d "$MDSC_CACHED" ]; then
 	local buildDate="$MDSC_CACHED/build-time-stamp.txt"
 	local indexFile="$MDSC_CACHED/distro-index.env.inf.txt"
 
+	[ -f "$buildDate" ] || date -u "+%Y%m%d%H%M%S" > "$buildDate"
+
 	if [ ! -f "$indexFile" ] \
 		|| { [ -z "$BUILD_STAMP" ] || [ "$BUILD_STAMP" -gt "$( date -u -r "$indexFile" "+%Y%m%d%H%M%S" )" ]; } \
-		|| { [ ! -f "$buildDate" ] || [ "$buildDate" -nt "$indexFile" ]; }; \
+		|| { [ "$buildDate" -nt "$indexFile" ]; }; \
 	then
 		[ -z "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: ListAllSequencesNoCache.include: --all-${idx} making index" >&2
-		date -u "+%Y%m%d%H%M%S" > "$buildDate"
 		DistroSystemContext --index-projects awk -v source="$MDSC_SOURCE" \
 			-f "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/system-context/BuildSingleIndex.awk" \
 			>"$indexFile.$$.tmp"

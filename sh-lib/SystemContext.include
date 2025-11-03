@@ -142,15 +142,11 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 				local idx="${1#'--index-'}" cmd="${2:-'cat'}"; shift 2 || :
 				local env cacheFile=
 				case "$idx" in
-					projects) env=MDSC_IDPALL; ;;
-					sequence) env=MDSC_IDBSEQ; ;;
-					sequence-merged) env=MDSC_IDSEQS; ;;
-					declares) env=MDSC_IDODCL; ;;
-					declares-merged) env=MDSC_IDADCL; ;;
-					keywords) env=MDSC_IDOKWD; ;;
-					keywords-merged) env=MDSC_IDAKWD; ;;
-					provides) env=MDSC_IDOPRV; ;;
-					provides-merged) env=MDSC_IDAPRV; ;;
+					projects) env=MDSC_IDAPRJ; ;;
+					sequence-merged) env=MDSC_IDASEQ; ;; sequence) env=MDSC_IDBSEQ; ;;
+					declares) env=MDSC_IDODCL; ;; declares-merged) env=MDSC_IDMDCL; ;;
+					keywords) env=MDSC_IDOKWD; ;; keywords-merged) env=MDSC_IDMKWD; ;;
+					provides) env=MDSC_IDOPRV; ;; provides-merged) env=MDSC_IDMPRV; ;;
 					requires) env=MDSC_IDOREQ; ;;
 					*) 
 						echo "⛔ ERROR: DistroSystemContext: unknown index name: $idx" >&2
@@ -321,6 +317,23 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 				return 0
 			;;
 			# unrolls '.', '*', '**' by filter prefix and matches next argument
+			--project-index-*)
+				[ -n "$2" ] || {
+					echo "⛔ ERROR: SystemContext: $1: variable name is required, MDSC_SELECT_PROJECTS?!" >&2
+					set +e ; return 1
+				}
+				local projectName=$2
+				[ -n "$3" ] || {
+					echo "⛔ ERROR: SystemContext: $1: command argument required, use 'cat':" "$@" >&2
+					set +e ; return 1
+				}
+				local idx="--${1#'--project-'}" cmd="${3:-'cat'}"; shift 3 || :
+				DistroSystemContext "$idx" awk -v prj="$projectName" '
+					$1 == prj { print }
+				' \
+				| "$cmd" "$@"
+				return 0
+			;;
 			--unroll-filter-match-index-*)
 				[ -n "$2" ] || {
 					echo "⛔ ERROR: SystemContext: variable name is required, MDSC_SELECT_PROJECTS?:" "$@" >&2
@@ -353,15 +366,15 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 				# echo "DistroSystemContext: clear cache" >&2
 				# rm -rf "$MDLT_ORIGIN"/.cached
 				unset \
-					MDSC_IDPALL \
+					MDSC_IDAPRJ \
 					MDSC_IDBSEQ \
-					MDSC_IDSEQS \
+					MDSC_IDASEQ \
 					MDSC_IDOPRV \
-					MDSC_IDAPRV \
+					MDSC_IDMPRV \
 					MDSC_IDODCL \
-					MDSC_IDADCL \
+					MDSC_IDMDCL \
 					MDSC_IDOKWD \
-					MDSC_IDAKWD \
+					MDSC_IDMKWD \
 				
 				return 0
 			;;
