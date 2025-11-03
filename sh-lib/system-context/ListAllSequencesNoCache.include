@@ -5,7 +5,7 @@
 
 set -e
 
-if [ "$MDSC_NO_INDEX" != "--no-index" ] && [ -d "$MDSC_CACHED" ] ; then
+if [ "$MDSC_NO_INDEX" != "--no-index" ] && [ -d "$MDSC_CACHED" ]; then
 
 	local buildDate="$MDSC_CACHED/build-time-stamp.txt"
 
@@ -63,12 +63,11 @@ fi
 
 if [ -z "${MDSC_MEMORY:0:1}" ]; then
 	MDSC_MEMORY="$( 
-		awk -v source="$MDSC_SOURCE" -f "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/system-context/BuildSingleIndex.awk" \
-		<( . "$MDLT_ORIGIN/myx/myx.distro-source/sh-lib/source-prepare/ScanSourceProjects.include" )
+		DistroSystemContext --index-projects \
+		awk -v source="$MDSC_SOURCE" -f "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/system-context/BuildSingleIndex.awk" 
 	)"
 	export MDSC_MEMORY
-
-	[ -z "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: ListAllSequencesNoCache.include: index env-cached" >&2
+	[ -z "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: ListAllSequencesNoCache.include: single index env-cached" >&2
 fi
 
 awk -f "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/system-context/BuildSequencesFromProvidesAndRequires.awk" \
@@ -76,7 +75,7 @@ awk -f "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/system-context/BuildSequencesF
 			/^PRJ-REQ-/ {
 				line = substr($0, 9); sub(/[:=]/, " ", line)
 				n = split(line, a)
-				seq = a[1]; for (i = 2; i <= n; i++) {
+				seq = a[1]; for (i = 1; i <= n; i++) {
 					pair = seq " " a[i]
 					if (!seen[pair]++) print pair
 				}
@@ -92,4 +91,4 @@ awk -f "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/system-context/BuildSequencesF
 				}
 			}
 		' <<<"$MDSC_MEMORY" ) \
-	< /dev/null
+</dev/null >&2

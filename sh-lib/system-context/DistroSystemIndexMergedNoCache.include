@@ -12,20 +12,20 @@ fi
 
 local key
 case "$idx" in
-	declares) key=DCL; ;;
-	keywords) key=KWD; ;;
-	provides) key=PRV; ;;
-	augments) key=AUG; ;;
+	declares-merged) key=DCL; ;;
+	keywords-merged) key=KWD; ;;
+	provides-merged) key=PRV; ;;
+	augments-merged) key=AUG; ;;
 	*) 
 		echo "⛔ ERROR: DistroSystemIndexMergedNoCache.include: unknown index name: $idx" >&2
 		set +e ; return 1
 	;;
 esac
 
-[ -z "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: --all-${idx}-merged using awk index join" >&2
+[ -z "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: --all-${idx} using awk index join" >&2
 
 local indexFilter="$(
-	DistroSystemContext --index-${idx} cat
+	DistroSystemContext --index-${idx%'-merged'} cat
 )"
 local indexSequence="$(
 	DistroSystemContext --index-sequence-merged cat

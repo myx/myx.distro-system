@@ -23,6 +23,10 @@ AllProjects(){
 				DistroSystemContext --index-sequence "${2:-cat}" "${@:3}"
 				return 0
 			;;
+			--requires)
+				DistroSystemContext --index-requires "${2:-cat}" "${@:3}"
+				return 0
+			;;
 			--source-projects|--scan-source-projects|--rescan-source-projects)
 				. "$MDLT_ORIGIN/myx/myx.distro-source/sh-lib/source-prepare/ScanSourceProjects.include"
 				return 0

@@ -28,8 +28,7 @@ ListDistroSequence(){
 
 				DistroSystemContext --index-sequence cat
 				return 0
-				;;
-
+			;;
 			--all-projects)
 				shift
 				if [ -n "$1" ] ; then
@@ -39,7 +38,18 @@ ListDistroSequence(){
 
 				DistroSystemContext --index-sequence-merged cat
 				return 0
-				;;
+			;;
+			--select-from-env)
+				if [ -z "${MDSC_SELECT_PROJECTS:0:1}" ] ; then
+					echo "⛔ ERROR: $MDSC_CMD: $1: no projects selected!" >&2
+					set +e ; return 1
+				fi
+				shift; break
+			;;
+			--*)
+				Distro ListDistroProjects --select-execute-default ListDistroSequence "$@"
+				return 0
+			;;
 			*)
 				echo "⛔ ERROR: $MDSC_CMD: invalid option: $1" >&2
 				set +e ; return 1
@@ -47,7 +57,13 @@ ListDistroSequence(){
 		esac
 	done
 
+	if [ -z "${MDSC_SELECT_PROJECTS:0:1}" ] ; then
+		echo "⛔ ERROR: $MDSC_CMD: no projects selected!" >&2
+		set +e ; return 1
+	fi
 
+	DistroSystemContext --intersect-index-sequence-merged MDSC_SELECT_PROJECTS cat
+	return 0
 }
 
 case "$0" in

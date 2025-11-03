@@ -29,7 +29,6 @@ case "$idx" in
 		gen="myx/myx.distro-system/sh-lib/system-context/ListAllSequencesNoCache.include" 
 	;;
 	declares-merged|keywords-merged|provides-merged)
-		local idx="${idx%'-merged'}"
 		# ListDistroDeclares.fn.sh --explicit-noop --no-cache --all-declares-merged|--all-keywords-merged|--all-provides-merged
 		gen="myx/myx.distro-system/sh-lib/system-context/DistroSystemIndexMergedNoCache.include" 
 	;;
@@ -61,27 +60,27 @@ if [ "$MDSC_NO_CACHE" != "--no-cache" ]; then
 
 	fi
 
-	if [ -n "$env" ] && [ ! -d "$MDSC_CACHED" ]; then
+	#if [ -n "$env" ] && [ ! -d "$MDSC_CACHED" ]; then
 
-		[ -z "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: DistroSystemContext: --index-* mem-caching index ($env)" >&2
+	#	[ -z "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: DistroSystemContext: --index-* mem-caching index ($env)" >&2
 
-		eval 'export '${env}
-		eval "${env}=\"\$(
-			. "$MDLT_ORIGIN/$gen"
-		)\""
+	#	eval 'export '${env}
+	#	eval "${env}=\"\$(
+	#		. "$MDLT_ORIGIN/$gen"
+	#	)\""
 
-		if [ 'cat ' = "$cmd $1" ]; then
-			eval 'echo "$'${env}'"'
-			return 0
-		fi
-		if [ 'echo ' = "$cmd $1" ]; then
-			printf '%s' '/dev/stdin'
-			return 0
-		fi
+	#	if [ 'cat ' = "$cmd $1" ]; then
+	#		eval 'echo "$'${env}'"'
+	#		return 0
+	#	fi
+	#	if [ 'echo ' = "$cmd $1" ]; then
+	#		printf '%s' '/dev/stdin'
+	#		return 0
+	#	fi
 
-		"$cmd" "$@" <(eval 'echo "$'${env}'"')
-		return 0
-	fi
+	#	"$cmd" "$@" <(eval 'echo "$'${env}'"')
+	#	return 0
+	#fi
 fi
 
 [ -z "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: DistroSystemContext: --index-* no caching ($idx)" >&2

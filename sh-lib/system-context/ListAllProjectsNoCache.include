@@ -57,7 +57,7 @@ if [ "$MDSC_NO_INDEX" != "--no-index" ] && [ -d "$MDSC_CACHED" ] ; then
 				source)
 					date -u "+%Y%m%d%H%M%S" > "$buildDate"
 					. "$MDLT_ORIGIN/myx/myx.distro-source/sh-lib/source-prepare/ScanSourceProjects.include" | tee "$indexFile.$$.tmp"
-					mv -f "$indexFile.$$.tmp" "$indexFile"
+					mv -f -- "$indexFile.$$.tmp" "$indexFile"
 					return 0
 				;;
 			esac
