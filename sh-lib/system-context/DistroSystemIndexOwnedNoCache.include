@@ -39,7 +39,7 @@ if [ "$MDSC_NO_INDEX" != "--no-index" ] && [ -d "$MDSC_CACHED" ]; then
 			>"$indexFile.$$.tmp"
 		mv -f -- "$indexFile.$$.tmp" "$indexFile"
 	else
-		[ -z "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: --all-${idx} using index" >&2
+		[ -z "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: DistroSystemIndexOwnedNoCache.include: --all-${idx} using index" >&2
 	fi
 
 	awk '

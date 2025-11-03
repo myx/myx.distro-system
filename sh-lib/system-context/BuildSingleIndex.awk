@@ -99,6 +99,7 @@ END {
 		for (i = 1; i <= n; i++) {
 			rv = arr[i]
 			if (rv == "") continue
+			print ">>> 1: " rv > "/dev/stderr"
 			sub(/:.*/, "", rv)                        # strip suffix after first colon
 			if (rv == "") continue
 			left[prj] = 1
