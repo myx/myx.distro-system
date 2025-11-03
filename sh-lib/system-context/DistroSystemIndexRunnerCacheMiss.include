@@ -47,14 +47,14 @@ if [ "$MDSC_NO_CACHE" != "--no-cache" ]; then
 			[ -z "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: DistroSystemContext: --index-* caching+piping index ($idx)" >&2
 			. "$MDLT_ORIGIN/$gen" | tee "$cacheFile.$$.tmp"
 			mv -f -- "$cacheFile.$$.tmp" "$cacheFile" || :
-			eval export "${env}_NAME='$cacheFile'"
+			eval export "${env}='$cacheFile'"
 			return 0
 		fi
 
 		[ -z "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: DistroSystemContext: --index-* caching index file ($idx)" >&2
 		. "$MDLT_ORIGIN/$gen" >"$cacheFile.$$.tmp"
 		mv -f -- "$cacheFile.$$.tmp" "$cacheFile" || :
-		eval export "${env}_NAME='$cacheFile'"
+		eval export "${env}='$cacheFile'"
 		"$cmd" "$@" "$cacheFile"
 		return 0
 

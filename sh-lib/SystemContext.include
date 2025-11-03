@@ -158,24 +158,9 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 					;;
 				esac
 				if [ "$MDSC_NO_CACHE" != "--no-cache" ] ; then
-					if eval '[ -n "${'$env':0:1}" ]' ; then
-						[ full != "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: DistroSystemContext: --index-* using env-cached ($idx)" >&2
-						if [ 'cat ' = "$cmd $1" ]; then
-							eval 'echo "$'$env'"'
-							return 0
-						fi
-						eval 'echo "$'$env'" | ' "$cmd" "$@"
-						return 0
-					fi
-					if eval '[ -f "$'$env'_NAME" ]' ; then
+					if [ -f "${!env}" ]; then
 						[ full != "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: DistroSystemContext: --index-* using env-cached file ($idx)" >&2
-						if [ 'cat ' = "$cmd $1" ]; then
-							eval 'cat "$'$env'_NAME"'
-							return 0
-						fi
-						"$cmd" "$@" "$( 
-							eval 'printf '%s' "$'$env'_NAME"' 
-						)"
+						"$cmd" "$@" "${!env}"
 						return 0
 					fi
 					if [ -d "$MDSC_CACHED" ] ; then
@@ -183,12 +168,11 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 						if [ -f "$cacheFile" ]; then
 							if { [ -f "$MDSC_CACHED/distro-index.env.inf.txt" ] && [ ! "$cacheFile" -nt "$MDSC_CACHED/distro-index.env.inf.txt" ]; } \
 							|| { [ -n "$BUILD_STAMP" ] && [ ! "$BUILD_STAMP" -gt "$( date -u -r "$cacheFile" "+%Y%m%d%H%M%S" )" ]; } \
-							|| { [ -f "$MDSC_CACHED/build-time-stamp.txt" ] && [ ! "$MDSC_CACHED/build-time-stamp.txt" -nt "$cacheFile" ]; } ; then
-
+							|| { [ -f "$MDSC_CACHED/build-time-stamp.txt" ] && [ ! "$MDSC_CACHED/build-time-stamp.txt" -nt "$cacheFile" ]; } \
+							; then
 								[ full != "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: DistroSystemContext: --index-* using cached ($idx)" >&2
 								"$cmd" "$@" "$cacheFile"
 								return 0
-
 							fi
 						fi
 					fi
@@ -369,15 +353,15 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 				# echo "DistroSystemContext: clear cache" >&2
 				# rm -rf "$MDLT_ORIGIN"/.cached
 				unset \
-					MDSC_IDPALL_NAME MDSC_IDPALL \
-					MDSC_IDBSEQ_NAME MDSC_IDBSEQ \
-					MDSC_IDSEQS_NAME MDSC_IDSEQS \
-					MDSC_IDOPRV_NAME MDSC_IDOPRV \
-					MDSC_IDAPRV_NAME MDSC_IDAPRV \
-					MDSC_IDODCL_NAME MDSC_IDODCL \
-					MDSC_IDADCL_NAME MDSC_IDADCL \
-					MDSC_IDOKWD_NAME MDSC_IDOKWD \
-					MDSC_IDAKWD_NAME MDSC_IDAKWD \
+					MDSC_IDPALL \
+					MDSC_IDBSEQ \
+					MDSC_IDSEQS \
+					MDSC_IDOPRV \
+					MDSC_IDAPRV \
+					MDSC_IDODCL \
+					MDSC_IDADCL \
+					MDSC_IDOKWD \
+					MDSC_IDAKWD \
 				
 				return 0
 			;;
