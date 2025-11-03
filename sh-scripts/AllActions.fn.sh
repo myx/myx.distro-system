@@ -32,7 +32,7 @@ AllActions(){
 		;;
 	esac
 
-	local sedEx="-e 's:^$MMDAPP/source/::' -e 's:^$MDSC_SOURCE/::' -e 's:/actions/: :'"
+	local sedEx="-e 's:^$MMDAPP/source/::' -e 's:^$MDSC_SOURCE/::' -e 's:^$MDLT_ORIGIN/::' -e 's:/actions/: :'"
 
 	. "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/SystemContext.UseStandardOptions.include"
 	while [ $# -gt 0 ]; do
@@ -50,7 +50,7 @@ AllActions(){
 				shift ; break
 			;;
 			--default|--all-actions)
-				sedEx="-e 's:^$MMDAPP/source/::' -e 's:^$MDSC_SOURCE/::' -e 's:^$MDLT_ORIGIN/::' -e 's:/actions/: :'"
+				# sedEx="-e 's:^$MMDAPP/source/::' -e 's:^$MDSC_SOURCE/::' -e 's:^$MDLT_ORIGIN/::' -e 's:/actions/: :'"
 				break
 			;;
 			--help|--help-syntax)
