@@ -34,8 +34,8 @@ AllActions(){
 
 	local sedEx=
 
+	. "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/SystemContext.UseStandardOptions.include"
 	while [ $# -gt 0 ]; do
-		. "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/SystemContext.UseStandardOptions.include"
 		case "$1" in
 			--completion)
 				sedEx="-e 's:^$MMDAPP/source/::' -e 's:^$MDSC_SOURCE/::' -e 's:^.*/actions/::'"
@@ -80,14 +80,14 @@ AllActions(){
 		fi
 
 		[ -z "$MDSC_DETAIL" ] || echo "$MDSC_CMD: caching all actions ($MDSC_OPTION)" >&2
-		. "$MDLT_ORIGIN/myx/myx.distro-source/sh-lib/source-prepare/ScanSourceActions.include" \
+		. "$MDLT_ORIGIN/myx/myx.distro-source/sh-lib/source-context/ScanSourceActions.include" \
 		| tee "$cacheFile.$$.tmp" | eval sed "$sedEx"
 		mv -f "$cacheFile.$$.tmp" "$cacheFile"
 		return 0
 
 	fi
 	
-	. "$MDLT_ORIGIN/myx/myx.distro-source/sh-lib/source-prepare/ScanSourceActions.include" | eval sed "$sedEx"
+	. "$MDLT_ORIGIN/myx/myx.distro-source/sh-lib/source-context/ScanSourceActions.include" | eval sed "$sedEx"
 }
 
 case "$0" in
