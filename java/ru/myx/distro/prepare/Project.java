@@ -337,7 +337,7 @@ public class Project {
 	    {
 		lines.add(/* project.getFullName() + ' ' + */this.name);
 		for (final OptionListItem item : this.getProvides()) {
-		    item.fillList(/* project.getFullName() + ' ' + */ "", lines);
+		    item.fillList(this.getFullName() + ' ', lines);
 		}
 	    }
 	    Utils.save(//
@@ -351,7 +351,7 @@ public class Project {
 	    {
 		lines.add(/* project.getFullName() + ' ' + */this.name);
 		for (final OptionListItem item : this.getDeclares()) {
-		    item.fillList(/* project.getFullName() + ' ' + */ "", lines);
+		    item.fillList(this.getFullName() + ' ', lines);
 		}
 	    }
 	    Utils.save(//
@@ -365,7 +365,7 @@ public class Project {
 	    {
 		lines.add(/* project.getFullName() + ' ' + */this.name);
 		for (final OptionListItem item : this.getKeywords()) {
-		    item.fillList(/* project.getFullName() + ' ' + */ "", lines);
+		    item.fillList(this.getFullName() + ' ', lines);
 		}
 	    }
 	    Utils.save(//
