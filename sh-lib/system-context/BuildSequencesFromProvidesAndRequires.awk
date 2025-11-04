@@ -79,8 +79,9 @@ BEGIN {
 				}
 			} else {
 				if (!missing_reported[rv]) {
-					print "⛔ MISSING: no " rv " provider, required from " prj > "/dev/stderr"
-					missing_reported[rv] = 1
+					out = "no '" rv "' provider, required from '" prj "'"
+					print "⛔ MISSING:" out > "/dev/stderr"
+					missing_reported[out] = 1
 				}
 			}
 		}
