@@ -1,7 +1,7 @@
 #!/bin/sh
 # ^^^ for syntax checking in the editor only
 
-[ full != "$MDSC_DETAIL" ] || echo "> $MDSC_CMD: ListAllProjectsNoCache.include" >&2
+[ full != "$MDSC_DETAIL" ] || echo "> $MDSC_CMD: IndexNoCacheDistroProjects.include" >&2
 
 set -e
 
@@ -21,7 +21,7 @@ if [ "$MDSC_NO_CACHE" != "--no-cache" ] && [ -d "$MMDAPP/.local/source-cache" ] 
 
 	if [ -f "$indexFile" ]; then
 		if [ ! "$indexFile" -ot "$buildDate" ] ; then
-			echo "| ListAllProjectsNoCache: using input file: ${indexFile#$MMDAPP/}" >&2
+			echo "| IndexNoCacheDistroProjects: using input file: ${indexFile#$MMDAPP/}" >&2
 			cat "$indexFile"
 			return 0
 		fi
@@ -38,7 +38,7 @@ if [ "$MDSC_NO_INDEX" != "--no-index" ] && [ -d "$MDSC_CACHED" ] ; then
 		indexFile="$MDSC_CACHED/distro-sequence.txt"
 		if [ -f "$indexFile" ]; then
 			if [ ! "$indexFile" -ot "$buildDate" ] ; then
-				echo "| ListAllProjectsNoCache: using input file: ${indexFile#$MMDAPP/}" >&2
+				echo "| IndexNoCacheDistroProjects: using input file: ${indexFile#$MMDAPP/}" >&2
 				cat "$indexFile"
 				return 0
 			fi
@@ -47,7 +47,7 @@ if [ "$MDSC_NO_INDEX" != "--no-index" ] && [ -d "$MDSC_CACHED" ] ; then
 		indexFile="$MDSC_CACHED/distro-projects.txt"
 		if [ -f "$indexFile" ]; then
 			if [ ! "$indexFile" -ot "$buildDate" ] ; then
-				echo "| ListAllProjectsNoCache: using input file: ${indexFile#$MMDAPP/}" >&2
+				echo "| IndexNoCacheDistroProjects: using input file: ${indexFile#$MMDAPP/}" >&2
 				cat "$indexFile"
 				return 0
 			fi
@@ -58,7 +58,7 @@ if [ "$MDSC_NO_INDEX" != "--no-index" ] && [ -d "$MDSC_CACHED" ] ; then
 	indexFile="$MDSC_CACHED/distro-index.env.inf"
 
 	if [ -f "$indexFile" ] && [ ! "$indexFile" -ot "$buildDate" ] ; then
-		echo "| ListAllProjectsNoCache: using index" >&2
+		echo "| IndexNoCacheDistroProjects: using index" >&2
 		grep -e "^PRJS=" "$indexFile" \
 		| sed "s:^.*=::" \
 		| tr ' ' '\n'
@@ -71,7 +71,7 @@ case "$MDSC_INMODE" in
 	source) . "$MDLT_ORIGIN/myx/myx.distro-source/sh-lib/source-prepare/ScanSourceProjects.include"; return 0; ;;
 	deploy) . "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/deploy-context/ScanDistroProjects.include"; return 0; ;;
 	*)
-		echo "⛔ ERROR: $MDSC_CMD: ListAllProjectsNoCache.include: invalid console mode: $MDSC_INMODE" >&2
+		echo "⛔ ERROR: $MDSC_CMD: IndexNoCacheDistroProjects.include: invalid console mode: $MDSC_INMODE" >&2
 		set +e ; return 1
 	;;
 esac

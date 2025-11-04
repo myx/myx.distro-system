@@ -1,12 +1,12 @@
 #!/bin/sh
 # ^^^ for syntax checking in the editor only
 
-[ full != "$MDSC_DETAIL" ] || echo "> $MDSC_CMD: DistroSystemIndexOwnedNoCache.include" >&2
+[ full != "$MDSC_DETAIL" ] || echo "> $MDSC_CMD: IndexNoCacheDistroOwned.include" >&2
 
 set -e
 
 if [ -z "$idx" ] || [ -z "$env" ] || [ -z "${cmd:0:1}" ]; then
-	echo "⛔ ERROR: $MDSC_CMD: DistroSystemIndexOwnedNoCache.include: invalid invocation specific vars expected!" >&2
+	echo "⛔ ERROR: $MDSC_CMD: IndexNoCacheDistroOwned.include: invalid invocation specific vars expected!" >&2
 	set +e ; return 1
 fi
 
@@ -18,7 +18,7 @@ case "$idx" in
 	provides) key=PRV; ;;
 	requires) key=REQ; istart=1; ;;
 	*) 
-		echo "⛔ ERROR: DistroSystemIndexOwnedNoCache.include: unknown index name: $idx" >&2
+		echo "⛔ ERROR: IndexNoCacheDistroOwned.include: unknown index name: $idx" >&2
 		set +e ; return 1
 	;;
 esac
@@ -34,13 +34,13 @@ if [ "$MDSC_NO_INDEX" != "--no-index" ] && [ -d "$MDSC_CACHED" ]; then
 		|| { [ -z "$BUILD_STAMP" ] || [ "$BUILD_STAMP" -gt "$( date -u -r "$indexFile" "+%Y%m%d%H%M%S" )" ]; } \
 		|| { [ "$buildDate" -nt "$indexFile" ]; }; \
 	then
-		[ -z "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: DistroSystemIndexOwnedNoCache.include: --all-${idx} making index" >&2
+		[ -z "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: IndexNoCacheDistroOwned.include: --all-${idx} making index" >&2
 		DistroSystemContext --index-projects awk -v source="$MDSC_SOURCE" \
 			-f "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/system-context/BuildSingleIndex.awk" \
 			>"$indexFile.$$.tmp"
 		mv -f -- "$indexFile.$$.tmp" "$indexFile"
 	else
-		[ -z "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: DistroSystemIndexOwnedNoCache.include: --all-${idx} using index" >&2
+		[ -z "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: IndexNoCacheDistroOwned.include: --all-${idx} using index" >&2
 	fi
 
 	awk '
@@ -79,7 +79,7 @@ if [ -z "${MDSC_MEMORY:0:1}" ]; then
 		awk -v source="$MDSC_SOURCE" -f "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/system-context/BuildSingleIndex.awk"
 	)"
 	export MDSC_MEMORY
-	[ -z "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: DistroSystemIndexOwnedNoCache.include: single index env-cached" >&2
+	[ -z "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: IndexNoCacheDistroOwned.include: single index env-cached" >&2
 fi
 
 awk '

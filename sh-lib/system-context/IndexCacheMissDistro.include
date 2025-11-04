@@ -1,12 +1,12 @@
 #!/bin/sh
 # ^^^ for syntax checking in the editor only
 
-[ full != "$MDSC_DETAIL" ] || echo "> $MDSC_CMD: DistroSystemIndexRunnerCacheMiss.include" >&2
+[ full != "$MDSC_DETAIL" ] || echo "> $MDSC_CMD: IndexCacheMissDistro.include" >&2
 
 set -e
 
 if [ -z "$idx" ] || [ -z "$env" ] || [ -z "${cmd:0:1}" ]; then
-	echo "⛔ ERROR: $MDSC_CMD: DistroSystemIndexRunnerCacheMiss.include: invalid invocation specific vars expected!" >&2
+	echo "⛔ ERROR: $MDSC_CMD: IndexCacheMissDistro.include: invalid invocation specific vars expected!" >&2
 	set +e ; return 1
 fi
 
@@ -14,26 +14,26 @@ local gen
 case "$idx" in
 	projects) 
 		# ListDistroProjects.fn.sh --explicit-noop --no-cache --all-projects
-		gen="myx/myx.distro-system/sh-lib/system-context/ListAllProjectsNoCache.include" 
+		gen="myx/myx.distro-system/sh-lib/system-context/IndexNoCacheDistroProjects.include" 
 	;;
 	sequence) 
 		# ListDistroSequence.fn.sh --explicit-noop --no-cache --all
-		gen="myx/myx.distro-system/sh-lib/system-context/ListBuildSequenceNoCache.include" 
+		gen="myx/myx.distro-system/sh-lib/system-context/IndexNoCacheBuildSequence.include" 
 	;;
 	requires|declares|keywords|provides)
 		# ListDistroDeclares.fn.sh --explicit-noop --no-cache --all-declares|--all-keywords|--all-provides
-		gen="myx/myx.distro-system/sh-lib/system-context/DistroSystemIndexOwnedNoCache.include" 
+		gen="myx/myx.distro-system/sh-lib/system-context/IndexNoCacheDistroOwned.include" 
 	;;
 	sequence-merged)
 		# ListDistroSequence.fn.sh --explicit-noop --no-cache --all-projects
-		gen="myx/myx.distro-system/sh-lib/system-context/ListAllSequencesNoCache.include" 
+		gen="myx/myx.distro-system/sh-lib/system-context/IndexNoCacheDistroSequences.include" 
 	;;
 	declares-merged|keywords-merged|provides-merged)
 		# ListDistroDeclares.fn.sh --explicit-noop --no-cache --all-declares-merged|--all-keywords-merged|--all-provides-merged
-		gen="myx/myx.distro-system/sh-lib/system-context/DistroSystemIndexMergedNoCache.include" 
+		gen="myx/myx.distro-system/sh-lib/system-context/IndexNoCacheDistroMerged.include" 
 	;;
 	*) 
-		echo "⛔ ERROR: DistroSystemIndexRunnerCacheMiss.include: unknown index name: $idx" >&2
+		echo "⛔ ERROR: IndexCacheMissDistro.include: unknown index name: $idx" >&2
 		set +e ; return 1
 	;;
 esac

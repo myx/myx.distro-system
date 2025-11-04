@@ -139,8 +139,7 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 					echo "⛔ ERROR: SystemContext: command argument required, use 'cat':" "$@" >&2
 					set +e ; return 1
 				}
-				local idx="${1#'--index-'}" cmd="${2:-'cat'}"; shift 2 || :
-				local env cacheFile=
+				local cacheFile= env= idx="${1#'--index-'}" cmd="${2:-'cat'}"; shift 2 || :
 				case "$idx" in
 					projects) env=MDSC_IDAPRJ; ;;
 					sequence-merged) env=MDSC_IDASEQ; ;; sequence) env=MDSC_IDBSEQ; ;;
@@ -173,7 +172,7 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 						fi
 					fi
 				fi
-				. "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/system-context/DistroSystemIndexRunnerCacheMiss.include"
+				. "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/system-context/IndexCacheMissDistro.include"
 				return 0
 			;;
 			# filters index-* by first (key - projectName) column, ENV_NAME arg
@@ -327,8 +326,37 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 					echo "⛔ ERROR: SystemContext: $1: command argument required, use 'cat':" "$@" >&2
 					set +e ; return 1
 				}
-				local idx="--${1#'--project-'}" cmd="${3:-'cat'}"; shift 3 || :
-				DistroSystemContext "$idx" awk -v prj="$projectName" '
+				local cacheFile= idx="--${1#'--project-index-'}" cmd="${3:-'cat'}"; shift 3 || :
+				case "$idx" in
+					sequence-merged) env=MDSC_IPASEQ; ;;
+					declares) env=MDSC_IPODCL; ;; declares-merged) env=MDSC_IPMDCL; ;;
+					keywords) env=MDSC_IPOKWD; ;; keywords-merged) env=MDSC_IPMKWD; ;;
+					provides) env=MDSC_IPOPRV; ;; provides-merged) env=MDSC_IPMPRV; ;;
+					requires) env=MDSC_IPOREQ; ;;
+					*) 
+						echo "⛔ ERROR: DistroSystemContext: unknown project index name: $idx" >&2
+						set +e ; return 1
+					;;
+				esac
+				if [ "$MDSC_NO_CACHE" != "--no-cache" ] ; then
+					if [ -d "$MDSC_CACHED" ] ; then
+						cacheFile="$MDSC_CACHED/$projectName/project-$idx.txt"
+						if [ -f "$cacheFile" ]; then
+							if { [ -f "$MDSC_CACHED/distro-index.env.inf" ] && [ ! "$cacheFile" -nt "$MDSC_CACHED/distro-index.env.inf" ]; } \
+							|| { [ -n "$BUILD_STAMP" ] && [ ! "$BUILD_STAMP" -gt "$( date -u -r "$cacheFile" "+%Y%m%d%H%M%S" )" ]; } \
+							|| { [ -f "$MDSC_CACHED/build-time-stamp.txt" ] && [ ! "$MDSC_CACHED/build-time-stamp.txt" -nt "$cacheFile" ]; } \
+							; then
+								[ full != "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: DistroSystemContext: --project-index-* using cached ($idx)" >&2
+								"$cmd" "$@" "$cacheFile"
+								return 0
+							fi
+						fi
+					fi
+				fi
+				. "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/system-context/IndexCacheMissProject.include"
+				return 0
+
+				DistroSystemContext "--index-$idx" awk -v prj="$projectName" '
 					$1 == prj { print }
 				' \
 				| "$cmd" "$@"

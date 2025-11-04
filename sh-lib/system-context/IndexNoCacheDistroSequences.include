@@ -1,7 +1,7 @@
 #!/bin/sh
 # ^^^ for syntax checking in the editor only
 
-[ full != "$MDSC_DETAIL" ] || echo "> $MDSC_CMD: ListAllSequencesNoCache.include" >&2
+[ full != "$MDSC_DETAIL" ] || echo "> $MDSC_CMD: IndexNoCacheDistroSequences.include" >&2
 
 set -e
 
@@ -16,13 +16,13 @@ if [ "$MDSC_NO_INDEX" != "--no-index" ] && [ -d "$MDSC_CACHED" ]; then
 		|| { [ -z "$BUILD_STAMP" ] || [ "$BUILD_STAMP" -gt "$( date -u -r "$indexFile" "+%Y%m%d%H%M%S" )" ]; } \
 		|| { [ "$buildDate" -nt "$indexFile" ]; }; \
 	then
-		[ -z "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: ListAllSequencesNoCache.include: --all-${idx} making index" >&2
+		[ -z "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: IndexNoCacheDistroSequences.include: --all-${idx} making index" >&2
 		DistroSystemContext --index-projects awk -v source="$MDSC_SOURCE" \
 			-f "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/system-context/BuildSingleIndex.awk" \
 			>"$indexFile.$$.tmp"
 		mv -f -- "$indexFile.$$.tmp" "$indexFile"
 	else
-		[ -z "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: ListAllSequencesNoCache.include: --all-${idx} using index" >&2
+		[ -z "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: IndexNoCacheDistroSequences.include: --all-${idx} using index" >&2
 	fi
 
 	awk '
@@ -40,7 +40,7 @@ if [ "$MDSC_NO_INDEX" != "--no-index" ] && [ -d "$MDSC_CACHED" ]; then
 fi
 
 if [ javac = "$MDSC_JAVAC" ] && command -v javac >/dev/null 2>&1 && [ "$MDSC_INMODE" = "source" ] ; then
-	echo "$MDSC_CMD: ListAllSequencesNoCache.include extracting from source (java) ($MDSC_OPTION)" >&2
+	echo "$MDSC_CMD: IndexNoCacheDistroSequences.include extracting from source (java) ($MDSC_OPTION)" >&2
 	Distro DistroSourceCommand \
 		-q \
 		--import-from-source \
@@ -55,7 +55,7 @@ if [ -z "${MDSC_MEMORY:0:1}" ]; then
 		awk -v source="$MDSC_SOURCE" -f "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/system-context/BuildSingleIndex.awk" 
 	)"
 	export MDSC_MEMORY
-	[ -z "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: ListAllSequencesNoCache.include: single index env-cached" >&2
+	[ -z "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: IndexNoCacheDistroSequences.include: single index env-cached" >&2
 fi
 
 awk '
