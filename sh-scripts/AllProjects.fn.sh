@@ -20,7 +20,7 @@ AllProjects(){
 				return 0
 			;;
 			--|--default|--sequence)
-				DistroSystemContext --index-sequence "${2:-cat}" "${@:3}"
+				DistroSystemContext --index-sequence-joined "${2:-cat}" "${@:3}"
 				return 0
 			;;
 			--requires)

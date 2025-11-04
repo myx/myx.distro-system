@@ -26,7 +26,7 @@ ListDistroSequence(){
 					set +e ; return 1
 				fi
 
-				DistroSystemContext --index-sequence cat
+				DistroSystemContext --index-sequence-joined cat
 				return 0
 			;;
 			--all-projects)
@@ -36,7 +36,7 @@ ListDistroSequence(){
 					set +e ; return 1
 				fi
 
-				DistroSystemContext --index-sequence-merged cat
+				DistroSystemContext --index-sequence cat
 				return 0
 			;;
 			--select-from-env)
@@ -62,7 +62,7 @@ ListDistroSequence(){
 		set +e ; return 1
 	fi
 
-	DistroSystemContext --intersect-index-sequence-merged MDSC_SELECT_PROJECTS cat
+	DistroSystemContext --intersect-index-sequence MDSC_SELECT_PROJECTS cat
 	return 0
 }
 

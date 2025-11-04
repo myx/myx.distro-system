@@ -5,27 +5,21 @@
 
 set -e
 
-if [ -z "$idx" ] || [ -z "$env" ] || [ -z "${cmd:0:1}" ]; then
+if [ -z "$idx" ] || [ -z "$env" ] || [ -z "${MDSC_PRJ_NAME:0:1}" ] || [ -z "${cmd:0:1}" ]; then
 	echo "⛔ ERROR: $MDSC_CMD: IndexCacheMissProject.include: invalid invocation specific vars expected!" >&2
 	set +e ; return 1
 fi
 
 local gen
 case "$idx" in
-	requires|declares|keywords|provides)
-		# ListDistroDeclares.fn.sh --explicit-noop --no-cache --all-declares|--all-keywords|--all-provides
-		gen="myx/myx.distro-system/sh-lib/system-context/IndexNoCacheDistroOwned.include" 
-	;;
-	sequence-merged)
-		# ListDistroSequence.fn.sh --explicit-noop --no-cache --all-projects
-		gen="myx/myx.distro-system/sh-lib/system-context/IndexNoCacheDistroSequences.include" 
+	requires|declares|keywords|provides|sequence)
+		gen="myx/myx.distro-system/sh-lib/system-context/IndexNoCacheProjectOwned.include" 
 	;;
 	declares-merged|keywords-merged|provides-merged)
-		# ListDistroDeclares.fn.sh --explicit-noop --no-cache --all-declares-merged|--all-keywords-merged|--all-provides-merged
-		gen="myx/myx.distro-system/sh-lib/system-context/IndexNoCacheDistroMerged.include" 
+		gen="myx/myx.distro-system/sh-lib/system-context/IndexNoCacheProjectMerged.include" 
 	;;
 	*) 
-		echo "⛔ ERROR: IndexCacheMissProject.include: unknown index name: $idx" >&2
+		echo "⛔ ERROR: IndexCacheMissProject.include: unknown project index name: $idx" >&2
 		set +e ; return 1
 	;;
 esac
@@ -36,14 +30,16 @@ if [ "$MDSC_NO_CACHE" != "--no-cache" ]; then
 		## Build cache index file
 
 		if [ 'cat ' = "$cmd $1" ]; then
-			[ -z "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: DistroSystemContext: --index-* caching+piping index ($idx)" >&2
+			[ -z "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: IndexCacheMissProject.include: --project-index-* caching+piping index ($idx)" >&2
+			mkdir -p "${cacheFile%/*}"
 			. "$MDLT_ORIGIN/$gen" | tee "$cacheFile.$$.tmp"
 			mv -f -- "$cacheFile.$$.tmp" "$cacheFile" || :
 			# eval export "${env}='$cacheFile'" # <<<--- no env here, unless ochestrated with MDSC_PRJ_NAME
 			return 0
 		fi
 
-		[ -z "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: DistroSystemContext: --index-* caching index file ($idx)" >&2
+		[ -z "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: IndexCacheMissProject.include: --project-index-* caching index file ($idx)" >&2
+		mkdir -p "${cacheFile%/*}"
 		. "$MDLT_ORIGIN/$gen" >"$cacheFile.$$.tmp"
 		mv -f -- "$cacheFile.$$.tmp" "$cacheFile" || :
 		# eval export "${env}='$cacheFile'" # <<<--- no env here, unless ochestrated with MDSC_PRJ_NAME
@@ -51,31 +47,9 @@ if [ "$MDSC_NO_CACHE" != "--no-cache" ]; then
 		return 0
 
 	fi
-
-	#if [ -n "$env" ] && [ ! -d "$MDSC_CACHED" ]; then
-
-	#	[ -z "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: DistroSystemContext: --index-* mem-caching index ($env)" >&2
-
-	#	eval 'export '${env}
-	#	eval "${env}=\"\$(
-	#		. "$MDLT_ORIGIN/$gen"
-	#	)\""
-
-	#	if [ 'cat ' = "$cmd $1" ]; then
-	#		eval 'echo "$'${env}'"'
-	#		return 0
-	#	fi
-	#	if [ 'echo ' = "$cmd $1" ]; then
-	#		printf '%s' '/dev/stdin'
-	#		return 0
-	#	fi
-
-	#	"$cmd" "$@" <(eval 'echo "$'${env}'"')
-	#	return 0
-	#fi
 fi
 
-[ -z "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: DistroSystemContext: --index-* no caching ($idx)" >&2
+[ -z "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: IndexCacheMissProject.include: --project-index-* no caching ($idx)" >&2
 
 if [ 'echo ' = "$cmd $1" ]; then
 	printf '%s' '/dev/stdin'

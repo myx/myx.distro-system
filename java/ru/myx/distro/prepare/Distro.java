@@ -116,7 +116,7 @@ public final class Distro {
 
 	Utils.save(//
 		context.console, //
-		outputTarget.resolve("distro-sequence.txt"), //
+		outputTarget.resolve("distro-sequence-joined.txt"), //
 		this.sequenceProjects.stream().map(Project::projectFullName)//
 	);
     }
@@ -194,7 +194,7 @@ public final class Distro {
 	{
 	    Utils.save(//
 		    context.console, //
-		    outputTarget.resolve("distro-sequence.txt"), //
+		    outputTarget.resolve("distro-sequence-joined.txt"), //
 		    this.sequenceProjects.stream().map(Project::projectFullName)//
 	    );
 	}

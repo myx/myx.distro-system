@@ -17,6 +17,7 @@ case "$idx" in
 	keywords) key=KWD; ;;
 	provides) key=PRV; ;;
 	requires) key=REQ; istart=1; ;;
+	sequence) key=SEQ; ;;
 	*) 
 		echo "⛔ ERROR: IndexNoCacheDistroOwned.include: unknown index name: $idx" >&2
 		set +e ; return 1
@@ -45,7 +46,7 @@ if [ "$MDSC_NO_INDEX" != "--no-index" ] && [ -d "$MDSC_CACHED" ]; then
 
 	awk '
 		/^PRJ-'$key'-/ {
-			line = substr($0, 9); sub(/[:=]/, " ", line); gsub(/\\:/, ":", line)
+			line = substr($0, 9); sub(/=/, " ", line); gsub(/\\:/, ":", line)
 			n = split(line, a)
 			seq = a[1]; for (i = '$istart'; i <= n; i++) {
 				pair = seq " " a[i]
@@ -53,25 +54,34 @@ if [ "$MDSC_NO_INDEX" != "--no-index" ] && [ -d "$MDSC_CACHED" ]; then
 			}
 		}
 	' "$indexFile"
-	
+
 	return 0
 fi
 
 if [ javac = "$MDSC_JAVAC" ] && command -v javac >/dev/null 2>&1 && [ "$MDSC_INMODE" = "source" ] ; then
 	echo "| $MDSC_CMD: --all-${idx} extracting from source (java) ($MDSC_OPTION)" >&2
-
-	Distro DistroSourceCommand \
-		-q \
-		--import-from-source \
-		--print-all-${idx}-separate-lines
-
-		# --select-all \
-		# --print-${idx}-separate-lines
-		
-	return 0
+	(
+		case "$key" in 
+			SEQ)
+				Distro DistroSourceCommand \
+					-q \
+					--import-from-source \
+					--select-all \
+					--print-sequence-separate-lines
+				return 0
+			;;
+			*)
+				Distro DistroSourceCommand \
+					-q \
+					--import-from-source \
+					--print-all-${idx}-separate-lines
+				return 0
+			;;
+		esac
+	)
 fi
 
-echo "| $MDSC_CMD: --all-${idx} extracting from source (shell)" >&2
+echo "| $MDSC_CMD: --index-${idx} extracting from source (shell)" >&2
 
 if [ -z "${MDSC_MEMORY:0:1}" ]; then
 	MDSC_MEMORY="$( 
@@ -84,7 +94,7 @@ fi
 
 awk '
 	/^PRJ-'$key'-/ {
-		line = substr($0, 9); sub(/[:=]/, " ", line); gsub(/\\:/, ":", line)
+		line = substr($0, 9); sub(/=/, " ", line); gsub(/\\:/, ":", line)
 		n = split(line, a)
 		seq = a[1]; for (i = '$istart'; i <= n; i++) {
 			pair = seq " " a[i]

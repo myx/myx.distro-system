@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # ^^^ for syntax checking in the editor only
 
-[ full != "$MDSC_DETAIL" ] || echo "> $MDSC_CMD: IndexNoCacheDistroMerged.include" >&2
+[ full != "$MDSC_DETAIL" ] || echo "> $MDSC_CMD: IndexNoCacheProjectMerged.include" >&2
 
 set -e
 
-if [ -z "$idx" ] || [ -z "$env" ] || [ -z "${cmd:0:1}" ]; then
-	echo "⛔ ERROR: $MDSC_CMD: IndexNoCacheDistroMerged.include: invalid invocation specific vars expected!" >&2
+if [ -z "$idx" ] || [ -z "$env" ] || [ -z "${MDSC_PRJ_NAME:0:1}" ] || [ -z "${cmd:0:1}" ]; then
+	echo "⛔ ERROR: $MDSC_CMD: IndexNoCacheProjectMerged.include: invalid invocation specific vars expected!" >&2
 	set +e ; return 1
 fi
 
@@ -17,7 +17,7 @@ case "$idx" in
 	provides-merged) key=PRV; ;;
 	augments-merged) key=AUG; ;;
 	*) 
-		echo "⛔ ERROR: IndexNoCacheDistroMerged.include: unknown index name: $idx" >&2
+		echo "⛔ ERROR: IndexNoCacheProjectMerged.include: unknown index name: $idx" >&2
 		set +e ; return 1
 	;;
 esac
@@ -28,7 +28,7 @@ local indexFilter="$(
 	DistroSystemContext --index-${idx%'-merged'} cat
 )"
 local indexSequence="$(
-	DistroSystemContext --index-sequence cat
+	DistroSystemContext --project-index-sequence "$MDSC_PRJ_NAME" cat
 )"
 
 awk '

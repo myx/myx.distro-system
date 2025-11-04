@@ -52,7 +52,7 @@ AllNamespaces(){
 		echo "$MDSC_CMD: caching repositories ($MDSC_OPTION)" >&2
 		. "$MDLT_ORIGIN/myx/myx.distro-source/sh-lib/source-prepare/ScanSourceNamespaces.include" \
 		| tee "$cacheFile.$$.tmp"
-		mv -f "$cacheFile.$$.tmp" "$cacheFile"
+		mv -f -- "$cacheFile.$$.tmp" "$cacheFile"
 		return 0
 
 	fi

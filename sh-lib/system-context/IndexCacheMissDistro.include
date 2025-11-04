@@ -16,17 +16,14 @@ case "$idx" in
 		# ListDistroProjects.fn.sh --explicit-noop --no-cache --all-projects
 		gen="myx/myx.distro-system/sh-lib/system-context/IndexNoCacheDistroProjects.include" 
 	;;
-	sequence) 
+	sequence-joined) 
 		# ListDistroSequence.fn.sh --explicit-noop --no-cache --all
 		gen="myx/myx.distro-system/sh-lib/system-context/IndexNoCacheBuildSequence.include" 
 	;;
-	requires|declares|keywords|provides)
+	requires|declares|keywords|provides|sequence)
 		# ListDistroDeclares.fn.sh --explicit-noop --no-cache --all-declares|--all-keywords|--all-provides
-		gen="myx/myx.distro-system/sh-lib/system-context/IndexNoCacheDistroOwned.include" 
-	;;
-	sequence-merged)
 		# ListDistroSequence.fn.sh --explicit-noop --no-cache --all-projects
-		gen="myx/myx.distro-system/sh-lib/system-context/IndexNoCacheDistroSequences.include" 
+		gen="myx/myx.distro-system/sh-lib/system-context/IndexNoCacheDistroOwned.include" 
 	;;
 	declares-merged|keywords-merged|provides-merged)
 		# ListDistroDeclares.fn.sh --explicit-noop --no-cache --all-declares-merged|--all-keywords-merged|--all-provides-merged
@@ -44,14 +41,14 @@ if [ "$MDSC_NO_CACHE" != "--no-cache" ]; then
 		## Build cache index file
 
 		if [ 'cat ' = "$cmd $1" ]; then
-			[ -z "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: DistroSystemContext: --index-* caching+piping index ($idx)" >&2
+			[ -z "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: IndexCacheMissDistro.include: --index-* caching+piping index ($idx)" >&2
 			. "$MDLT_ORIGIN/$gen" | tee "$cacheFile.$$.tmp"
 			mv -f -- "$cacheFile.$$.tmp" "$cacheFile" || :
 			eval export "${env}='$cacheFile'"
 			return 0
 		fi
 
-		[ -z "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: DistroSystemContext: --index-* caching index file ($idx)" >&2
+		[ -z "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: IndexCacheMissDistro.include: --index-* caching index file ($idx)" >&2
 		. "$MDLT_ORIGIN/$gen" >"$cacheFile.$$.tmp"
 		mv -f -- "$cacheFile.$$.tmp" "$cacheFile" || :
 		eval export "${env}='$cacheFile'"
@@ -62,7 +59,7 @@ if [ "$MDSC_NO_CACHE" != "--no-cache" ]; then
 
 	#if [ -n "$env" ] && [ ! -d "$MDSC_CACHED" ]; then
 
-	#	[ -z "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: DistroSystemContext: --index-* mem-caching index ($env)" >&2
+	#	[ -z "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: IndexCacheMissDistro.include: --index-* mem-caching index ($env)" >&2
 
 	#	eval 'export '${env}
 	#	eval "${env}=\"\$(
@@ -83,7 +80,7 @@ if [ "$MDSC_NO_CACHE" != "--no-cache" ]; then
 	#fi
 fi
 
-[ -z "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: DistroSystemContext: --index-* no caching ($idx)" >&2
+[ -z "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: IndexCacheMissDistro.include: --index-* no caching ($idx)" >&2
 
 if [ 'echo ' = "$cmd $1" ]; then
 	printf '%s' '/dev/stdin'

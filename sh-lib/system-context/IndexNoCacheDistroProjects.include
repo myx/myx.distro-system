@@ -35,7 +35,7 @@ if [ "$MDSC_NO_INDEX" != "--no-index" ] && [ -d "$MDSC_CACHED" ] ; then
 
 	if [ "$MDSC_NO_CACHE" != "--no-cache" ] ; then
 
-		indexFile="$MDSC_CACHED/distro-sequence.txt"
+		indexFile="$MDSC_CACHED/distro-sequence-joined.txt"
 		if [ -f "$indexFile" ]; then
 			if [ ! "$indexFile" -ot "$buildDate" ] ; then
 				echo "| IndexNoCacheDistroProjects: using input file: ${indexFile#$MMDAPP/}" >&2

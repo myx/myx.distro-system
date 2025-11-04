@@ -141,12 +141,11 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 				}
 				local cacheFile= env= idx="${1#'--index-'}" cmd="${2:-'cat'}"; shift 2 || :
 				case "$idx" in
-					projects) env=MDSC_IDAPRJ; ;;
-					sequence-merged) env=MDSC_IDASEQ; ;; sequence) env=MDSC_IDBSEQ; ;;
+					projects) env=MDSC_IDAPRJ; ;; sequence-joined) env=MDSC_IDBSEQ; ;;
 					declares) env=MDSC_IDODCL; ;; declares-merged) env=MDSC_IDMDCL; ;;
 					keywords) env=MDSC_IDOKWD; ;; keywords-merged) env=MDSC_IDMKWD; ;;
 					provides) env=MDSC_IDOPRV; ;; provides-merged) env=MDSC_IDMPRV; ;;
-					requires) env=MDSC_IDOREQ; ;;
+					requires) env=MDSC_IDOREQ; ;; sequence) env=MDSC_IDASEQ; ;; 
 					*) 
 						echo "⛔ ERROR: DistroSystemContext: unknown index name: $idx" >&2
 						set +e ; return 1
@@ -245,8 +244,8 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 						set +e ; return 1
 					;;
 				esac
-				local seq; seq=$( DistroSystemContext --index-sequence-merged echo )
-				[ "$seq" != "/dev/stdin" ] || seq=<( DistroSystemContext --index-sequence-merged cat )
+				local seq; seq=$( DistroSystemContext --index-sequence echo )
+				[ "$seq" != "/dev/stdin" ] || seq=<( DistroSystemContext --index-sequence cat )
 				DistroSystemContext "$idx" awk -v p="$merged" -v mf="$filter" -v sq="$seq" -v ev="$env" '
 					BEGIN {
 						if (ev != "") {
@@ -321,14 +320,14 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 					echo "⛔ ERROR: SystemContext: $1: variable name is required, MDSC_SELECT_PROJECTS?!" >&2
 					set +e ; return 1
 				}
-				local projectName=$2
+				local MDSC_PRJ_NAME=$2
 				[ -n "$3" ] || {
 					echo "⛔ ERROR: SystemContext: $1: command argument required, use 'cat':" "$@" >&2
 					set +e ; return 1
 				}
-				local cacheFile= idx="--${1#'--project-index-'}" cmd="${3:-'cat'}"; shift 3 || :
+				local cacheFile= idx="${1#'--project-index-'}" cmd="${3:-'cat'}"; shift 3 || :
 				case "$idx" in
-					sequence-merged) env=MDSC_IPASEQ; ;;
+					sequence) env=MDSC_IPASEQ; ;;
 					declares) env=MDSC_IPODCL; ;; declares-merged) env=MDSC_IPMDCL; ;;
 					keywords) env=MDSC_IPOKWD; ;; keywords-merged) env=MDSC_IPMKWD; ;;
 					provides) env=MDSC_IPOPRV; ;; provides-merged) env=MDSC_IPMPRV; ;;
@@ -340,7 +339,7 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 				esac
 				if [ "$MDSC_NO_CACHE" != "--no-cache" ] ; then
 					if [ -d "$MDSC_CACHED" ] ; then
-						cacheFile="$MDSC_CACHED/$projectName/project-$idx.txt"
+						cacheFile="$MDSC_CACHED/$MDSC_PRJ_NAME/project-$idx.txt"
 						if [ -f "$cacheFile" ]; then
 							if { [ -f "$MDSC_CACHED/distro-index.env.inf" ] && [ ! "$cacheFile" -nt "$MDSC_CACHED/distro-index.env.inf" ]; } \
 							|| { [ -n "$BUILD_STAMP" ] && [ ! "$BUILD_STAMP" -gt "$( date -u -r "$cacheFile" "+%Y%m%d%H%M%S" )" ]; } \
@@ -356,7 +355,7 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 				. "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/system-context/IndexCacheMissProject.include"
 				return 0
 
-				DistroSystemContext "--index-$idx" awk -v prj="$projectName" '
+				DistroSystemContext "--index-$idx" awk -v prj="$MDSC_PRJ_NAME" '
 					$1 == prj { print }
 				' \
 				| "$cmd" "$@"
