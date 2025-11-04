@@ -8,7 +8,7 @@ set -e
 if [ "$MDSC_NO_INDEX" != "--no-index" ] && [ -d "$MDSC_CACHED" ]; then
 
 	local buildDate="$MDSC_CACHED/build-time-stamp.txt"
-	local indexFile="$MDSC_CACHED/distro-index.env.inf.txt"
+	local indexFile="$MDSC_CACHED/distro-index.env.inf"
 
 	[ -f "$buildDate" ] || date -u "+%Y%m%d%H%M%S" > "$buildDate"
 

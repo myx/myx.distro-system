@@ -162,7 +162,7 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 					if [ -d "$MDSC_CACHED" ] ; then
 						cacheFile="$MDSC_CACHED/distro-$idx.txt"
 						if [ -f "$cacheFile" ]; then
-							if { [ -f "$MDSC_CACHED/distro-index.env.inf.txt" ] && [ ! "$cacheFile" -nt "$MDSC_CACHED/distro-index.env.inf.txt" ]; } \
+							if { [ -f "$MDSC_CACHED/distro-index.env.inf" ] && [ ! "$cacheFile" -nt "$MDSC_CACHED/distro-index.env.inf" ]; } \
 							|| { [ -n "$BUILD_STAMP" ] && [ ! "$BUILD_STAMP" -gt "$( date -u -r "$cacheFile" "+%Y%m%d%H%M%S" )" ]; } \
 							|| { [ -f "$MDSC_CACHED/build-time-stamp.txt" ] && [ ! "$MDSC_CACHED/build-time-stamp.txt" -nt "$cacheFile" ]; } \
 							; then

@@ -846,7 +846,7 @@ public abstract class AbstractDistroCommand extends AbstractRepositoryCommand {
 	    final Path repositoryDistro = distroRoot.resolve(repositoryName);
 
 	    for (final String fileName : new String[] { //
-		    "repository.inf", "repository-index.inf", //
+		    "repository.inf", "repository-index.env.inf", //
 	    }) {
 
 		final FileSyncCommand command = new FileSyncCommand(//
@@ -866,7 +866,7 @@ public abstract class AbstractDistroCommand extends AbstractRepositoryCommand {
 		final Path projectDistro = repositoryDistro.resolve(projectName);
 
 		for (final String fileName : new String[] { //
-			"project.inf", "project-index.inf", "data.tbz", "docs.tbz", "java.jar",//
+			"project.inf", "project-index.env.inf", "data.tbz", "docs.tbz", "java.jar",//
 		}) {
 
 		    final FileSyncCommand command = new FileSyncCommand(//

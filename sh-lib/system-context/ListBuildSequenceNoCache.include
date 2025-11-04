@@ -27,7 +27,7 @@ if [ "$MDSC_NO_INDEX" != "--no-index" ] && [ -d "$MDSC_CACHED" ] ; then
 
 	fi
 
-	indexFile="$MDSC_CACHED/distro-index.env.inf.txt"
+	indexFile="$MDSC_CACHED/distro-index.env.inf"
 
 	if [ -f "$indexFile" ] && [ -f "$buildDate" ] && [ ! "$indexFile" -ot "$buildDate" ] ; then
 		echo "$MDSC_CMD: --all using index ($MDSC_OPTION)" >&2
