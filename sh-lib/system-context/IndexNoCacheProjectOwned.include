@@ -102,11 +102,11 @@ if [ -z "${MDSC_MEMORY:0:1}" ]; then
 		DistroSystemContext --index-projects \
 		awk -v source="$MDSC_SOURCE" -f "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/system-context/BuildSingleIndex.awk"
 	)"
-	export MDSC_MEMORY
+	[ "${#MDSC_MEMORY}" -gt 262144 ] || export MDSC_MEMORY
 	[ -z "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: IndexNoCacheProjectOwned.include: single index env-cached" >&2
 fi
 
-echo MDSC_MEMORY | \
+#echo "$MDSC_MEMORY" | \
 awk -v prj="$MDSC_PRJ_NAME" '
 	BEGIN { prefix = "PRJ-'$key'-" prj "="; plen = length(prefix) }
 	substr($0, 1, plen) == prefix {
@@ -117,6 +117,6 @@ awk -v prj="$MDSC_PRJ_NAME" '
 			if (!seen[pair]++) print pair
 		}
 	}
-'
+' <<<"$MDSC_MEMORY"
+#'
 #' <( printenv MDSC_MEMORY )
-#' <<<"$MDSC_MEMORY" 
