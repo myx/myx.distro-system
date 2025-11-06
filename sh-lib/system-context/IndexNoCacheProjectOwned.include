@@ -74,24 +74,16 @@ fi
 if [ javac = "$MDSC_JAVAC" ] && command -v javac >/dev/null 2>&1 && [ "$MDSC_INMODE" = "source" ] ; then
 	echo "$MDSC_CMD: IndexNoCacheProjectOwned.include extracting from source (java) ($MDSC_OPTION)" >&2
 	(
-		case "$key" in 
-			SEQ)
-				Distro DistroSourceCommand \
-					-q \
-					--import-from-source \
-					--select-project "$MDSC_PRJ_NAME" \
-					--print-sequence-separate-lines
-				return 0
-			;;
-			*)
-				Distro DistroSourceCommand \
-					-q \
-					--import-from-source \
-					--select-project "$MDSC_PRJ_NAME" \
-					--print-${idx}-separate-lines
-				return 0
+		case "$idx" in 
+			sequence-merged)
+				local idx=sequence
 			;;
 		esac
+		Distro DistroSourceCommand \
+			-q \
+			--import-from-source \
+			--select-project "$MDSC_PRJ_NAME" \
+			--print-${idx}-separate-lines
 	)
 fi
 

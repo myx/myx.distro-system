@@ -402,7 +402,8 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 					MDSC_IDMDCL \
 					MDSC_IDOKWD \
 					MDSC_IDMKWD \
-				
+					MDSC_MEMORY \
+
 				return 0
 			;;
 		esac
