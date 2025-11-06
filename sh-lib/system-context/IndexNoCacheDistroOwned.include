@@ -101,4 +101,5 @@ awk '
 			if (!seen[pair]++) print pair
 		}
 	}
-' <<<"$MDSC_MEMORY"
+' < <( printenv MDSC_MEMORY )
+#' <<<"$MDSC_MEMORY"

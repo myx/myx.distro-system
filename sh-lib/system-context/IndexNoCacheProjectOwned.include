@@ -116,6 +116,5 @@ awk -v prj="$MDSC_PRJ_NAME" '
 			if (!seen[pair]++) print pair
 		}
 	}
-' <<<"$MDSC_MEMORY" 
-
-return 0
+' < <( printenv MDSC_MEMORY )
+#' <<<"$MDSC_MEMORY" 
