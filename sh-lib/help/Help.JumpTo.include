@@ -9,6 +9,6 @@ echo "                Use no cache."
 echo
 echo "  Examples:"
 echo
-echo "	JumpTo.fn.sh ndss113"
-echo "	JumpTo.fn.sh ndm/cloud.knt/setup.host-ndss112r3.example.org"
+echo "    JumpTo.fn.sh ndss113"
+echo "    JumpTo.fn.sh ndm/cloud.knt/setup.host-ndss112r3.example.org"
 echo
