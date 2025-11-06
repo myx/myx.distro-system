@@ -92,7 +92,7 @@ if [ -z "${MDSC_MEMORY:0:1}" ]; then
 	[ -z "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: IndexNoCacheDistroOwned.include: single index env-cached" >&2
 fi
 
-printenv MDSC_MEMORY | \
+echo MDSC_MEMORY | \
 awk '
 
 	/^PRJ-'$key'-/ {

@@ -106,7 +106,7 @@ if [ -z "${MDSC_MEMORY:0:1}" ]; then
 	[ -z "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: IndexNoCacheProjectOwned.include: single index env-cached" >&2
 fi
 
-printenv MDSC_MEMORY | \
+echo MDSC_MEMORY | \
 awk -v prj="$MDSC_PRJ_NAME" '
 	BEGIN { prefix = "PRJ-'$key'-" prj "="; plen = length(prefix) }
 	substr($0, 1, plen) == prefix {
