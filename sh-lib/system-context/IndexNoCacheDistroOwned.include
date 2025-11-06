@@ -92,7 +92,9 @@ if [ -z "${MDSC_MEMORY:0:1}" ]; then
 	[ -z "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: IndexNoCacheDistroOwned.include: single index env-cached" >&2
 fi
 
+printenv MDSC_MEMORY | \
 awk '
+
 	/^PRJ-'$key'-/ {
 		line = substr($0, 9); sub(/=/, " ", line); gsub(/\\:/, ":", line)
 		n = split(line, a)
@@ -101,5 +103,6 @@ awk '
 			if (!seen[pair]++) print pair
 		}
 	}
-' <( printenv MDSC_MEMORY )
+'
+#' <( printenv MDSC_MEMORY )
 #' <<<"$MDSC_MEMORY"
