@@ -14,7 +14,7 @@ ListDistroDeclares(){
 	. "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/SystemContext.UseStandardOptions.include"
 
 	set -e
-	
+
 	while [ $# -gt 0 ]; do
 		case "$1" in
 			--all-*|--add-*-column)
@@ -86,8 +86,9 @@ ListDistroDeclares(){
 						indexFiltered="$(
 							DistroSystemContext --index-declares \
 							awk -v m="$columnMatch" '
+								BEGIN { plen = length(m)+1 }
 								index($2,m)==1 {
-									ro=$1 " " substr($2,length(m)+1)
+									ro=$1 " " substr($2,plen)
 									if (!x[ro]++) print ro
 								}
 							'
@@ -97,8 +98,9 @@ ListDistroDeclares(){
 						indexFiltered="$(
 							DistroSystemContext --index-declares-merged \
 							awk -v m="$columnMatch" '
+								BEGIN { plen = length(m)+1 }
 								index($3,m)==1 {
-									rm=$1 " " substr($3,length(m)+1)
+									rm=$1 " " substr($3,plen)
 									if (!x[rm]++) print rm
 								}
 							'

@@ -24,10 +24,12 @@ esac
 
 [ -z "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: --all-${idx} using awk index join" >&2
 
-local indexFilter="$(
+local indexFilter indexSequence
+
+indexFilter="$(
 	DistroSystemContext --index-${idx%'-merged'} cat
 )"
-local indexSequence="$(
+indexSequence="$(
 	DistroSystemContext --project-index-sequence "$MDSC_PRJ_NAME" cat
 )"
 
@@ -50,6 +52,6 @@ awk '
 ' \
 <( echo "$indexFilter" ) \
 <( echo "$indexSequence" ) \
-< /dev/null
+</dev/null
 
 return 0

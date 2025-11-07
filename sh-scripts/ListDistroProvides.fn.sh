@@ -71,7 +71,7 @@ ListDistroProvides(){
 					set +e ; return 1
 				fi
 				local columnOp=${1%"-provides-column"} columnMatch="$2"; shift 2
-				
+
 				local indexCurrent indexFiltered indexColumns
 
 				# currently selected projects, 1 column, or iterative ++ columns
@@ -86,8 +86,9 @@ ListDistroProvides(){
 						indexFiltered="$(
 							DistroSystemContext --index-provides \
 							awk -v m="$columnMatch" '
+								BEGIN { plen = length(m)+1 }
 								index($2,m)==1 {
-									ro=$1 " " substr($2,length(m)+1)
+									ro=$1 " " substr($2,plen)
 									if (!x[ro]++) print ro
 								}
 							'
@@ -97,8 +98,9 @@ ListDistroProvides(){
 						indexFiltered="$(
 							DistroSystemContext --index-provides-merged \
 							awk -v m="$columnMatch" '
+								BEGIN { plen = length(m)+1 }
 								index($3,m)==1 {
-									rm=$1 " " substr($3,length(m)+1)
+									rm=$1 " " substr($3,plen)
 									if (!x[rm]++) print rm
 								}
 							'

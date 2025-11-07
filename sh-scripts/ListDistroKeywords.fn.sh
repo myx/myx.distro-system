@@ -86,8 +86,9 @@ ListDistroKeywords(){
 						indexFiltered="$(
 							DistroSystemContext --index-keywords \
 							awk -v m="$columnMatch" '
+								BEGIN { plen = length(m)+1 }
 								index($2,m)==1 {
-									ro=$1 " " substr($2,length(m)+1)
+									ro=$1 " " substr($2,plen)
 									if (!x[ro]++) print ro
 								}
 							'
@@ -97,8 +98,9 @@ ListDistroKeywords(){
 						indexFiltered="$(
 							DistroSystemContext --index-keywords-merged \
 							awk -v m="$columnMatch" '
+								BEGIN { plen = length(m)+1 }
 								index($3,m)==1 {
-									rm=$1 " " substr($3,length(m)+1)
+									rm=$1 " " substr($3,plen)
 									if (!x[rm]++) print rm
 								}
 							'
