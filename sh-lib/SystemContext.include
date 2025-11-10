@@ -160,9 +160,9 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 					if [ -d "$MDSC_CACHED" ] ; then
 						cacheFile="$MDSC_CACHED/distro-$idx.txt"
 						if [ -f "$cacheFile" ]; then
-							if { [ -f "$MDSC_CACHED/distro-index.env.inf" ] && [ ! "$cacheFile" -nt "$MDSC_CACHED/distro-index.env.inf" ]; } \
-							|| { [ -n "$BUILD_STAMP" ] && [ ! "$BUILD_STAMP" -gt "$( date -u -r "$cacheFile" "+%Y%m%d%H%M%S" )" ]; } \
+							if { [ -n "$BUILD_STAMP" ] && [ ! "$BUILD_STAMP" -gt "$( date -u -r "$cacheFile" "+%Y%m%d%H%M%S" )" ]; } \
 							|| { [ -f "$MDSC_CACHED/build-time-stamp.txt" ] && [ ! "$MDSC_CACHED/build-time-stamp.txt" -nt "$cacheFile" ]; } \
+							|| { [ -f "$MDSC_CACHED/distro-index.env.inf" ] && [ ! "$MDSC_CACHED/distro-index.env.inf" -nt "$cacheFile" ]; } \
 							; then
 								[ full != "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: DistroSystemContext: --index-* using cached ($idx)" >&2
 								"$cmd" "$@" "$cacheFile"
@@ -267,9 +267,11 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 						close(sq)
 
 						vars["."] = ""
+
+						plen = length(mf)+1
   					}
 					index($2,mf)==1 { 
-						r = substr($2,length(mf)+1)
+						r = substr($2,plen)
 						pos = index(r, ":")
 						left = (pos > 0) ? substr(r,1,pos-1) : r
 						rest = (pos > 0) ? substr(r,pos+1) : ""
