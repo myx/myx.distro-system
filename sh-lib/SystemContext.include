@@ -343,9 +343,9 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 					if [ -d "$MDSC_CACHED" ] ; then
 						cacheFile="$MDSC_CACHED/$MDSC_PRJ_NAME/project-$idx.txt"
 						if [ -f "$cacheFile" ]; then
-							if { [ -f "$MDSC_CACHED/distro-index.env.inf" ] && [ ! "$cacheFile" -nt "$MDSC_CACHED/distro-index.env.inf" ]; } \
-							|| { [ -n "$BUILD_STAMP" ] && [ ! "$BUILD_STAMP" -gt "$( date -u -r "$cacheFile" "+%Y%m%d%H%M%S" )" ]; } \
+							if { [ -n "$BUILD_STAMP" ] && [ ! "$BUILD_STAMP" -gt "$( date -u -r "$cacheFile" "+%Y%m%d%H%M%S" )" ]; } \
 							|| { [ -f "$MDSC_CACHED/build-time-stamp.txt" ] && [ ! "$MDSC_CACHED/build-time-stamp.txt" -nt "$cacheFile" ]; } \
+							|| { [ -f "$MDSC_CACHED/distro-index.env.inf" ] && [ ! "$MDSC_CACHED/distro-index.env.inf" -nt "$cacheFile" ]; } \
 							; then
 								[ full != "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: DistroSystemContext: --project-index-* using cached ($idx)" >&2
 								"$cmd" "$@" "$cacheFile"
@@ -398,13 +398,30 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 					MDSC_IDAPRJ \
 					MDSC_IDBSEQ \
 					MDSC_IDASEQ \
-					MDSC_IDOPRV \
-					MDSC_IDMPRV \
 					MDSC_IDODCL \
 					MDSC_IDMDCL \
 					MDSC_IDOKWD \
 					MDSC_IDMKWD \
+					MDSC_IDOPRV \
+					MDSC_IDMPRV \
+					MDSC_IDOREQ \
 					MDSC_MEMORY \
+
+				return 0
+			;;
+			--uncache-project)
+				shift
+				# echo "DistroSystemContext: clear cache" >&2
+				# rm -rf "$MDLT_ORIGIN"/.cached
+				unset \
+					MDSC_IPASEQ \
+					MDSC_IPODCL \
+					MDSC_IPMDCL \
+					MDSC_IPOKWD \
+					MDSC_IPMKWD \
+					MDSC_IPOPRV \
+					MDSC_IPMPRV \
+					MDSC_IPOREQ \
 
 				return 0
 			;;
