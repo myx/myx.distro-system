@@ -13,7 +13,7 @@ if [ -z "$MDLT_ORIGIN" ] || [ "$MDLT_ORIGIN" = "${MDLT_ORIGIN#$MMDAPP/}" ] ; the
 
 	export MDLT_ORIGIN="${MDLT_ORIGIN:=$MMDAPP/.local}"
 	
-	echo "DistroSystemContext: init: $MDLT_ORIGIN" >&2
+	echo "SystemContext: init: $MDLT_ORIGIN" >&2
 fi
 
 if ! type DistroSystemContext >/dev/null 2>&1 ; then
@@ -121,14 +121,14 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 					shift
 					return 0
 				fi
-				[ -z "$MDSC_DETAIL" ] || echo "DistroSystemContext: input spec: $1" >&2
+				[ -z "$MDSC_DETAIL" ] || echo "SystemContext: input spec: $1" >&2
 				. "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/SystemContext.SetInputSpec.include"
 				return 0
 			;;
 			--distro-*|--run-from-*|--init-*)
 				if DistroSystemContext --is-spec-option "$1" ; then
 					local adpcChangeSpec="true"
-					[ -z "$MDSC_DETAIL" ] || echo "DistroSystemContext: input spec: $1" >&2
+					[ -z "$MDSC_DETAIL" ] || echo "SystemContext: input spec: $1" >&2
 					. "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/SystemContext.SetInputSpec.include"
 					return 0
 				fi
@@ -147,13 +147,13 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 					provides) env=MDSC_IDOPRV; ;; provides-merged) env=MDSC_IDMPRV; ;;
 					requires) env=MDSC_IDOREQ; ;; sequence) env=MDSC_IDASEQ; ;; 
 					*) 
-						echo "⛔ ERROR: DistroSystemContext: unknown index name: $idx" >&2
+						echo "⛔ ERROR: SystemContext: unknown index name: $idx" >&2
 						set +e ; return 1
 					;;
 				esac
 				if [ "$MDSC_NO_CACHE" != "--no-cache" ] ; then
 					if [ -f "${!env}" ]; then
-						[ full != "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: DistroSystemContext: --index-* using env-cached file ($idx)" >&2
+						[ full != "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: SystemContext: --index-* using env-cached file ($idx)" >&2
 						"$cmd" "$@" "${!env}"
 						return 0
 					fi
@@ -164,7 +164,7 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 							|| { [ -f "$MDSC_CACHED/build-time-stamp.txt" ] && [ ! "$MDSC_CACHED/build-time-stamp.txt" -nt "$cacheFile" ]; } \
 							|| { [ -f "$MDSC_CACHED/distro-index.env.inf" ] && [ ! "$MDSC_CACHED/distro-index.env.inf" -nt "$cacheFile" ]; } \
 							; then
-								[ full != "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: DistroSystemContext: --index-* using cached ($idx)" >&2
+								[ full != "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: SystemContext: --index-* using cached ($idx)" >&2
 								"$cmd" "$@" "$cacheFile"
 								return 0
 							fi
@@ -240,7 +240,7 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 						merged=y
 					;;
 					*) 
-						echo "⛔ ERROR: DistroSystemContext: unroll: unknown or unsupported index name: $idx" >&2
+						echo "⛔ ERROR: SystemContext: unroll: unknown or unsupported index name: $idx" >&2
 						set +e ; return 1
 					;;
 				esac
@@ -335,7 +335,7 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 					provides) env=MDSC_IPOPRV; ;; provides-merged) env=MDSC_IPMPRV; ;;
 					requires) env=MDSC_IPOREQ; ;;
 					*) 
-						echo "⛔ ERROR: DistroSystemContext: unknown project index name: $idx" >&2
+						echo "⛔ ERROR: SystemContext: unknown project index name: $idx" >&2
 						set +e ; return 1
 					;;
 				esac
@@ -347,7 +347,7 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 							|| { [ -f "$MDSC_CACHED/build-time-stamp.txt" ] && [ ! "$MDSC_CACHED/build-time-stamp.txt" -nt "$cacheFile" ]; } \
 							|| { [ -f "$MDSC_CACHED/distro-index.env.inf" ] && [ ! "$MDSC_CACHED/distro-index.env.inf" -nt "$cacheFile" ]; } \
 							; then
-								[ full != "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: DistroSystemContext: --project-index-* using cached ($idx)" >&2
+								[ full != "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: SystemContext: --project-index-* using cached ($idx)" >&2
 								"$cmd" "$@" "$cacheFile"
 								return 0
 							fi
@@ -392,8 +392,6 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 			;;
 			--uncache|--uncache-index)
 				shift
-				# echo "DistroSystemContext: clear cache" >&2
-				# rm -rf "$MDLT_ORIGIN"/.cached
 				unset \
 					MDSC_IDAPRJ \
 					MDSC_IDBSEQ \
@@ -411,7 +409,7 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 			;;
 			--uncache-project)
 				shift
-				# echo "DistroSystemContext: clear cache" >&2
+				# echo "SystemContext: clear cache" >&2
 				# rm -rf "$MDLT_ORIGIN"/.cached
 				unset \
 					MDSC_IPASEQ \
@@ -432,7 +430,7 @@ fi
 case "$1" in
 	--distro-*|--run-from-*|--init-*)
 		if DistroSystemContext --is-spec-option "$1" ; then
-			[ -z "$MDSC_DETAIL" ] || echo "DistroSystemContext: input spec: $1" >&2
+			[ -z "$MDSC_DETAIL" ] || echo "SystemContext: input spec: $1" >&2
 			. "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/SystemContext.SetInputSpec.include"
 			shift
 		fi
