@@ -407,6 +407,34 @@ if ! type DistroSystemContext >/dev/null 2>&1 ; then
 
 				return 0
 			;;
+			--select-project)
+				if [ "$2" != "MDSC_PRJ_NAME" ] ; then
+					echo "$MDSC_CMD: SystemContext $1: ⛔ ERROR: env name required to be MDSC_PRJ_NAME!" >&2
+					set +e ; return 1
+				fi
+				if [ -z "$3" ] ; then
+					echo "$MDSC_CMD: SystemContext $1: ⛔ ERROR: project name required!" >&2
+					set +e ; return 1
+				fi
+				if [ "$3" = "$MDSC_PRJ_NAME" ] ; then
+					[ -z "$MDSC_DETAIL" ] || echo "* $MDSC_CMD: SystemContext $1: same project ($3)" >&2
+					return 0
+				fi
+				if [ "$3" = "--reset" ] ; then
+					if [ -z "$MDSC_PRJ_NAME" ] ; then
+						[ -z "$MDSC_DETAIL" ] || echo "* $MDSC_CMD: SystemContext $1 --reset: already clean" >&2
+						return 0
+					fi
+					[ -z "$MDSC_DETAIL" ] || echo "* $MDSC_CMD: SystemContext $1: reset project (previous selection: $MDSC_PRJ_NAME)" >&2
+					MDSC_PRJ_NAME=
+					DistroSystemContext --uncache-project
+					return 0
+				fi
+				MDSC_PRJ_NAME="$3"
+				DistroSystemContext --uncache-project
+				[ -z "$MDSC_DETAIL" ] || echo "* $MDSC_CMD: SystemContext $1: project selected ($3)" >&2
+				return 0
+			;;
 			--uncache-project)
 				shift
 				# echo "SystemContext: clear cache" >&2
