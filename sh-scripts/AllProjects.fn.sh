@@ -40,7 +40,7 @@ AllProjects(){
 				echo "📘 syntax: AllProjects.fn.sh --sequence" >&2
 				echo "📘 syntax: AllProjects.fn.sh [--help]" >&2
 				if [ "$1" = "--help" ] ; then
-					cat "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/help/Help.AllProjects.text" >&2
+					myx.common lib/catMarkdown "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/help/Help.AllProjects.help.md" >&2
 				fi
 				return 0
 			;;

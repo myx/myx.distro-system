@@ -25,6 +25,12 @@
 		--scripts
 			Lists all actions full paths (from source root) in one column.
 
+		--executables
+			Lists executable action paths without path shortening.
+
+		--no-formatting
+			Disables table formatting and prints raw output rows.
+
 		--completion
 			Lists all actions names in one column.
 

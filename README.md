@@ -14,6 +14,26 @@ utilities used by `myx.distro-source`, `myx.distro-deploy` and related component
 
 ---
 
+## Commands:
+
+- `Distro` (from `sh-lib/SystemContext.include`)
+	- Dispatches distro system/source/deploy/remote commands in active context.
+	- Help: `Distro --help`
+- `Action` (from `sh-lib/SystemContext.include`)
+	- Runs generated workspace actions from `actions/`.
+	- Help: `Action --help`
+
+---
+
+## Update actions:
+
+- `actions/distro/local-tools/apply-distro-system-2-local.sh`
+	- Mirrors `source/myx/myx.distro-system` into `.local/myx/myx.distro-system`.
+- `actions/distro/system-tools/update-system-tools.sh`
+	- Wrapper entrypoint that runs `apply-distro-system-2-local.sh`.
+
+---
+
 ## Distro components:
 
 See: [distro](https://github.com/myx/myx.distro?tab=readme-ov-file#myxdistro)

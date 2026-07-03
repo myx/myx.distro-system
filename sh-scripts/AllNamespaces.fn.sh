@@ -27,7 +27,7 @@ AllNamespaces(){
 				echo "📘 syntax: AllNamespaces.fn.sh --all-namespaces" >&2
 				echo "📘 syntax: AllNamespaces.fn.sh [--help]" >&2
 				if [ "$1" = "--help" ] ; then
-					cat "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/help/Help.AllNamespaces.text" >&2
+					myx.common lib/catMarkdown "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/help/Help.AllNamespaces.help.md" >&2
 				fi
 				return 0
 			;;

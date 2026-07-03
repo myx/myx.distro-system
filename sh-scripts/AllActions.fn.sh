@@ -61,7 +61,7 @@ AllActions(){
 				echo "📘 syntax: AllActions.fn.sh --default|--full|--scripts|..." >&2
 				echo "📘 syntax: AllActions.fn.sh [--help]" >&2
 				if [ "$1" = "--help" ] ; then
-					cat "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/help/Help.AllActions.text" >&2
+					myx.common lib/catMarkdown "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/help/Help.AllActions.help.md" >&2
 				fi
 				return 0
 			;;

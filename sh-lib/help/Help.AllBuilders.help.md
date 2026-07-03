@@ -10,6 +10,12 @@
 
 	Options:
 
+		--no-index
+			Use no index.
+
+		--no-cache
+			Use no cache.
+
 		--all-builders
 		--default
 			Lists builders in two-column form: project and builder-stage path tail.
@@ -22,6 +28,9 @@
 
 		--executables
 			Lists executable paths without path shortening.
+
+		--no-formatting
+			Disables table formatting and prints raw output rows.
 
 		--all-build-stages
 			Includes all build stages without filtering.

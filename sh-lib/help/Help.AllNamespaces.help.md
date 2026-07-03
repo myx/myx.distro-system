@@ -1,4 +1,6 @@
+📘 syntax: AllNamespaces.fn.sh --all-namespaces
 📘 syntax: AllNamespaces.fn.sh --source-namespaces
+📘 syntax: AllNamespaces.fn.sh [--help]
 
 	Summary:
 

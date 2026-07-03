@@ -1,5 +1,6 @@
 📘 syntax: AllProjects.fn.sh --all-projects
-📘 syntax: AllProjects.fn.sh -- cat
+📘 syntax: AllProjects.fn.sh --sequence
+📘 syntax: AllProjects.fn.sh [--help]
 
 	Summary:
 
@@ -29,6 +30,9 @@
 		--scan-source-projects
 		--rescan-source-projects
 			Lists (scans) all source-declared projects (within 'source' subsystem).
+
+		--requires
+			Lists requires index entries.
 
 		--deploy-projects
 		--scan-deploy-projects
