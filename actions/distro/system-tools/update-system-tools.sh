@@ -5,5 +5,4 @@
 cd "$MMDAPP"
 export MMDAPP
 
-echo "not implemented yet" >&2
-exit 1
+sh "$MMDAPP/source/myx/myx.distro-system/actions/distro/local-tools/apply-distro-system-2-local.sh"
