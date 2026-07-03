@@ -1,11 +1,11 @@
 📘 syntax: AllActions.fn.sh --default
 📘 syntax: AllActions.fn.sh --scripts
 
-	Summary:
+##  Summary:
 
 		This command lists all actions and displays this list in various forms.
 
-	Options:
+##  Options:
 
 		--no-index
 			Use no index.
@@ -34,9 +34,13 @@
 		--completion
 			Lists all actions names in one column.
 
-	Examples:
+##  Examples:
 
-		AllActions.fn.sh --default
-		AllActions.fn.sh --full
-		AllActions.fn.sh --scripts
-		AllActions.fn.sh --completion
+		# List actions in default two-column view
+		`AllActions.fn.sh --default`
+		# List actions with project-relative full paths
+		`AllActions.fn.sh --full`
+		# List action script paths only
+		`AllActions.fn.sh --scripts`
+		# List action names for shell completion
+		`AllActions.fn.sh --completion`

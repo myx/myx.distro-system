@@ -2,12 +2,12 @@
 📘 syntax: AllProjects.fn.sh --sequence
 📘 syntax: AllProjects.fn.sh [--help]
 
-	Summary:
+##  Summary:
 
 		This command lists all projects (located within namespace roots, non-nested and having 'project.inf' 
 		file).
 
-	Options:
+##  Options:
 
 		--no-index
 			Use no index.
@@ -39,7 +39,9 @@
 		--rescan-deploy-projects
 			Lists (scans) all source-declared projects (within 'deploy' subsystem).
 
-	Examples:
+##  Examples:
 
-		AllProjects.fn.sh --sequence grep -e '^myx/'
-		AllProjects.fn.sh --projects fgrep '.distro-'
+		# Print build-sequence projects filtered by myx namespace
+		`AllProjects.fn.sh --sequence grep -e '^myx/'`
+		# List all projects and filter names containing .distro-
+		`AllProjects.fn.sh --projects fgrep '.distro-'`

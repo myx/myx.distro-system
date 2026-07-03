@@ -4,11 +4,11 @@
 📘 syntax: AllBuilders.fn.sh [--all-build-stages]
 📘 syntax: AllBuilders.fn.sh [source-prepare|source-process|image-prepare|image-process|image-install]
 
-	Summary:
+##  Summary:
 
 		Lists builder scripts discovered in source projects.
 
-	Options:
+##  Options:
 
 		--no-index
 			Use no index.
@@ -38,8 +38,11 @@
 		source-prepare|source-process|image-prepare|image-process|image-install
 			Filters output to the selected build stage.
 
-	Examples:
+##  Examples:
 
-		AllBuilders.fn.sh --default
-		AllBuilders.fn.sh --scripts
-		AllBuilders.fn.sh image-prepare
+		# List builders in default two-column view
+		`AllBuilders.fn.sh --default`
+		# List builder script paths only
+		`AllBuilders.fn.sh --scripts`
+		# Filter builder list to image-prepare stage
+		`AllBuilders.fn.sh image-prepare`

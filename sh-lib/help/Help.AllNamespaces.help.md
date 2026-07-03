@@ -2,11 +2,11 @@
 📘 syntax: AllNamespaces.fn.sh --source-namespaces
 📘 syntax: AllNamespaces.fn.sh [--help]
 
-	Summary:
+##  Summary:
 
 		This command lists all namespaces (repository roots) and displays this list in various forms.
 
-	Options:
+##  Options:
 
 		--no-index
 			Use no index.
@@ -20,6 +20,7 @@
 		--source-namespaces
 			Lists (scans) all source-declared namespaces.
 
-	Examples:
+##  Examples:
 
-		AllNamespaces.fn.sh --all-namespaces
+		# List all registered namespaces
+		`AllNamespaces.fn.sh --all-namespaces`
