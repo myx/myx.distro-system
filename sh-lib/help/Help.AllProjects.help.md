@@ -45,3 +45,5 @@
 		`AllProjects.fn.sh --sequence grep -e '^myx/'`
 		# List all projects and filter names containing .distro-
 		`AllProjects.fn.sh --projects fgrep '.distro-'`
+		# Print raw requires index entries
+		`AllProjects.fn.sh --requires`

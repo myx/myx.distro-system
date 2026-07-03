@@ -1,4 +1,6 @@
 echo "📘 syntax: AllActions.fn.sh --default|--full|--scripts|..." >&2
+echo "📘 syntax: AllActions.fn.sh --completion" >&2
+echo "📘 syntax: AllActions.fn.sh --executables" >&2
 echo "📘 syntax: AllActions.fn.sh [--help]" >&2
 if [ "$1" = "--help" ] ; then
 	myx.common lib/catMarkdown "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/help/Help.AllActions.help.md" >&2

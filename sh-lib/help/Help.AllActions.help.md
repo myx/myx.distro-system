@@ -42,5 +42,9 @@
 		`AllActions.fn.sh --full`
 		# List action script paths only
 		`AllActions.fn.sh --scripts`
+		# List executable action paths without shortening
+		`AllActions.fn.sh --executables`
+		# Print raw rows without table formatting
+		`AllActions.fn.sh --no-formatting --default`
 		# List action names for shell completion
 		`AllActions.fn.sh --completion`

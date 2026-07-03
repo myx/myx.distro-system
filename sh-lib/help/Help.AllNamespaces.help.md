@@ -24,3 +24,5 @@
 
 		# List all registered namespaces
 		`AllNamespaces.fn.sh --all-namespaces`
+		# Scan and list namespaces directly from source roots
+		`AllNamespaces.fn.sh --source-namespaces`

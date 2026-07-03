@@ -42,7 +42,11 @@
 
 		# List builders in default two-column view
 		`AllBuilders.fn.sh --default`
+		# List project and full builder path in two columns
+		`AllBuilders.fn.sh --full`
 		# List builder script paths only
 		`AllBuilders.fn.sh --scripts`
+		# Include all build stages without stage filtering
+		`AllBuilders.fn.sh --all-build-stages`
 		# Filter builder list to image-prepare stage
 		`AllBuilders.fn.sh image-prepare`
