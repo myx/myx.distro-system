@@ -24,11 +24,7 @@ AllNamespaces(){
 				return 0
 			;;
 			--help|--help-syntax)
-				echo "📘 syntax: AllNamespaces.fn.sh --all-namespaces" >&2
-				echo "📘 syntax: AllNamespaces.fn.sh [--help]" >&2
-				if [ "$1" = "--help" ] ; then
-					myx.common lib/catMarkdown "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/help/Help.AllNamespaces.help.md" >&2
-				fi
+				. "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/help/Help.AllNamespaces.include"
 				return 0
 			;;
 			*)

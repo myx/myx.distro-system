@@ -36,12 +36,7 @@ AllProjects(){
 				return 0
 			;;
 			--help|--help-syntax)
-				echo "📘 syntax: AllProjects.fn.sh --default" >&2
-				echo "📘 syntax: AllProjects.fn.sh --sequence" >&2
-				echo "📘 syntax: AllProjects.fn.sh [--help]" >&2
-				if [ "$1" = "--help" ] ; then
-					myx.common lib/catMarkdown "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/help/Help.AllProjects.help.md" >&2
-				fi
+				. "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/help/Help.AllProjects.include"
 				return 0
 			;;
 			*)

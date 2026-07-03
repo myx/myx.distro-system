@@ -54,11 +54,7 @@ AllBuilders(){
 				shift ;	break
 			;;
 			--help|--help-syntax)
-				echo "📘 syntax: AllBuilders.fn.sh --default|--full|--scripts| [--all-build-stages]..." >&2
-				echo "📘 syntax: AllBuilders.fn.sh [--help]" >&2
-				if [ "$1" = "--help" ] ; then
-					myx.common lib/catMarkdown "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/help/Help.AllBuilders.help.md" >&2
-				fi
+				. "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/help/Help.AllBuilders.include"
 				return 0
 			;;
 			*)
