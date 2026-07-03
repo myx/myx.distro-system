@@ -8,7 +8,7 @@ if [ -z "$MMDAPP" ] ; then
 fi
 
 if [ -z "$MDLT_ORIGIN" ] || ! type DistroSystemContext >/dev/null 2>&1 ; then
-	. "${MDLT_ORIGIN:=$MMDAPP/.local}/myx/myx.distro-system/sh-lib/SystemContext.include"
+	. "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/SystemContext.include"
 	DistroSystemContext --distro-from-source
 fi
 
@@ -16,6 +16,12 @@ fi
 # Runs DistroCommand by compiling it's source code to a temporary folder 
 #
 DistroSourceCommand(){
+	case "$1" in
+		--help|--help-syntax)
+			. "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/help/Help.DistroSourceCommand.include"
+			return 0
+		;;
+	esac
 
 	local MDSC_OUTPUT="${MDSC_OUTPUT:-$MMDAPP/.local/output-cache}"
 	local MDSC_SOURCE="${MDSC_SOURCE:-$MMDAPP/source}"

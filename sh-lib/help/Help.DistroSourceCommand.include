@@ -1,0 +1,5 @@
+echo "syntax: DistroSourceCommand.fn.sh [command-options...]" >&2
+echo "syntax: DistroSourceCommand.fn.sh [--help]" >&2
+if [ "$1" = "--help" ]; then
+	myx.common lib/catMarkdown "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/help/Help.DistroSourceCommand.help.md" >&2
+fi
