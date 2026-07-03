@@ -1,0 +1,23 @@
+# myx.distro-system
+
+Shared system utilities for the myx.distro build and deployment system.
+Provides index building, source/output processing, and shared shell context
+utilities used by `myx.distro-source`, `myx.distro-deploy` and related components.
+
+---
+
+## Components:
+
+- **System tools** — index building, project scanning, folder sync/pack operations.
+- **Shell scripts** (`sh-scripts/`) — system-level context setup and integration helpers.
+- **Shell libs** (`sh-lib/`) — shared context includes used by source and deploy consoles.
+
+---
+
+## Distro components:
+
+See: [distro](https://github.com/myx/myx.distro?tab=readme-ov-file#myxdistro)
+See: [distro-.local](https://github.com/myx/myx.distro-.local?tab=readme-ov-file#myxdistro-.local)
+See: [distro-source](https://github.com/myx/myx.distro-source?tab=readme-ov-file#myxdistro-source)
+See: [distro-deploy](https://github.com/myx/myx.distro-deploy?tab=readme-ov-file#myxdistro-deploy)
+See: [distro-remote](https://github.com/myx/myx.distro-remote?tab=readme-ov-file#myxdistro-remote)
