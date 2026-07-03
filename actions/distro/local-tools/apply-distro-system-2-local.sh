@@ -5,5 +5,5 @@
 cd "$MMDAPP"
 export MMDAPP
 
-echo "Not yet!"
+echo "not implemented yet" >&2
 exit 1
