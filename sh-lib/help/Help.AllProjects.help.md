@@ -7,13 +7,17 @@
 		This command lists all projects (located within namespace roots, non-nested and having 'project.inf' 
 		file).
 
+##  Arguments:
+
+		None. This command is option-driven.
+
 ##  Options:
 
 		--no-index
-			Use no index.
+			Bypasses prebuilt index files and resolves project list directly from source/context.
 
 		--no-cache
-			Use no cache.
+			Bypasses cached scan/output data and forces fresh list generation.
 
 		--projects
 		--all-projects
@@ -25,6 +29,9 @@
 		--
 			Lists all system-registered projects, from indices suitable in current context. In
 			order of global distro build sequence (calculated by reqiures-provides pairs).
+
+		--help
+			Prints command help and exits.
 
 		--source-projects
 		--scan-source-projects

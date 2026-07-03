@@ -1,5 +1,5 @@
-echo "syntax: DistroImageCommand.fn.sh [command-options...]" >&2
-echo "syntax: DistroImageCommand.fn.sh [--help]" >&2
+echo "📘 syntax: DistroImageCommand.fn.sh [command-options...]" >&2
+echo "📘 syntax: DistroImageCommand.fn.sh [--help]" >&2
 if [ "$1" = "--help" ]; then
 	myx.common lib/catMarkdown "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/help/Help.DistroImageCommand.help.md" >&2
 fi

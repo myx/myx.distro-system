@@ -57,9 +57,7 @@ set -x
 case "$0" in
 	*/sh-scripts/ListDistroScripts.fn.sh) 
 		if [ "${1:-'--help'}" = "--help" ] ; then
-			echo "📘 syntax: ListDistroScripts.fn.sh --all/--completion" >&2
-			echo "📘 syntax: ListDistroScripts.fn.sh --type <source/deploy>" >&2
-			echo "📘 syntax: ListDistroScripts.fn.sh [--help]" >&2
+			. "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/help/Help.ListDistroScripts.include"
 			exit 1
 		fi
 		

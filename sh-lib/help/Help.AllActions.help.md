@@ -5,13 +5,17 @@
 
 		This command lists all actions and displays this list in various forms.
 
+##  Arguments:
+
+		None. This command is option-driven.
+
 ##  Options:
 
 		--no-index
-			Use no index.
+			Bypasses prebuilt index files and resolves action list directly from source/context.
 
 		--no-cache
-			Use no cache.
+			Bypasses cached scan/output data and forces fresh list generation.
 
 		--all-actions
 		--default
@@ -32,7 +36,7 @@
 			Disables table formatting and prints raw output rows.
 
 		--completion
-			Lists all actions names in one column.
+			Lists action names in a single column for shell completion use.
 
 ##  Examples:
 

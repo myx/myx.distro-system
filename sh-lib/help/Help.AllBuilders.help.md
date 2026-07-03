@@ -8,13 +8,19 @@
 
 		Lists builder scripts discovered in source projects.
 
+##  Arguments:
+
+		stage
+			Optional positional argument. Allowed values are source-prepare,
+			source-process, image-prepare, image-process, image-install.
+
 ##  Options:
 
 		--no-index
-			Use no index.
+			Bypasses prebuilt index files and resolves builder list directly from source/context.
 
 		--no-cache
-			Use no cache.
+			Bypasses cached scan/output data and forces fresh list generation.
 
 		--all-builders
 		--default
@@ -36,7 +42,7 @@
 			Includes all build stages without filtering.
 
 		source-prepare|source-process|image-prepare|image-process|image-install
-			Filters output to the selected build stage.
+			Positional stage selector. Accepts one value from this set and filters output to that stage.
 
 ##  Examples:
 
