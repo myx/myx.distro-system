@@ -37,6 +37,8 @@ Rule: follow the standard form for new/edited help. If touching a flagged except
 - `Require <name>` — same lookup, searches `myx.distro-{system,source,deploy,remote,.local}/sh-scripts/<name>.fn.sh` in that fixed order, only sources (doesn't call).
 - `Action <name>` — unrelated third dispatcher: runs `$MMDAPP/actions/<name>` (`.sh` executed, `.url` opened).
 
+Recurring internal calling convention: `type <FunctionName> >/dev/null 2>&1 || . "$( myx.common which lib/<name> )"` — skip re-sourcing if the function is already defined in this shell, else resolve and source it. Unlike `myx.common`'s own internal convention (which hardcodes `.Common` and skips OS dispatch — see `myx.common/os-myx.common` CLAUDE.md), this one still calls `myx.common which`, so it stays OS-aware (one subprocess to resolve the path, none to run it) rather than assuming no OS variance.
+
 ## Dependency/index engine
 
 `BuildSequencesFromProvidesAndRequires.awk` topologically sorts the whole `Requires`/`Provides` project graph once into a flattened **sequence** file (`<project> <transitively-required-project>` lines, deps before the project; cycle-safe via an "unflushed" counter). Every "merged" view is that sequence joined against a raw per-project index (`IndexNoCacheDistroMerged.include`) — not a live graph walk per call.
