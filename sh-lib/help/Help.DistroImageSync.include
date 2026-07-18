@@ -1,0 +1,80 @@
+echo >&2
+echo "    --all-tasks" >&2
+echo "                Select all distro tasks for all build stages." >&2
+echo >&2
+echo >&2
+echo "  Options:" >&2
+echo >&2
+echo "    --explicit-noop" >&2
+echo "                Explicit argument that safely does nothing." >&2
+echo >&2
+echo "    --no-index" >&2
+echo "                Use no index." >&2
+echo >&2
+echo "    --no-cache" >&2
+echo "                Use no cache." >&2
+echo >&2
+echo "  Operations:" >&2
+echo >&2
+echo "    --print-all-tasks" >&2
+echo "                Displays all sync tasks for all build stages from all projects in distro." >&2
+echo "                This command doesn't need project selector and any other arguments." >&2
+echo >&2
+echo "    --execute-source-prepare-pull [--no-ssh-mx|--one-ssh-mx] [--parallel [N] / --sequence / --portable]" >&2
+echo "                Execute tasks for source-prapare pull stage (before source-prepare)." >&2
+echo >&2
+echo "    --execute-source-process-push [--no-ssh-mx|--one-ssh-mx] [--parallel [N] / --sequence / --portable]" >&2
+echo "                Execute tasks for image-prapare push stage (on image-prepare, after source)." >&2
+echo >&2
+echo "    --execute-image-prepare-pull [--no-ssh-mx|--one-ssh-mx] [--parallel [N] / --sequence / --portable]" >&2
+echo "                Execute tasks for image-prapare pull stage (on image-prepare, before deploy)." >&2
+echo >&2
+echo "    --execute-image-process-push [--no-ssh-mx|--one-ssh-mx] [--parallel [N] / --sequence / --portable]" >&2
+echo "                Execute tasks for image-prapare push stage (on image-prepare, before deploy)." >&2
+echo >&2
+echo "    --execute-image-install-pull [--no-ssh-mx|--one-ssh-mx] [--parallel [N] / --sequence / --portable]" >&2
+echo "                Execute tasks for image-install pull stage (on image-install, before deploy)." >&2
+echo >&2
+echo "    --print-tasks" >&2
+echo "                Display selected sync tasks for all build stages for selected projects." >&2
+echo >&2
+echo "    --print-repo-list" >&2
+echo "                Display selected tasks' unrolled sync lists (with repo lists expanded)." >&2
+echo >&2
+echo "    --list-orphaned-projects" >&2
+echo "                Displays projects present in the source tree but not covered by any" >&2
+echo "                repo:/list: distro-image-sync directive (no relation to git status)." >&2
+echo "                This command doesn't need project selector and any other arguments." >&2
+echo >&2
+echo "    --script-prune-orphaned-projects" >&2
+echo "                Displays 'rm -rf' lines for orphaned projects that are clean git checkouts," >&2
+echo "                and '# skip (...)' comment lines for dirty or non-git ones. Never executes." >&2
+echo "                This command doesn't need project selector and any other arguments." >&2
+echo >&2
+echo "    --print-source-{prepare-pull|process-push}" >&2
+echo "    --print-image-{prepare-pull|process-push}" >&2
+echo "                Displays syncronisation task list to be executed." >&2
+echo >&2
+echo "    --script-source-{prepare-pull|process-push} [--parallel [N] / --sequence / --portable]" >&2
+echo "    --script-image-{prepare-pull|process-push} [--parallel [N] / --sequence / --portable]" >&2
+echo "                Displays syncronisation script source to be executed." >&2
+echo >&2
+echo "    --{script|execute}-from-stdin-repositories-list" >&2
+echo "                Takes text columns with '<targetSpec> <sourceSpec> [<branch>]' where <targetSpec>." >&2
+echo "                is normally a local project full name, <sourceSpec> is git repository URL and <branch>" >&2
+echo "                is optional branch name ('main' and 'master' are tried is ommited)." >&2
+echo >&2
+echo "    --(script|execute)-* [--no-ssh-mx|--one-ssh-mx] [--ssh-defaults] [--parallel [N] / --sequence / --portable]" >&2
+echo "                '--no-ssh-mx|--one-ssh-mx' controls use of ssh multiplexing. The '--ssh-defaults' disables" >&2
+echo "                advanced ssh settings and parameters to be used." >&2
+echo >&2
+echo "  Examples:" >&2
+echo >&2
+echo "    DistroImageSync.fn.sh --print-all-tasks" >&2
+echo "    DistroImageSync.fn.sh --source-prepare-pull --print-all-tasks" >&2
+echo "    DistroImageSync.fn.sh --source-prepare-pull --all-tasks --print-tasks" >&2
+echo "    DistroImageSync.fn.sh --source-prepare-pull --print-all-tasks-repo-list" >&2
+echo "    DistroImageSync.fn.sh --source-prepare-pull --all-tasks --print-repo-list" >&2
+echo "    DistroImageSync.fn.sh --list-orphaned-projects" >&2
+echo "    DistroImageSync.fn.sh --script-prune-orphaned-projects" >&2
+echo >&2

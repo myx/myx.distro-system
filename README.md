@@ -22,6 +22,12 @@ utilities used by `myx.distro-source`, `myx.distro-deploy` and related component
 - `Action` (from `sh-lib/SystemContext.include`)
 	- Runs generated workspace actions from `actions/`.
 	- Help: `Action --help`
+- `DistroImageDownload` (todo)
+	- Fetches published pre-built images during the `image-prepare` stage. Referenced from `distro-source` and `distro-deploy` (see their `image-prepare` stage sections).
+	- Not yet implemented.
+- `DistroImageSync` (from `sh-scripts/DistroImageSync.fn.sh`)
+	- Builds, prints, or executes repo sync task scripts for the source/image pipeline stages (`source-prepare-pull`, `source-process-push`, `image-prepare-pull`, `image-process-push`, `image-install-pull`). Generic sync engine shared across stages/consumers — not stage-specific logic.
+	- Help: `DistroImageSync.fn.sh --help`
 
 ---
 
