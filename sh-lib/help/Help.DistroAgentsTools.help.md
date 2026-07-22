@@ -21,9 +21,9 @@
 📘 syntax: DistroAgentsTools.fn.sh --verify-permissions
 📘 syntax: DistroAgentsTools.fn.sh --validate-json [<path>]
 📘 syntax: DistroAgentsTools.fn.sh --list-md <path>...
-📘 syntax: DistroAgentsTools.fn.sh --write-slib <routine-name>
+📘 syntax: DistroAgentsTools.fn.sh --write-slib <routine-name> [--file <path>]
 📘 syntax: DistroAgentsTools.fn.sh --write-board-item <state> <item-filename>
-📘 syntax: DistroAgentsTools.fn.sh --write-inbox-note <member> <item-filename>
+📘 syntax: DistroAgentsTools.fn.sh --write-inbox-note <member> <item-filename> [--file <path>]
 📘 syntax: DistroAgentsTools.fn.sh --purge-cleanup
 📘 syntax: DistroAgentsTools.fn.sh [--help]
 
@@ -353,25 +353,29 @@
 			network. Despite the flag name, not restricted to `.md` files --
 			any path works; at least one path argument is required.
 
-		--write-slib <routine-name>
-			Regenerates one routine's own routine-contract.SLIB.md from stdin --
-			content is always read from stdin (no argv alternative, no --from-stdin
-			flag to toggle -- unlike --send-message/--send-email-message there is no
-			other content source for this op). <routine-name> is a bare directory
-			name only (no `/`, not `.`/`..`) that must already exist under
-			$HOME/.claude/skills/ -- same fixed-target-per-identifier shape as
-			--purge-cleanup, never a free-form path. Writes
+		--write-slib <routine-name> [--file <path>]
+			Regenerates one routine's own routine-contract.SLIB.md -- content
+			comes from stdin by default, or from a plain file via --file <path>
+			(added 2026-07-22, same shape as --send-message/--send-email-message's
+			own --file: lets a caller write the regenerated content to a plain
+			temp file first, an ordinary Write tool call, and still invoke this op
+			as one single-line command, since a heredoc body spans multiple lines
+			and stops matching a single-line settings.json allowlist glob).
+			<routine-name> is a bare directory name only (no `/`, not `.`/`..`)
+			that must already exist under $HOME/.claude/skills/ -- same
+			fixed-target-per-identifier shape as --purge-cleanup, never a
+			free-form path. Writes
 			$HOME/.claude/skills/<routine-name>/routine-contract.SLIB.md, refusing
-			an empty stdin rather than truncating the file to nothing. Added
-			2026-07-22 -- closes the human-owner's own SLIB-approval-friction
-			question ("I don't want to approve each" [SLIB regeneration]) merged
-			with keeper-myx's broader tool-agnostic-update-mechanism proposal. No
-			caller-identity enforcement -- convention-based trust only, same model
-			as every other op here; intended caller is magic-librarian. Only this
-			op is built this round -- --write-board-item/--write-inbox-note (the
-			same proposal's other illustrative cases) are deliberately deferred,
-			--write-board-item in particular pending its own board-exclusivity
-			scoping decision -- **resolved and built 2026-07-22, see below.**
+			empty content (whether from stdin or --file) rather than truncating
+			the file to nothing. Added 2026-07-22 -- closes the human-owner's own
+			SLIB-approval-friction question ("I don't want to approve each" [SLIB
+			regeneration]) merged with keeper-myx's broader
+			tool-agnostic-update-mechanism proposal. No caller-identity
+			enforcement -- convention-based trust only, same model as every other
+			op here; intended caller is magic-librarian. --write-board-item/
+			--write-inbox-note (the same proposal's other illustrative cases) are
+			**resolved and built 2026-07-22, see below** -- --write-inbox-note also
+			carries the same --file option as of this round.
 
 		--write-board-item <state> <item-filename>
 			**magic-coordinator-only op by design** — BOARD.md states plainly
@@ -390,7 +394,7 @@
 			(write into the new state, then remove the old file separately) —
 			this op has no built-in move/rename primitive.
 
-		--write-inbox-note <member> <item-filename>
+		--write-inbox-note <member> <item-filename> [--file <path>]
 			Writes a note into any member's own personal inbox
 			(`~/.claude/skills/<member>/inbox/`) — unlike the board, inbox
 			write access is not exclusive to one member; any member may post
@@ -401,7 +405,8 @@
 			exist yet (a missing inbox/ is not an error, unlike a missing
 			board-state directory, since board states are a fixed known set
 			and a member's inbox may simply not have been created yet).
-			Content via stdin only.
+			Content via stdin by default, or via --file <path> (added
+			2026-07-22, same shape as --write-slib's own --file above).
 
 		--purge-cleanup
 			Empties $MMDAPP/.local/.cleanup/ (the folder itself stays) --
@@ -528,6 +533,10 @@
 		EOF
 		```
 
+		# Same, via --file instead -- write content with a plain Write tool call
+		# first, then this stays a single-line command
+		`DistroAgentsTools.fn.sh --write-inbox-note keeper-myx 2026-07-22-note-example.md --file /path/to/note.md`
+
 		# Send an email with a multi-line body from stdin instead of fragile trailing argv
 		```
 		DistroAgentsTools.fn.sh --send-email-message myx@meloscope.com -- "Status update" -- --from-stdin <<'EOF'
@@ -571,6 +580,10 @@
 		... full routine-contract.SLIB.md content ...
 		EOF
 		```
+
+		# Same, via --file instead -- write content with a plain Write tool call
+		# first, then this stays a single-line command
+		`DistroAgentsTools.fn.sh --write-slib routine-grooming --file /path/to/routine-contract.SLIB.md`
 
 		# Existence + line count for a batch of files in one call, instead of a hand-rolled `for`/`wc -l` loop
 		`DistroAgentsTools.fn.sh --list-md /path/to/one.md /path/to/two.md /path/to/missing.md`

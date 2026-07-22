@@ -1570,12 +1570,15 @@ $1"
 		## never a free-form path -- it's validated as a bare directory name (no '/', not
 		## '.'/'..') and must already exist as a real skill directory under
 		## $HOME/.claude/skills/, so this op can only ever touch that one directory's own
-		## routine-contract.SLIB.md, never an arbitrary path. Content is always read from
-		## stdin -- no argv alternative exists for a multi-paragraph markdown document, so
-		## unlike --send-message/--send-email-message there's no --from-stdin flag to
-		## toggle; stdin is simply the only content source. Call with this tool's absolute
-		## path leading and a heredoc supplying the content, per magic-team/CONSOLE-
-		## SESSIONS.md's "Heredoc for stdin" convention.
+		## routine-contract.SLIB.md, never an arbitrary path. Content comes from stdin by
+		## default, or from a plain file via --file <path> (added 2026-07-22, same
+		## motivation/shape as --send-message/--send-email-message's own --file: lets a
+		## caller write the regenerated content to a plain temp file first, an ordinary
+		## Write tool call, and still invoke this op as one single-line command, since a
+		## heredoc body spans multiple lines and stops matching a single-line
+		## settings.json allowlist glob). Call with this tool's absolute path leading and
+		## either a heredoc supplying stdin content (per magic-team/CONSOLE-SESSIONS.md's
+		## "Heredoc for stdin" convention) or --file <path>.
 		##
 		## Caller-identity gap, stated plainly rather than silently ignored (per the
 		## proposal's own finding): this tool has no privilege separation -- nothing stops
@@ -1599,7 +1602,7 @@ $1"
 			local routineName="$1"
 			shift || true
 			if [ -z "$routineName" ] ; then
-				echo "⛔ ERROR: $MDSC_CMD --write-slib: routine name required (e.g. routine-grooming) -- content via stdin" >&2
+				echo "⛔ ERROR: $MDSC_CMD --write-slib: routine name required (e.g. routine-grooming) -- content via stdin or --file <path>" >&2
 				set +e ; return 1
 			fi
 			case "$routineName" in
@@ -1614,9 +1617,32 @@ $1"
 				set +e ; return 1
 			fi
 			local target="$skillDir/routine-contract.SLIB.md"
-			local content ; content="$( cat )"
+			local content contentFromFile="false"
+			while [ $# -gt 0 ] ; do
+				case "$1" in
+					--file)
+						## Added 2026-07-22 -- same shape as --send-email-message's own
+						## --file (an explicit contentFromFile flag gates the later
+						## stdin-read, rather than inferring source from whether
+						## $content is non-empty, which would wrongly fall through to
+						## reading stdin if the given file happened to be empty).
+						if [ -z "$2" ] || [ ! -f "$2" ] ; then
+							echo "⛔ ERROR: $MDSC_CMD --write-slib: --file: file not found: $2" >&2
+							set +e ; return 1
+						fi
+						content="$( cat "$2" )"
+						contentFromFile="true"
+						shift 2
+					;;
+					*)
+						echo "⛔ ERROR: $MDSC_CMD --write-slib: unrecognized argument: $1" >&2
+						set +e ; return 1
+					;;
+				esac
+			done
+			[ "$contentFromFile" = "true" ] || content="$( cat )"
 			if [ -z "$content" ] ; then
-				echo "⛔ ERROR: $MDSC_CMD --write-slib: empty stdin -- refusing to write an empty routine-contract.SLIB.md" >&2
+				echo "⛔ ERROR: $MDSC_CMD --write-slib: empty content -- refusing to write an empty routine-contract.SLIB.md" >&2
 				set +e ; return 1
 			fi
 			printf '%s\n' "$content" > "$target"
@@ -1706,7 +1732,7 @@ $1"
 			local itemName="$1"
 			shift || true
 			if [ -z "$memberName" ] || [ -z "$itemName" ] ; then
-				echo "⛔ ERROR: $MDSC_CMD --write-inbox-note: syntax is <member> <item-filename> -- content via stdin" >&2
+				echo "⛔ ERROR: $MDSC_CMD --write-inbox-note: syntax is <member> <item-filename> -- content via stdin or --file <path>" >&2
 				set +e ; return 1
 			fi
 			case "$memberName" in
@@ -1732,9 +1758,34 @@ $1"
 				set +e ; return 1
 			}
 			local target="$inboxDir/$itemName"
-			local content ; content="$( cat )"
+			local content contentFromFile="false"
+			while [ $# -gt 0 ] ; do
+				case "$1" in
+					--file)
+						## Added 2026-07-22 -- same --file shape as --write-slib/
+						## --send-message/--send-email-message: lets a caller write the
+						## note content to a plain temp file first (an ordinary Write
+						## tool call) and still invoke this op as one single-line
+						## command. Explicit contentFromFile flag gates the stdin-read
+						## below, same reasoning as --write-slib's own --file (don't
+						## infer source from non-emptiness of $content).
+						if [ -z "$2" ] || [ ! -f "$2" ] ; then
+							echo "⛔ ERROR: $MDSC_CMD --write-inbox-note: --file: file not found: $2" >&2
+							set +e ; return 1
+						fi
+						content="$( cat "$2" )"
+						contentFromFile="true"
+						shift 2
+					;;
+					*)
+						echo "⛔ ERROR: $MDSC_CMD --write-inbox-note: unrecognized argument: $1" >&2
+						set +e ; return 1
+					;;
+				esac
+			done
+			[ "$contentFromFile" = "true" ] || content="$( cat )"
 			if [ -z "$content" ] ; then
-				echo "⛔ ERROR: $MDSC_CMD --write-inbox-note: empty stdin -- refusing to write an empty inbox note" >&2
+				echo "⛔ ERROR: $MDSC_CMD --write-inbox-note: empty content -- refusing to write an empty inbox note" >&2
 				set +e ; return 1
 			fi
 			printf '%s\n' "$content" > "$target"

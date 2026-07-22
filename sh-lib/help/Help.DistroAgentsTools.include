@@ -22,9 +22,9 @@ echo "📘 syntax: DistroAgentsTools.fn.sh --self-test" >&2
 echo "📘 syntax: DistroAgentsTools.fn.sh --verify-permissions" >&2
 echo "📘 syntax: DistroAgentsTools.fn.sh --validate-json [<path>]" >&2
 echo "📘 syntax: DistroAgentsTools.fn.sh --list-md <path>..." >&2
-echo "📘 syntax: DistroAgentsTools.fn.sh --write-slib <routine-name>" >&2
+echo "📘 syntax: DistroAgentsTools.fn.sh --write-slib <routine-name> [--file <path>]" >&2
 echo "📘 syntax: DistroAgentsTools.fn.sh --write-board-item <state> <item-filename>" >&2
-echo "📘 syntax: DistroAgentsTools.fn.sh --write-inbox-note <member> <item-filename>" >&2
+echo "📘 syntax: DistroAgentsTools.fn.sh --write-inbox-note <member> <item-filename> [--file <path>]" >&2
 echo "📘 syntax: DistroAgentsTools.fn.sh --purge-cleanup" >&2
 echo "📘 syntax: DistroAgentsTools.fn.sh [--help]" >&2
 if [ "$1" = "--help" ]; then
