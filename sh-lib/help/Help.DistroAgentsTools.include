@@ -4,10 +4,20 @@ echo "📘 syntax: DistroAgentsTools.fn.sh --stop-console <channel>" >&2
 echo "📘 syntax: DistroAgentsTools.fn.sh --list-consoles [--override-workspace <path>]" >&2
 echo "📘 syntax: DistroAgentsTools.fn.sh --agent-config-option <operation>" >&2
 echo "📘 syntax: DistroAgentsTools.fn.sh --send-message <magic-team|human-owner|<channel>:<ts>> [text...]" >&2
-echo "📘 syntax: DistroAgentsTools.fn.sh --send-message <target> --message-from-stdin [--format text|blocks]" >&2
-echo "📘 syntax: DistroAgentsTools.fn.sh --sweep-read-incoming-comms [<magic-team|human-owner|<channel>:<ts>>] [--oldest <ts>]" >&2
+echo "📘 syntax: DistroAgentsTools.fn.sh --send-message <target> --from-stdin [--format text|blocks]" >&2
+echo "📘 syntax: DistroAgentsTools.fn.sh --send-email-message <email@address>... -- <subject> -- <body...>" >&2
+echo "📘 syntax: DistroAgentsTools.fn.sh --send-email-message <email@address>... -- <subject> -- --from-stdin" >&2
+echo "📘 syntax: DistroAgentsTools.fn.sh --check-slack <magic-team|human-owner|<channel>:<ts>> [--oldest <ts>] [--raw]" >&2
+echo "📘 syntax: DistroAgentsTools.fn.sh --check-email" >&2
+echo "📘 syntax: DistroAgentsTools.fn.sh --check-trello" >&2
+echo "📘 syntax: DistroAgentsTools.fn.sh --sweep-read-incoming-comms [--oldest <ts>] [--raw]" >&2
+echo "📘 syntax: DistroAgentsTools.fn.sh --read-slack <channel>:<ts> [--thread]" >&2
+echo "📘 syntax: DistroAgentsTools.fn.sh --read-email <uid>" >&2
+echo "📘 syntax: DistroAgentsTools.fn.sh --read-trello <notification-id>" >&2
 echo "📘 syntax: DistroAgentsTools.fn.sh --self-test" >&2
 echo "📘 syntax: DistroAgentsTools.fn.sh --verify-permissions" >&2
+echo "📘 syntax: DistroAgentsTools.fn.sh --validate-json [<path>]" >&2
+echo "📘 syntax: DistroAgentsTools.fn.sh --purge-cleanup" >&2
 echo "📘 syntax: DistroAgentsTools.fn.sh [--help]" >&2
 if [ "$1" = "--help" ]; then
 	myx.common lib/catMarkdown "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/help/Help.DistroAgentsTools.help.md" >&2

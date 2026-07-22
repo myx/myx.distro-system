@@ -52,6 +52,15 @@
 ## precedent (`DistroLocalTools --install-distro-$ITEM`), not via a private
 ## helper function.
 ##
+## Direct human-owner correction, 2026-07-21: "Stop doing tons of simple
+## functions in DistroAgentsTools — convention is to inline, ESPECIALLY
+## SINGLE-LINERS." If a piece of logic is only ever used by one op, it goes
+## inline in that op's own `case` arm — it does NOT become a new top-level
+## helper just because it's a few lines long or "could be reused someday."
+## The existing helpers above this line are already-established, genuinely
+## multi-op-shared plumbing (channel/workspace/target resolution, perm
+## checks) — that list is not license to keep adding more.
+##
 
 if [ -z "$MMDAPP" ] ; then
 	set -e
@@ -163,7 +172,7 @@ DistroAgentsToolsPermOf(){
 ## a utility helper (like the ones above) rather than duplicated three times.
 DistroAgentsToolsResolveTarget(){
 	local target="$1"
-	local channel="" threadTs=""
+	local channel threadTs
 	case "$target" in
 		magic-team)
 			channel="$( DistroAgentsTools --agent-config-option --select SLACK_CHANNEL_MAGIC_TEAM )"
@@ -186,33 +195,6 @@ DistroAgentsToolsResolveTarget(){
 	return 0
 }
 
-DistroAgentsToolsHelp(){
-	cat >&2 <<'HELPEOF'
-📘 syntax: DistroAgentsTools.fn.sh --start-console [--override-workspace <path>] [--console DistroSourceConsole.sh|DistroDeployConsole.sh] [--ttl <seconds>]
-📘 syntax: DistroAgentsTools.fn.sh --send-console <channel> [-- <command...>]   (reads stdin if no command given)
-📘 syntax: DistroAgentsTools.fn.sh --stop-console <channel>
-📘 syntax: DistroAgentsTools.fn.sh --list-consoles [--override-workspace <path>]
-📘 syntax: DistroAgentsTools.fn.sh --agent-config-option <operation>
-📘 syntax: DistroAgentsTools.fn.sh --send-message <magic-team|human-owner|<channel>:<ts>> [text...]
-📘 syntax: DistroAgentsTools.fn.sh --send-message <target> --message-from-stdin [--format text|blocks]
-📘 syntax: DistroAgentsTools.fn.sh --send-email-message <email@address>... -- <subject> -- <body...>
-📘 syntax: DistroAgentsTools.fn.sh --sweep-read-incoming-comms [<target>] [--oldest <ts>]
-📘 syntax: DistroAgentsTools.fn.sh --self-test
-📘 syntax: DistroAgentsTools.fn.sh --verify-permissions
-📘 syntax: DistroAgentsTools.fn.sh [--help]
-
-Channel dirs/log paths are deterministic (workspace + console, hashed) not
-random — safe to allowlist once, stays valid across restarts. Default
-workspace is the tool's own; --override-workspace targets a different one.
---start-console is idempotent: an already-alive channel for the same
-(workspace, console) is reused rather than duplicated.
-
---send-message retries a Slack post on transient network failures (up to 5x
-with backoff) before falling back to --send-email-message automatically.
---send-email-message is also directly callable on its own.
-HELPEOF
-}
-
 ##
 ## The one real dispatcher -- every operation lives in its own case branch,
 ## inline or via self-recursion into DistroAgentsTools itself, never a
@@ -227,7 +209,7 @@ DistroAgentsTools(){
 		--start-console)
 			shift
 
-			local workspaceArg="" consoleOverride="" ttl="$MDAT_DEFAULT_TTL"
+			local workspaceArg consoleOverride ttl="$MDAT_DEFAULT_TTL"
 			while [ $# -gt 0 ] ; do
 				case "$1" in
 					--override-workspace)
@@ -286,7 +268,7 @@ DistroAgentsTools(){
 			## If the dir exists but its processes are dead, wipe and recreate —
 			## never silently leave a half-dead channel behind.
 			if [ -d "$channelDir" ] ; then
-				local oldConsolePid="" oldHolderPid=""
+				local oldConsolePid oldHolderPid
 				if [ -f "$channelDir/console.pid" ] ; then oldConsolePid="$( cat "$channelDir/console.pid" 2>/dev/null )" ; fi
 				if [ -f "$channelDir/holder.pid" ] ; then oldHolderPid="$( cat "$channelDir/holder.pid" 2>/dev/null )" ; fi
 				if [ -n "$oldConsolePid" ] && kill -0 "$oldConsolePid" 2>/dev/null \
@@ -406,7 +388,7 @@ DistroAgentsTools(){
 			## "exit" nudge while the console process is confirmed alive -- if
 			## it's already dead there's no reader to nudge, and the hard-kill
 			## path below still runs either way.
-			local pid=""
+			local pid
 			if [ -f "$channelDir/console.pid" ] ; then
 				pid="$( cat "$channelDir/console.pid" 2>/dev/null )"
 			fi
@@ -439,7 +421,7 @@ DistroAgentsTools(){
 
 		--list-consoles)
 			shift
-			local workspaceArg=""
+			local workspaceArg
 			while [ $# -gt 0 ] ; do
 				case "$1" in
 					--override-workspace)
@@ -536,10 +518,18 @@ DistroAgentsTools(){
 			esac
 
 			local format="text" fromStdin="false"
-			local textArgs=""
+			local textArgs
 			while [ $# -gt 0 ] ; do
 				case "$1" in
-					--message-from-stdin)
+					--message-from-stdin|--from-stdin)
+						## Added 2026-07-22: `--from-stdin` is the standardized,
+						## uniform name for "read content from stdin instead of argv"
+						## across every DistroAgentsTools op that accepts free-text
+						## content (see also --send-email-message's body below,
+						## --validate-json's bare-stdin mode) -- `--message-from-stdin`
+						## stays recognized too, unchanged, since it's already
+						## documented/used across several skill files; this is an
+						## additive alias, not a rename.
 						fromStdin="true" ; shift
 					;;
 					--format)
@@ -551,11 +541,48 @@ DistroAgentsTools(){
 				esac
 			done
 
-			local rawText="" blocksJson=""
+			local rawText blocksJson
 			if [ "$fromStdin" = "true" ] ; then
 				local stdinContent ; stdinContent="$( cat )"
 				if [ "$format" = "blocks" ] ; then
 					blocksJson="$stdinContent"
+
+					## `blocksJson` gets spliced straight into the payload below
+					## (`"blocks":$blocksJson`) with no escaping, unlike `rawText`
+					## (which goes through agentMcpJsonEscape.awk) -- this command's
+					## own contract for --format blocks always expects a bare JSON
+					## array here, so validate that before it ever reaches curl.
+					## Bug reproduced live 2026-07-22: a caller's stdin content
+					## carried a stray leading ":" (leftover from a "blocks: [...]"
+					## -style paste, i.e. not actually a bare array), which spliced
+					## into a literal `"blocks"::[...]` in the payload -- Slack's
+					## chat.postMessage bounced that as invalid_json on all 5
+					## retries, with nothing in the error pointing at the actual
+					## cause. Reuses this same file's own --validate-json op via
+					## self-recursion (same convention as --send-email-message's
+					## fallback call below) for full JSON-syntax validation, per
+					## the human-owner's own "always use it" instruction for
+					## --validate-json, rather than hand-rolling a second, weaker
+					## JSON check here. --validate-json accepts any syntactically
+					## valid top-level JSON value though (object, string, number,
+					## ...), so a cheap bare `[` ... `]` shape check is layered on
+					## top of it to enforce the array-specifically requirement
+					## Slack's `blocks` field actually has.
+					if ! printf '%s' "$blocksJson" | DistroAgentsTools --validate-json ; then
+						echo "⛔ ERROR: $MDSC_CMD --send-message: --format blocks stdin failed --validate-json (see above)" >&2
+						set +e ; return 1
+					fi
+					local blocksTrimmed
+					blocksTrimmed="$( printf '%s' "$blocksJson" | LC_ALL=C awk 'BEGIN{RS="\0"} { gsub(/^[ \t\r\n]+/, ""); gsub(/[ \t\r\n]+$/, ""); printf "%s", $0 }' )"
+					case "$blocksTrimmed" in
+						'['*']')
+						;;
+						*)
+							echo "⛔ ERROR: $MDSC_CMD --send-message: --format blocks stdin is valid JSON but not a bare array (must start with '[' and end with ']')" >&2
+							set +e ; return 1
+						;;
+					esac
+
 					## NOTE: not auto-deriving a text fallback from the blocks' own
 					## text.text fields yet (that needs real JSON parsing this shell
 					## layer doesn't have) -- using a static fallback instead. Revisit
@@ -603,7 +630,7 @@ DistroAgentsTools(){
 			trap 'rm -f "$headerFile"' EXIT
 			printf 'Authorization: Bearer %s\n' "$token" > "$headerFile"
 
-			local response="" attempt=1 maxAttempts=5 backoff=2 sent="false"
+			local response attempt=1 maxAttempts=5 backoff=2 sent="false"
 			while [ "$attempt" -le "$maxAttempts" ] ; do
 				response="$( curl -sS -X POST "https://slack.com/api/chat.postMessage" \
 					-H @"$headerFile" \
@@ -660,7 +687,7 @@ DistroAgentsTools(){
 		## fallback calls this same branch via self-recursion.
 		--send-email-message)
 			shift
-			local recipients="" subject="" bodyLines="" state="recipients"
+			local recipients subject bodyLines state="recipients" bodyFromStdin="false"
 			while [ $# -gt 0 ] ; do
 				case "$1" in
 					--)
@@ -668,6 +695,28 @@ DistroAgentsTools(){
 						elif [ "$state" = "subject" ] ; then state="body"
 						fi
 						shift
+					;;
+					--from-stdin)
+						## Added 2026-07-22: standardized stdin-content flag (same
+						## name as --send-message's), only meaningful in the body
+						## state -- reads the whole body from stdin instead of
+						## trailing argv lines, avoiding the exact
+						## shell-escaping/quoting fragility (multi-line free text as
+						## separate argv words) that caused the --format blocks
+						## bug this same day. Outside the body state it's treated
+						## as ordinary literal content (matches this loop's
+						## existing catch-all behavior for any other unrecognized
+						## token) since recipients/subject aren't meant to come
+						## from stdin.
+						if [ "$state" = "body" ] ; then
+							bodyFromStdin="true" ; shift
+						else
+							case "$state" in
+								recipients) recipients="$recipients $1" ;;
+								subject) subject="$subject $1" ;;
+							esac
+							shift
+						fi
 					;;
 					*)
 						case "$state" in
@@ -682,6 +731,14 @@ $1" ;;
 			done
 			recipients="${recipients# }"
 			subject="${subject# }"
+
+			if [ "$bodyFromStdin" = "true" ] ; then
+				if [ -n "$bodyLines" ] ; then
+					echo "⛔ ERROR: $MDSC_CMD --send-email-message: --from-stdin given alongside trailing body argv -- use one or the other, not both" >&2
+					set +e ; return 1
+				fi
+				bodyLines="$( cat )"
+			fi
 
 			if [ -z "$recipients" ] ; then
 				echo "⛔ ERROR: $MDSC_CMD --send-email-message: at least one <email@address> required" >&2
@@ -740,60 +797,240 @@ $1" ;;
 			return "$rc"
 		;;
 
-		## Reads recent Slack activity for the routine comms-sweep's Check
-		## step (magic-coordinator's routines/communication-sweep.md).
-		## Deliberately does NOT parse the Slack JSON response -- same
-		## rationale as --send-message's blocks-fallback note: this shell
-		## layer has no real JSON parser, so the raw API body is passed
-		## straight to stdout for the calling routine (an LLM) to read
-		## directly. Target grammar mirrors --send-message's
-		## (magic-team|human-owner|<channel>:<ts>) so a bare channel name
-		## means "history" and a <channel>:<ts> pair means "replies in that
-		## thread" -- no new addressing scheme invented. With no target at
-		## all, sweeps every known watched target by calling itself once per
-		## target (same self-recursion pattern as --self-test below and
-		## DistroLocalTools.fn.sh's --upgrade-installed-tools), so the
-		## comms-sweep routine's Check step doesn't need to know channel ids.
-		--sweep-read-incoming-comms)
+		## Real gap this closes (2026-07-21, per direct human-owner
+		## complaint): --sweep-read-incoming-comms already precodes Slack
+		## reads, but email/Trello checks had no equivalent op, so every
+		## comms sweep kept hand-rolling raw curl in Bash for those two --
+		## exactly the "why is this not in tooling" friction that keeps
+		## triggering fresh permission prompts a precoded op would avoid.
+		## IMAP STATUS check (unseen count) plus a UID SEARCH UNSEEN (which
+		## UIDs those are) -- not a full fetch, matches what the comms-sweep
+		## routine's Check step needs, but also closes a real follow-on gap
+		## found live the same session: STATUS alone gives a count with no
+		## way to discover which UID(s) to hand to --read-email. UID SEARCH
+		## returns a clean single-line response through curl --request
+		## (unlike UID FETCH's literal-string body, which does not come
+		## through this way -- confirmed live, that's why --read-email uses
+		## curl's URL-based ;UID= addressing instead, not --request).
+		--check-email)
+			shift
+			local imapHost imapUser imapPass
+			imapHost="$( DistroAgentsTools --agent-config-option --select EMAIL_IMAP_HOST )"
+			imapUser="$( DistroAgentsTools --agent-config-option --select EMAIL_USER )"
+			imapPass="$( DistroAgentsTools --agent-config-option --select EMAIL_APP_PASSWORD )"
+			if [ -z "$imapHost" ] || [ -z "$imapUser" ] || [ -z "$imapPass" ] ; then
+				echo "⛔ ERROR: $MDSC_CMD --check-email: EMAIL_IMAP_HOST/EMAIL_USER/EMAIL_APP_PASSWORD not fully set in .local/.agents" >&2
+				set +e ; return 1
+			fi
+			curl -s --url "imaps://${imapHost}/INBOX" --user "${imapUser}:${imapPass}" \
+				--request "STATUS INBOX (UNSEEN)"
+			curl -s --url "imaps://${imapHost}/INBOX" --user "${imapUser}:${imapPass}" \
+				--request "UID SEARCH UNSEEN"
+			return $?
+		;;
+
+		## Same rationale as --check-email above -- Trello's own read side of
+		## the same precoded-tooling gap. Unread notifications only (matches
+		## the comms-sweep routine's Check step), not a full board read.
+		--check-trello)
+			shift
+			local trelloKey trelloToken
+			trelloKey="$( DistroAgentsTools --agent-config-option --select TRELLO_KEY )"
+			trelloToken="$( DistroAgentsTools --agent-config-option --select TRELLO_TOKEN )"
+			if [ -z "$trelloKey" ] || [ -z "$trelloToken" ] ; then
+				echo "⛔ ERROR: $MDSC_CMD --check-trello: TRELLO_KEY/TRELLO_TOKEN not fully set in .local/.agents" >&2
+				set +e ; return 1
+			fi
+			curl -s "https://api.trello.com/1/members/me/notifications?read_filter=unread&key=${trelloKey}&token=${trelloToken}"
+			return $?
+		;;
+
+		## Added 2026-07-21, per direct human-owner instruction: --check-*/
+		## --sweep-read-incoming-comms are deliberately lightweight scanning
+		## tools (short/pretty descriptions) -- they will legitimately
+		## truncate/summarize. --read-* is the different, complementary
+		## concern: given one specific message/thread's own id/address,
+		## retrieve its FULL content (all meta-info, reactions, formatting,
+		## images/attachments) for actually processing that one item in
+		## detail, not scanning for what's new. Always returns the full raw
+		## API response (never pretty-formatted) -- "full" is the entire
+		## point of this op, there is no lossy default here.
+		--read-slack)
 			shift
 			local target="$1"
 			shift || true
+			if [ -z "$target" ] ; then
+				echo "⛔ ERROR: $MDSC_CMD --read-slack: target required (magic-team|human-owner|<channel>:<ts>)" >&2
+				set +e ; return 1
+			fi
 
-			local oldest=""
+			local wantThread="false"
 			while [ $# -gt 0 ] ; do
 				case "$1" in
-					--oldest)
-						oldest="$2" ; shift 2
+					--thread)
+						wantThread="true" ; shift
 					;;
 					*)
-						echo "⛔ ERROR: $MDSC_CMD --sweep-read-incoming-comms: invalid option: $1" >&2
+						echo "⛔ ERROR: $MDSC_CMD --read-slack: invalid option: $1" >&2
 						set +e ; return 1
 					;;
 				esac
 			done
 
-			local channel="" threadTs=""
-			if [ -z "$target" ] ; then
-				local name anyChecked=0
-				for name in magic-team human-owner ; do
-					local resolved
-					resolved="$( DistroAgentsToolsResolveTarget "$name" )" || {
-						echo "# $MDSC_CMD --sweep-read-incoming-comms: skipping '$name' -- no channel id configured" >&2
-						continue
-					}
-					anyChecked=1
+			local resolved channel threadTs
+			resolved="$( DistroAgentsToolsResolveTarget "$target" )"
+			case "$?" in
+				0)
 					channel="$( printf '%s\n' "$resolved" | sed -n 's/^CHANNEL=//p' )"
-					echo "## target=$name channel=$channel"
-					DistroAgentsTools --sweep-read-incoming-comms "$channel" ${oldest:+--oldest "$oldest"}
-				done
-				if [ "$anyChecked" = "0" ] ; then
-					echo "⛔ ERROR: $MDSC_CMD --sweep-read-incoming-comms: no watched targets configured (SLACK_CHANNEL_MAGIC_TEAM/SLACK_CHANNEL_HUMAN_OWNER both empty)" >&2
+					threadTs="$( printf '%s\n' "$resolved" | sed -n 's/^THREAD_TS=//p' )"
+				;;
+				*)
+					echo "⛔ ERROR: $MDSC_CMD --read-slack: could not resolve target '$target' -- pass <channel>:<ts> for a specific message" >&2
 					set +e ; return 1
-				fi
-				return 0
+				;;
+			esac
+			if [ -z "$threadTs" ] ; then
+				echo "⛔ ERROR: $MDSC_CMD --read-slack: a specific <ts> is required (magic-team/human-owner alone identify a channel, not one message) -- use <channel>:<ts>" >&2
+				set +e ; return 1
 			fi
 
-			local resolved
+			local token
+			token="$( DistroAgentsTools --agent-config-option --select SLACK_BOT_TOKEN )"
+			if [ -z "$token" ] ; then
+				echo "⛔ ERROR: $MDSC_CMD --read-slack: SLACK_BOT_TOKEN not set in .local/.agents" >&2
+				set +e ; return 1
+			fi
+
+			local headerFile
+			headerFile="$( mktemp )" || { set +e ; return 1 ; }
+			chmod 600 "$headerFile"
+			trap 'rm -f "$headerFile"' EXIT
+			printf 'Authorization: Bearer %s\n' "$token" > "$headerFile"
+
+			if [ "$wantThread" = "true" ] ; then
+				## Full thread -- every reply, full detail (reactions/files/
+				## blocks all come through untouched since this is raw, not
+				## piped through the pretty formatter).
+				echo "# $MDSC_CMD --read-slack: GET conversations.replies channel=$channel ts=$threadTs (full thread)" >&2
+				curl -sS -G "https://slack.com/api/conversations.replies" -H "@$headerFile" \
+					--data-urlencode "channel=$channel" --data-urlencode "ts=$threadTs"
+			else
+				## Exactly one message -- latest=oldest=ts with inclusive+limit=1
+				## pins conversations.history to that single message, not a
+				## history window.
+				echo "# $MDSC_CMD --read-slack: GET conversations.history channel=$channel ts=$threadTs (single message)" >&2
+				curl -sS -G "https://slack.com/api/conversations.history" -H "@$headerFile" \
+					--data-urlencode "channel=$channel" --data-urlencode "latest=$threadTs" \
+					--data-urlencode "oldest=$threadTs" --data-urlencode "inclusive=true" \
+					--data-urlencode "limit=1"
+			fi
+			echo
+
+			rm -f "$headerFile"
+			trap - EXIT
+			return 0
+		;;
+
+		## Full IMAP fetch (complete RFC822 message: headers + body + MIME
+		## multipart, attachments included as their raw MIME parts) for one
+		## specific message by UID -- contrast with --check-email's
+		## STATUS-only unread count. Uses curl's URL-based
+		## ;UID=<uid> addressing (no ;SECTION= means the whole message, per
+		## curl's own IMAP URL support) -- the same working mechanism found
+		## live this session after --request "UID FETCH..." turned out not
+		## to return literal-string FETCH bodies through stdout at all.
+		--read-email)
+			shift
+			local uid="$1"
+			shift || true
+			if [ -z "$uid" ] ; then
+				echo "⛔ ERROR: $MDSC_CMD --read-email: UID required" >&2
+				set +e ; return 1
+			fi
+
+			local imapHost imapUser imapPass
+			imapHost="$( DistroAgentsTools --agent-config-option --select EMAIL_IMAP_HOST )"
+			imapUser="$( DistroAgentsTools --agent-config-option --select EMAIL_USER )"
+			imapPass="$( DistroAgentsTools --agent-config-option --select EMAIL_APP_PASSWORD )"
+			if [ -z "$imapHost" ] || [ -z "$imapUser" ] || [ -z "$imapPass" ] ; then
+				echo "⛔ ERROR: $MDSC_CMD --read-email: EMAIL_IMAP_HOST/EMAIL_USER/EMAIL_APP_PASSWORD not fully set in .local/.agents" >&2
+				set +e ; return 1
+			fi
+
+			echo "# $MDSC_CMD --read-email: fetching full message UID=$uid" >&2
+			curl -sS --url "imaps://${imapHost}/INBOX;UID=${uid}" --user "${imapUser}:${imapPass}"
+			return $?
+		;;
+
+		## Full detail for one specific Trello notification by id -- the
+		## comms-sweep's own unit of "a message" for Trello (per
+		## --check-trello's own read_filter=unread notifications list).
+		## Contrast with --check-trello's unread-list-only scan.
+		--read-trello)
+			shift
+			local notificationId="$1"
+			shift || true
+			if [ -z "$notificationId" ] ; then
+				echo "⛔ ERROR: $MDSC_CMD --read-trello: notification id required" >&2
+				set +e ; return 1
+			fi
+
+			local trelloKey trelloToken
+			trelloKey="$( DistroAgentsTools --agent-config-option --select TRELLO_KEY )"
+			trelloToken="$( DistroAgentsTools --agent-config-option --select TRELLO_TOKEN )"
+			if [ -z "$trelloKey" ] || [ -z "$trelloToken" ] ; then
+				echo "⛔ ERROR: $MDSC_CMD --read-trello: TRELLO_KEY/TRELLO_TOKEN not fully set in .local/.agents" >&2
+				set +e ; return 1
+			fi
+
+			echo "# $MDSC_CMD --read-trello: fetching full notification id=$notificationId" >&2
+			curl -sS "https://api.trello.com/1/notifications/${notificationId}?fields=all&member=true&memberCreator=true&card=true&card_fields=all&board=true&board_fields=all&key=${trelloKey}&token=${trelloToken}"
+			return $?
+		;;
+
+		## Reads Slack activity for ONE specific target -- a required
+		## <magic-team|human-owner|<channel>:<ts>>, no "check everything"
+		## mode (that's --sweep-read-incoming-comms's job specifically, see
+		## its own comment below; conflating the two is a real design bug
+		## found and fixed 2026-07-21). Deliberately does NOT parse the
+		## Slack JSON response internally -- see the --pretty/--raw handling
+		## near the bottom of this branch. Target grammar mirrors
+		## --send-message's (magic-team|human-owner|<channel>:<ts>) so a
+		## bare channel name means "history" and a <channel>:<ts> pair means
+		## "replies in that thread" -- no new addressing scheme invented.
+		--check-slack)
+			shift
+			local target="$1"
+			shift || true
+
+			if [ -z "$target" ] ; then
+				echo "⛔ ERROR: $MDSC_CMD --check-slack: target required (magic-team|human-owner|<channel>:<ts>)" >&2
+				set +e ; return 1
+			fi
+
+			## Pretty (formatted "ts | user | text" lines) is the default, not
+			## an opt-in -- per direct human-owner correction: "at least pretty
+			## by default, I don't imagine you calling non-pretty." --raw is
+			## the escape hatch for the rare case the full raw JSON is
+			## actually needed (e.g. inspecting reply_count/thread metadata
+			## fields the pretty formatter doesn't surface).
+			local oldest pretty="true"
+			while [ $# -gt 0 ] ; do
+				case "$1" in
+					--oldest)
+						oldest="$2" ; shift 2
+					;;
+					--raw)
+						pretty="false" ; shift
+					;;
+					*)
+						echo "⛔ ERROR: $MDSC_CMD --check-slack: invalid option: $1" >&2
+						set +e ; return 1
+					;;
+				esac
+			done
+
+			local resolved channel threadTs
 			resolved="$( DistroAgentsToolsResolveTarget "$target" )"
 			case "$?" in
 				0)
@@ -801,11 +1038,11 @@ $1" ;;
 					threadTs="$( printf '%s\n' "$resolved" | sed -n 's/^THREAD_TS=//p' )"
 				;;
 				2)
-					echo "⛔ ERROR: $MDSC_CMD --sweep-read-incoming-comms: unrecognized target: $target" >&2
+					echo "⛔ ERROR: $MDSC_CMD --check-slack: unrecognized target: $target" >&2
 					set +e ; return 1
 				;;
 				*)
-					echo "⛔ ERROR: $MDSC_CMD --sweep-read-incoming-comms: could not resolve a channel for target '$target' -- check SLACK_CHANNEL_MAGIC_TEAM/SLACK_CHANNEL_HUMAN_OWNER in .local/.agents" >&2
+					echo "⛔ ERROR: $MDSC_CMD --check-slack: could not resolve a channel for target '$target' -- check SLACK_CHANNEL_MAGIC_TEAM/SLACK_CHANNEL_HUMAN_OWNER in .local/.agents" >&2
 					set +e ; return 1
 				;;
 			esac
@@ -819,12 +1056,12 @@ $1" ;;
 				endpoint="https://slack.com/api/conversations.history"
 			fi
 
-			echo "# $MDSC_CMD --sweep-read-incoming-comms: GET $endpoint channel=$channel${threadTs:+ ts=$threadTs}${oldest:+ oldest=$oldest}" >&2
+			echo "# $MDSC_CMD --check-slack: GET $endpoint channel=$channel${threadTs:+ ts=$threadTs}${oldest:+ oldest=$oldest}" >&2
 
 			local token
 			token="$( DistroAgentsTools --agent-config-option --select SLACK_BOT_TOKEN )"
 			if [ -z "$token" ] ; then
-				echo "⛔ ERROR: $MDSC_CMD --sweep-read-incoming-comms: SLACK_BOT_TOKEN not set in .local/.agents (see --agent-config-option --upsert)" >&2
+				echo "⛔ ERROR: $MDSC_CMD --check-slack: SLACK_BOT_TOKEN not set in .local/.agents (see --agent-config-option --upsert)" >&2
 				set +e ; return 1
 			fi
 
@@ -839,11 +1076,105 @@ $1" ;;
 			local curlArgs=( -sS -G "$endpoint" -H "@$headerFile" --data-urlencode "channel=$channel" )
 			[ -z "$threadTs" ] || curlArgs+=( --data-urlencode "ts=$threadTs" )
 			[ -z "$oldest" ] || curlArgs+=( --data-urlencode "oldest=$oldest" )
-			curl "${curlArgs[@]}"
+
+			## No retry logic here, by design -- human-owner correction,
+			## 2026-07-21: "check slack DO NOT NEED RETRY LOGIC - if they
+			## fail - they fail - all. --check" (applies to the whole
+			## --check-* family, not just this op). A brief retry-loop
+			## version existed for a few minutes the same day and was
+			## reverted; don't reintroduce it here.
+			##
+			## --pretty pipes the response through this repo's own
+			## sh-lib/AgentSlackMessagesFormat.awk (reuses myx.common's
+			## agentMcpJsonParseRequest.awk parsing engine verbatim, just a
+			## different leaf-emission target -- lives here, not in
+			## myx.common, since it's 100% specific to this tool's own
+			## Slack-reading need) to print clean "ts | user | text" lines
+			## directly -- this is the actual fix for the "why does every
+			## caller keep hand-rolling a python3 -c 'import json...'
+			## one-liner just to read a Slack reply" pattern, not another
+			## one-off workaround.
+			if [ "$pretty" = "true" ] ; then
+				curl "${curlArgs[@]}" | LC_ALL=C awk -f "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/AgentSlackMessagesFormat.awk"
+			else
+				curl "${curlArgs[@]}"
+				echo
+			fi
 
 			rm -f "$headerFile"
 			trap - EXIT
-			echo
+			return 0
+		;;
+
+		## NOT a general-purpose "check any Slack target" op -- that's
+		## --check-slack, above (real design bug fixed 2026-07-21: this used
+		## to accept an arbitrary <target> argument too, conflating "the
+		## comms-sweep routine's own fixed macro-op" with "read one specific
+		## thread," which they are not). This op takes no target at all --
+		## it always reads the exact same predefined, pre-configured set of
+		## watched sources (both Slack targets, email, Trello) in one
+		## optimized combined pass, producing one specific mixed output
+		## meant as the initial text source for comms processing. It exists
+		## for exactly one caller: magic-coordinator's communication-sweep
+		## Check step. If you need to read one specific arbitrary Slack
+		## target/thread, call --check-slack directly instead.
+		--sweep-read-incoming-comms)
+			shift
+
+			local oldest pretty="true"
+			while [ $# -gt 0 ] ; do
+				case "$1" in
+					--oldest)
+						oldest="$2" ; shift 2
+					;;
+					--raw)
+						pretty="false" ; shift
+					;;
+					*)
+						echo "⛔ ERROR: $MDSC_CMD --sweep-read-incoming-comms: invalid option: $1 (this op takes no target -- did you mean --check-slack?)" >&2
+						set +e ; return 1
+					;;
+				esac
+			done
+
+			local recurseArgs=()
+			[ -z "$oldest" ] || recurseArgs+=( --oldest "$oldest" )
+			[ "$pretty" = "false" ] && recurseArgs+=( --raw )
+
+			local name anyChecked=0 resolved channel
+			for name in magic-team human-owner ; do
+				resolved="$( DistroAgentsToolsResolveTarget "$name" )" || {
+					echo "# $MDSC_CMD --sweep-read-incoming-comms: skipping '$name' -- no channel id configured" >&2
+					continue
+				}
+				anyChecked=1
+				channel="$( printf '%s\n' "$resolved" | sed -n 's/^CHANNEL=//p' )"
+				echo "## target=$name channel=$channel"
+				## Trailing colon forces the *:* (channel:ts) grammar branch
+				## with an empty thread ts -- a bare channel id alone isn't
+				## valid target grammar (matches neither a known name nor
+				## channel:ts).
+				DistroAgentsTools --check-slack "$channel:" "${recurseArgs[@]}"
+			done
+
+			echo "## target=email"
+			if ! DistroAgentsTools --check-email ; then
+				echo "# $MDSC_CMD --sweep-read-incoming-comms: --check-email failed, see error above" >&2
+			else
+				anyChecked=1
+			fi
+
+			echo "## target=trello"
+			if ! DistroAgentsTools --check-trello ; then
+				echo "# $MDSC_CMD --sweep-read-incoming-comms: --check-trello failed, see error above" >&2
+			else
+				anyChecked=1
+			fi
+
+			if [ "$anyChecked" = "0" ] ; then
+				echo "⛔ ERROR: $MDSC_CMD --sweep-read-incoming-comms: no watched targets configured at all (Slack/email/Trello)" >&2
+				set +e ; return 1
+			fi
 			return 0
 		;;
 
@@ -937,8 +1268,71 @@ $1" ;;
 			return 0
 		;;
 
+		--purge-cleanup)
+			shift
+			## No path argument by design (human-owner correction, 2026-07-21:
+			## "should NOT have a path argument. It cleans predefined
+			## .local/.cleanup folder"). Always operates on exactly
+			## $MMDAPP/.local/.cleanup -- a fixed, code-determined path, never
+			## caller input, which is what makes this safe to route around the
+			## `Bash(rm *)` deny in the first place (see CLAUDE.md's
+			## DistroAgentsTools gotchas section for why that deny can't be
+			## carved into "except .cleanup/*" at the settings.json layer).
+			if [ $# -gt 0 ] ; then
+				echo "⛔ ERROR: $MDSC_CMD --purge-cleanup: takes no arguments -- always purges $MMDAPP/.local/.cleanup" >&2
+				set +e ; return 1
+			fi
+			local cleanupDir="$MMDAPP/.local/.cleanup"
+			if [ ! -d "$cleanupDir" ] ; then
+				echo "# $MDSC_CMD --purge-cleanup: $cleanupDir does not exist -- nothing to purge" >&2
+				return 0
+			fi
+			echo "# $MDSC_CMD --purge-cleanup: purging all contents of $cleanupDir (folder itself stays)" >&2
+			local entry
+			for entry in "$cleanupDir"/* "$cleanupDir"/.[!.]* ; do
+				[ -e "$entry" ] || [ -L "$entry" ] || continue
+				echo "  rm -rf $entry" >&2
+				rm -rf -- "$entry"
+			done
+			echo "# $MDSC_CMD --purge-cleanup: done" >&2
+			return 0
+		;;
+
+		--validate-json)
+			## Added 2026-07-22, human-owner-requested directly during a live
+			## routine-coworking session, after a `chat.postMessage --data @file`
+			## call failed with Slack's `invalid_json` and the JSON wasn't checked
+			## first. Validates a JSON file (path arg) or stdin (no arg) is
+			## syntactically valid, before it's ever handed to curl/an API call.
+			## Uses python3 (present on every supported OS here) rather than jq,
+			## matching this tool family's existing jq-avoidance convention.
+			shift
+			local jsonPath="$1"
+			if [ -n "$jsonPath" ] ; then
+				if [ ! -f "$jsonPath" ] ; then
+					echo "⛔ ERROR: $MDSC_CMD --validate-json: file not found: $jsonPath" >&2
+					set +e ; return 1
+				fi
+				if python3 -c "import json,sys; json.load(open(sys.argv[1]))" "$jsonPath" >/dev/null 2>&1 ; then
+					echo "# $MDSC_CMD --validate-json: valid JSON: $jsonPath" >&2
+					return 0
+				else
+					echo "⛔ ERROR: $MDSC_CMD --validate-json: invalid JSON: $jsonPath" >&2
+					set +e ; return 1
+				fi
+			else
+				if python3 -c "import json,sys; json.load(sys.stdin)" >/dev/null 2>&1 ; then
+					echo "# $MDSC_CMD --validate-json: valid JSON (stdin)" >&2
+					return 0
+				else
+					echo "⛔ ERROR: $MDSC_CMD --validate-json: invalid JSON (stdin)" >&2
+					set +e ; return 1
+				fi
+			fi
+		;;
+
 		--help|--help-syntax|'')
-			DistroAgentsToolsHelp
+			. "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/help/Help.DistroAgentsTools.include"
 			return 0
 		;;
 

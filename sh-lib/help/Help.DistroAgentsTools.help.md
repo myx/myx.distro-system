@@ -4,10 +4,20 @@
 📘 syntax: DistroAgentsTools.fn.sh --list-consoles [--override-workspace <path>]
 📘 syntax: DistroAgentsTools.fn.sh --agent-config-option <operation>
 📘 syntax: DistroAgentsTools.fn.sh --send-message <magic-team|human-owner|<channel>:<ts>> [text...]
-📘 syntax: DistroAgentsTools.fn.sh --send-message <target> --message-from-stdin [--format text|blocks]
-📘 syntax: DistroAgentsTools.fn.sh --sweep-read-incoming-comms [<magic-team|human-owner|<channel>:<ts>>] [--oldest <ts>]
+📘 syntax: DistroAgentsTools.fn.sh --send-message <target> --from-stdin [--format text|blocks]
+📘 syntax: DistroAgentsTools.fn.sh --send-email-message <email@address>... -- <subject> -- <body...>
+📘 syntax: DistroAgentsTools.fn.sh --send-email-message <email@address>... -- <subject> -- --from-stdin
+📘 syntax: DistroAgentsTools.fn.sh --check-slack <magic-team|human-owner|<channel>:<ts>> [--oldest <ts>] [--raw]
+📘 syntax: DistroAgentsTools.fn.sh --check-email
+📘 syntax: DistroAgentsTools.fn.sh --check-trello
+📘 syntax: DistroAgentsTools.fn.sh --sweep-read-incoming-comms [--oldest <ts>] [--raw]
+📘 syntax: DistroAgentsTools.fn.sh --read-slack <channel>:<ts> [--thread]
+📘 syntax: DistroAgentsTools.fn.sh --read-email <uid>
+📘 syntax: DistroAgentsTools.fn.sh --read-trello <notification-id>
 📘 syntax: DistroAgentsTools.fn.sh --self-test
 📘 syntax: DistroAgentsTools.fn.sh --verify-permissions
+📘 syntax: DistroAgentsTools.fn.sh --validate-json [<path>]
+📘 syntax: DistroAgentsTools.fn.sh --purge-cleanup
 📘 syntax: DistroAgentsTools.fn.sh [--help]
 
 ##  Summary:
@@ -62,6 +72,16 @@
 			spaces) is sent. With no command given, stdin is read and piped
 			through as-is (so multi-line input/heredocs work).
 
+			**Command-only, not a data-transport.** The joined command is
+			written raw and unquoted, exactly like typing at an interactive
+			shell prompt -- caller is responsible for their own quoting. Do
+			NOT pass arbitrary free text (a message body, anything with
+			shell metacharacters like parentheses/quotes/semicolons) as the
+			trailing argument -- that has crashed a live console process for
+			real. For free text, call --send-message/--send-email-message as
+			bare direct invocations instead; neither goes through
+			--send-console.
+
 		--stop-console <channel>
 			Sends `exit` into the channel, then kills the console and
 			FIFO-holder processes (TERM, then KILL after a 1s grace period if
@@ -95,7 +115,7 @@
 			of each.
 
 		--send-message <target> [text...]
-		--send-message <target> --message-from-stdin [--format text|blocks]
+		--send-message <target> --from-stdin [--format text|blocks]
 			Posts a message to Slack via chat.postMessage. <target> is
 			`magic-team` or `human-owner` (channel id resolved from
 			SLACK_CHANNEL_MAGIC_TEAM/SLACK_CHANNEL_HUMAN_OWNER in
@@ -103,36 +123,105 @@
 			(posted as a threaded reply via thread_ts — the caller supplies
 			this directly; nothing is looked up by name). Plain trailing
 			arguments (or plain stdin) become the `text` field.
-			--message-from-stdin --format blocks treats stdin as a raw JSON
+			`--from-stdin` is the standardized name for "read content from
+			stdin instead of argv" (see the team-wide convention in
+			`magic-team/CONSOLE-SESSIONS.md`'s "Heredoc for stdin" section --
+			call this op with its absolute path leading and a heredoc, never a
+			separate command piping into it); `--message-from-stdin` is the
+			original name and still works identically, unchanged, for
+			anything already written against it.
+			--from-stdin --format blocks treats stdin as a raw JSON
 			array assigned directly to the `blocks` field (caller-supplied
-			Block Kit, not validated/escaped by this command); `text` is set
-			to a static fallback string in that case, not derived from the
+			Block Kit). Since 2026-07-22, stdin is validated before it's
+			spliced into the payload: it must pass this command's own
+			--validate-json (real JSON-syntax check, via self-recursion) and
+			must be a bare JSON array (starts with `[`, ends with `]`) --
+			otherwise `--send-message` fails immediately with a `⛔ ERROR:
+			... --format blocks stdin failed --validate-json` or `... is
+			valid JSON but not a bare array` message and never reaches curl.
+			Not escaped beyond that (Block Kit content is caller-owned
+			structured JSON, not free text -- only its JSON-validity and
+			array-shape are checked, not its contents). `text` is set to a
+			static fallback string in the blocks case, not derived from the
 			blocks' own content. SLACK_BOT_TOKEN is resolved on demand from
 			--agent-config-option immediately before the request and is
 			never echoed; the constructed request (endpoint, channel,
 			payload) is printed to stderr before sending with the token
 			itself redacted.
 
-		--sweep-read-incoming-comms [<magic-team|human-owner|<channel>:<ts>>] [--oldest <ts>]
-			Reads recent Slack activity for magic-coordinator's
-			communication-sweep.md Check step. Target grammar mirrors
-			--send-message's: no target sweeps both known watched targets
-			(magic-team, human-owner) via conversations.history in one call
-			each; `magic-team`/`human-owner` alone sweeps just that one;
-			`<channel>:<ts>` fetches conversations.replies for that specific
-			thread instead (same addressing --send-message already uses for
-			threaded replies). `--oldest <ts>` is passed through to the Slack
-			API call as-is, letting the caller pass its own last-check marker
-			for an incremental sweep. Channel ids are resolved the same way as
+		--send-email-message <email@address>... -- <subject> -- <body...>
+		--send-email-message <email@address>... -- <subject> -- --from-stdin
+			Real, standalone SMTP send via curl (EMAIL_USER/EMAIL_APP_PASSWORD/
+			EMAIL_SMTP_HOST/EMAIL_SMTP_PORT from --agent-config-option),
+			not just an internal fallback -- --send-message's exhausted-retry
+			path calls this same op via self-recursion. Multiple recipients
+			accepted before the first `--`; subject is everything between the
+			two `--` separators; everything after the second `--` becomes the
+			body, one line per remaining argument -- OR, since 2026-07-22,
+			`--from-stdin` in place of trailing body argv reads the whole body
+			from stdin instead (call with the tool's absolute path leading and
+			a heredoc, per the team-wide convention above), avoiding the
+			exact multi-line/shell-metacharacter argv fragility that caused
+			the `--format blocks` bug this same day. Giving both `--from-stdin`
+			and trailing body argv together is an error (`⛔ ERROR: ...
+			--from-stdin given alongside trailing body argv`), not silently
+			resolved one way or the other.
+
+		--check-slack <magic-team|human-owner|<channel>:<ts>> [--oldest <ts>] [--raw]
+			Reads Slack activity for ONE specific, caller-chosen target --
+			target is required, this is a general-purpose single-target
+			reader, not the comms-sweep macro-op (see --sweep-read-incoming-comms
+			below; these two used to be conflated into one op that
+			accepted an optional target, which was a real design bug, fixed
+			2026-07-21). Target grammar mirrors --send-message's:
+			`magic-team`/`human-owner` reads that watched target's
+			conversations.history; `<channel>:<ts>` fetches
+			conversations.replies for that specific thread instead (same
+			addressing --send-message already uses for threaded replies).
+			`--oldest <ts>` is passed through to the Slack API call as-is,
+			letting the caller pass its own last-check marker for an
+			incremental read. Channel ids are resolved the same way as
 			--send-message's (SLACK_CHANNEL_MAGIC_TEAM/SLACK_CHANNEL_HUMAN_OWNER
-			via --agent-config-option). Deliberately does not parse the Slack
-			JSON response -- this shell layer has no real JSON parser (same
-			reasoning as --send-message's blocks-fallback note) -- the raw API
-			body is printed to stdout as-is for the calling routine to read
-			directly. SLACK_BOT_TOKEN handling is identical to --send-message's
-			(resolved on demand, never echoed, private temp header file).
-			Only Slack is covered -- the only platform this tool has any
-			API-calling code for today.
+			via --agent-config-option). SLACK_BOT_TOKEN handling is identical
+			to --send-message's (resolved on demand, never echoed, private
+			temp header file).
+
+			**No retry logic** -- human-owner correction, 2026-07-21: "if
+			they fail - they fail," applies to the whole --check-* family.
+			One attempt, fails clean if it fails.
+
+			**Output is pretty-formatted by default** ("ts | user | text"
+			one line per message, via myx.distro-system's own
+			`sh-lib/AgentSlackMessagesFormat.awk` -- reuses the same
+			recursive-descent JSON-parsing engine as myx.common's
+			`agentMcpJsonParseRequest.awk`, copied verbatim, only the
+			leaf-emission logic differs) instead of raw JSON -- every real
+			caller ended up hand-parsing the JSON anyway, so raw is no longer
+			the default. `--raw` opts back into the full API response
+			(needed for fields the pretty formatter doesn't surface, e.g.
+			`reply_count`/`thread_ts` metadata).
+
+		--check-email
+			IMAP STATUS INBOX (UNSEEN) check only -- unread count, not a full
+			fetch. Same EMAIL_* config as --send-email-message.
+
+		--check-trello
+			Unread Trello notifications only (`read_filter=unread`), not a
+			full board read. TRELLO_KEY/TRELLO_TOKEN from --agent-config-option.
+
+		--sweep-read-incoming-comms [--oldest <ts>] [--raw]
+			**Not a general-purpose Slack reader -- takes no target at all.**
+			This is the dedicated macro-operation for exactly one caller,
+			magic-coordinator's communication-sweep.md Check step: it always
+			reads the exact same predefined, pre-configured set of watched
+			sources (both Slack targets via --check-slack, plus --check-email
+			and --check-trello) in one combined pass, producing one specific
+			mixed output meant as the initial text source for comms
+			processing. If you need to read one specific arbitrary Slack
+			target/thread, call --check-slack directly instead --
+			--sweep-read-incoming-comms will reject a positional target
+			argument. `--oldest`/`--raw` are passed through to each
+			--check-slack call it makes internally.
 
 		--self-test
 			Exercises the --agent-config-option permission-hardening chain
@@ -154,6 +243,64 @@
 			Prints one `OK`/`BAD` line per path to stdout and returns
 			non-zero if anything is out of hardening, without modifying
 			anything.
+
+		--validate-json [<path>]
+			Checks that a JSON file (<path>) or stdin (no argument) is
+			syntactically valid JSON -- nothing more, no schema/shape check of
+			its own. Added 2026-07-22 after a real `--send-message ... --format
+			blocks` failure (Slack's `invalid_json`/`missing_charset`) traced
+			back to unvalidated stdin being spliced straight into the request
+			payload; `--format blocks` now self-recurses through this same op
+			before it splices anything (see --send-message above). Uses
+			python3 (present on every supported OS here), not jq, matching
+			this tool family's existing jq-avoidance convention. Prints `#
+			... --validate-json: valid JSON: <path|(stdin)>` and returns 0 on
+			success, or `⛔ ERROR: ... --validate-json: invalid JSON:
+			<path|(stdin)>` and returns 1 on failure -- a missing <path>
+			argument is stdin, not an error; a <path> that doesn't exist is a
+			separate, explicit "file not found" error, not silently treated
+			as stdin.
+
+		--purge-cleanup
+			Empties $MMDAPP/.local/.cleanup/ (the folder itself stays) --
+			exists because Claude Code's own permission engine has no
+			negative-glob syntax, so a blanket `Bash(rm *)` deny can never
+			be carved into "except .cleanup/*" at the settings.json layer
+			(deny always wins over allow regardless of specificity,
+			confirmed live 2026-07-21). This op is the sanctioned way to
+			actually empty it: the real `rm` call happens inside this
+			already-allowlisted script invocation, never as a raw top-level
+			`rm` command, so the deny rule's literal prefix-match on `rm `
+			never sees it. **Takes no arguments** -- the target is a fixed,
+			code-determined path, never caller input (human-owner correction,
+			2026-07-21: an earlier version took an optional `<path>`/`--all`,
+			which was wrong -- this op cleans exactly one predefined folder,
+			nothing else, so there's nothing to parameterize). That fixed
+			path is also what makes the whole thing safe: no traversal/
+			injection surface exists because there's no path input to
+			validate in the first place.
+
+		--read-slack <channel>:<ts> [--thread]
+			Full detail for one specific message (default) or its whole
+			thread (--thread) -- all meta-info, reactions, formatting,
+			files/attachments, exactly as Slack's own API returns them.
+			Complement to --check-slack: that one is a lightweight,
+			pretty-formatted scan; this one is the deep read for actually
+			processing one specific item. Always returns full raw JSON,
+			never pretty-formatted -- "full" is the entire point.
+
+		--read-email <uid>
+			Full RFC822 message (headers + body + MIME multipart,
+			attachments included as their raw MIME parts) for one specific
+			email by IMAP UID. Uses curl's `;UID=<uid>` URL addressing (no
+			`;SECTION=` means the whole message) -- contrast with
+			--check-email's STATUS-only unread count.
+
+		--read-trello <notification-id>
+			Full detail for one specific Trello notification (the unit
+			--check-trello's unread list returns), including its related
+			card/board summary. Contrast with --check-trello's unread-list
+			scan.
 
 		--help
 			Prints this syntax + summary and exits.
@@ -185,8 +332,16 @@
 		# Send one command into an open channel
 		`DistroAgentsTools.fn.sh --send-console myx.distro-agent-console.<slug>.source -- echo hello`
 
-		# Send multiple lines via stdin
-		`printf 'echo one\necho two\n' | DistroAgentsTools.fn.sh --send-console myx.distro-agent-console.<slug>.source`
+		# Send multiple lines via stdin -- absolute path leading, heredoc for content,
+		# never a separate piping command in front (that breaks the permission
+		# allowlist match; see magic-team/CONSOLE-SESSIONS.md's "Heredoc for stdin"
+		# section)
+		```
+		DistroAgentsTools.fn.sh --send-console myx.distro-agent-console.<slug>.source <<'EOF'
+		echo one
+		echo two
+		EOF
+		```
 
 		# List this workspace's channels
 		`DistroAgentsTools.fn.sh --list-consoles`
@@ -201,20 +356,46 @@
 		# Send a plain-text message to a fixed target
 		`DistroAgentsTools.fn.sh --send-message magic-team Build finished OK.`
 
-		# Send a threaded reply with rich Block Kit formatting from stdin
-		`echo '[{"type":"section","text":{"type":"mrkdwn","text":"*done*"}}]' | DistroAgentsTools.fn.sh --send-message C0123ABCD:1700000000.000100 --message-from-stdin --format blocks`
+		# Send a threaded reply with rich Block Kit formatting from stdin -- heredoc,
+		# not a piping command in front; --from-stdin is the standardized name
+		# (--message-from-stdin still works too, same flag)
+		```
+		DistroAgentsTools.fn.sh --send-message C0123ABCD:1700000000.000100 --from-stdin --format blocks <<'EOF'
+		[{"type":"section","text":{"type":"mrkdwn","text":"*done*"}}]
+		EOF
+		```
 
-		# Sweep both known watched targets (magic-team + human-owner) for new activity
+		# Send an email with a multi-line body from stdin instead of fragile trailing argv
+		```
+		DistroAgentsTools.fn.sh --send-email-message myx@meloscope.com -- "Status update" -- --from-stdin <<'EOF'
+		Line one of the body.
+		Line two, with 'quotes' and (parens) that would have been fragile as argv.
+		EOF
+		```
+
+		# Sweep all watched targets (magic-team, human-owner, email, Trello) for new activity --
+		# takes no target, this is the fixed comms-sweep macro-op, not a single-target reader
 		`DistroAgentsTools.fn.sh --sweep-read-incoming-comms`
 
-		# Sweep just one target, incrementally since a prior check marker
-		`DistroAgentsTools.fn.sh --sweep-read-incoming-comms magic-team --oldest 1700000000.000000`
+		# Sweep all watched targets, incrementally since a prior check marker
+		`DistroAgentsTools.fn.sh --sweep-read-incoming-comms --oldest 1700000000.000000`
 
-		# Read replies in one specific thread
-		`DistroAgentsTools.fn.sh --sweep-read-incoming-comms C0123ABCD:1700000000.000100`
+		# Read one specific target/thread instead -- use --check-slack, not --sweep-read-incoming-comms
+		`DistroAgentsTools.fn.sh --check-slack magic-team --oldest 1700000000.000000`
+		`DistroAgentsTools.fn.sh --check-slack C0123ABCD:1700000000.000100`
 
 		# Regression-test permission hardening under a deliberately permissive umask
 		`DistroAgentsTools.fn.sh --self-test`
 
 		# Audit .local/.agents for anything not chmod 700/600
 		`DistroAgentsTools.fn.sh --verify-permissions`
+
+		# Validate a JSON file before handing it to an API call
+		`DistroAgentsTools.fn.sh --validate-json /path/to/payload.json`
+
+		# Validate JSON from stdin -- heredoc, not a piping command in front
+		```
+		DistroAgentsTools.fn.sh --validate-json <<'EOF'
+		[{"type":"section","text":{"type":"mrkdwn","text":"*ok*"}}]
+		EOF
+		```

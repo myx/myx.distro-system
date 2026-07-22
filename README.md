@@ -28,6 +28,10 @@ utilities used by `myx.distro-source`, `myx.distro-deploy` and related component
 - `DistroImageSync` (from `sh-scripts/DistroImageSync.fn.sh`)
 	- Builds, prints, or executes repo sync task scripts for the source/image pipeline stages (`source-prepare-pull`, `source-process-push`, `image-prepare-pull`, `image-process-push`, `image-install-pull`). Generic sync engine shared across stages/consumers — not stage-specific logic.
 	- Help: `DistroImageSync.fn.sh --help`
+- `DistroAgentsTools` (from `sh-scripts/DistroAgentsTools.fn.sh`, added 2026-07-21)
+	- Not distro build/deploy tooling — infrastructure for AI-agent sessions (the `magic-*` skill team, `main-loop` in particular) to operate reliably: Keep-Alive Workspace Console Sessions (`--start-console`/`--send-console`/`--stop-console`/`--list-consoles`), credential-bearing config (`--agent-config-option`, backed by `myx.distro-.local`'s shared `LocalTools.Config.include`), and Slack/email/Trello communication (`--send-message`, `--send-email-message`, `--check-email`, `--check-trello`, `--sweep-read-incoming-comms`).
+	- Consumers: `magic-coordinator`'s `routine-main-loop`/`routine-board-actualisation`/`routine-communication-sweep` are the primary real users — every comms-sweep and board-actualisation pass in that loop calls this tool directly rather than hand-rolling curl/IMAP/Trello calls.
+	- Help: `DistroAgentsTools.fn.sh --help`. See `CLAUDE.md`'s "DistroAgentsTools" section for gotchas before touching it.
 
 ---
 
