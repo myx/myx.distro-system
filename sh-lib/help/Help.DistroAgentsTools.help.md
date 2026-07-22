@@ -5,10 +5,13 @@
 📘 syntax: DistroAgentsTools.fn.sh --agent-config-option <operation>
 📘 syntax: DistroAgentsTools.fn.sh --send-message <magic-team|human-owner|<channel>:<ts>> [text...]
 📘 syntax: DistroAgentsTools.fn.sh --send-message <target> --from-stdin [--format text|blocks]
+📘 syntax: DistroAgentsTools.fn.sh --send-message <target> --file <path> [--format text|blocks]
 📘 syntax: DistroAgentsTools.fn.sh --send-email-message <email@address>... -- <subject> -- <body...>
 📘 syntax: DistroAgentsTools.fn.sh --send-email-message <email@address>... -- <subject> -- --from-stdin
+📘 syntax: DistroAgentsTools.fn.sh --send-email-message <email@address>... -- <subject> -- --file <path>
 📘 syntax: DistroAgentsTools.fn.sh --check-slack <magic-team|human-owner|<channel>:<ts>> [--oldest <ts>] [--raw]
 📘 syntax: DistroAgentsTools.fn.sh --check-email
+📘 syntax: DistroAgentsTools.fn.sh --mark-email-seen <uid>
 📘 syntax: DistroAgentsTools.fn.sh --check-trello
 📘 syntax: DistroAgentsTools.fn.sh --sweep-read-incoming-comms [--oldest <ts>] [--raw]
 📘 syntax: DistroAgentsTools.fn.sh --read-slack <channel>:<ts> [--thread]
@@ -17,6 +20,10 @@
 📘 syntax: DistroAgentsTools.fn.sh --self-test
 📘 syntax: DistroAgentsTools.fn.sh --verify-permissions
 📘 syntax: DistroAgentsTools.fn.sh --validate-json [<path>]
+📘 syntax: DistroAgentsTools.fn.sh --list-md <path>...
+📘 syntax: DistroAgentsTools.fn.sh --write-slib <routine-name>
+📘 syntax: DistroAgentsTools.fn.sh --write-board-item <state> <item-filename>
+📘 syntax: DistroAgentsTools.fn.sh --write-inbox-note <member> <item-filename>
 📘 syntax: DistroAgentsTools.fn.sh --purge-cleanup
 📘 syntax: DistroAgentsTools.fn.sh [--help]
 
@@ -116,6 +123,7 @@
 
 		--send-message <target> [text...]
 		--send-message <target> --from-stdin [--format text|blocks]
+		--send-message <target> --file <path> [--format text|blocks]
 			Posts a message to Slack via chat.postMessage. <target> is
 			`magic-team` or `human-owner` (channel id resolved from
 			SLACK_CHANNEL_MAGIC_TEAM/SLACK_CHANNEL_HUMAN_OWNER in
@@ -129,28 +137,56 @@
 			call this op with its absolute path leading and a heredoc, never a
 			separate command piping into it); `--message-from-stdin` is the
 			original name and still works identically, unchanged, for
-			anything already written against it.
-			--from-stdin --format blocks treats stdin as a raw JSON
-			array assigned directly to the `blocks` field (caller-supplied
-			Block Kit). Since 2026-07-22, stdin is validated before it's
+			anything already written against it. `--file <path>` (added
+			2026-07-22) reads content from a file instead — lets a caller
+			write content with a plain `Write` tool call first (no Bash
+			permission prompt for the write itself) and still invoke
+			--send-message as a single-line command, since a multi-line
+			heredoc body means the invoked command no longer matches a
+			single-line settings.json allowlist glob the same way. Giving
+			both `--from-stdin`/`--message-from-stdin` and `--file` together
+			is not a supported combination (whichever is parsed first wins
+			silently) — use exactly one.
+			--from-stdin/--file --format blocks treats the content as a raw
+			JSON array assigned directly to the `blocks` field (caller-supplied
+			Block Kit). Since 2026-07-22, that content is validated before it's
 			spliced into the payload: it must pass this command's own
-			--validate-json (real JSON-syntax check, via self-recursion) and
-			must be a bare JSON array (starts with `[`, ends with `]`) --
-			otherwise `--send-message` fails immediately with a `⛔ ERROR:
-			... --format blocks stdin failed --validate-json` or `... is
-			valid JSON but not a bare array` message and never reaches curl.
-			Not escaped beyond that (Block Kit content is caller-owned
-			structured JSON, not free text -- only its JSON-validity and
-			array-shape are checked, not its contents). `text` is set to a
-			static fallback string in the blocks case, not derived from the
-			blocks' own content. SLACK_BOT_TOKEN is resolved on demand from
-			--agent-config-option immediately before the request and is
-			never echoed; the constructed request (endpoint, channel,
-			payload) is printed to stderr before sending with the token
-			itself redacted.
+			--validate-json (real JSON-syntax check, via self-recursion), must
+			be a bare JSON array (starts with `[`, ends with `]`), and every
+			top-level array element must be a JSON object whose own `type` is
+			one of Slack's real top-level block types (`section`, `divider`,
+			`header`, `context`, `image`, `actions`, `input`, `video`,
+			`rich_text`, `file`) — otherwise `--send-message` fails immediately
+			with a `⛔ ERROR: ... --format blocks stdin failed --validate-json`,
+			`... is valid JSON but not a bare array`, or `... has an
+			invalid/missing top-level 'type' at block index(es) ...` message
+			and never reaches curl. That last check exists because a
+			text-object type (`mrkdwn`/`plain_text`, only valid nested inside a
+			block's own `text` field) mistakenly used as a block's own `type`
+			is exactly the shape of a real live incident (Slack's
+			`invalid_blocks: unsupported type "mrkdwn"`) — it is a cheap,
+			non-recursive structural check, not a full Block Kit schema
+			validator; it does not look inside each block's own nested fields.
+			Beyond these three checks, content is not otherwise escaped (Block
+			Kit content is caller-owned structured JSON, not free text). `text`
+			is set to a static fallback string in the blocks case, not derived
+			from the blocks' own content. Any trailing argv token starting with
+			`--` that isn't a recognized option is rejected immediately with a
+			`⛔ ERROR: ... unrecognized option: ...` message rather than being
+			silently absorbed into the plain-text `text` field — a real live
+			incident (an unrecognized/mis-parsed flag-shaped token silently
+			became the entire posted message text, e.g. a stray "--from-stdin"
+			posted as-is with `ok:true` and no visible failure) is exactly what
+			this guard prevents; genuine literal text starting with `--` must
+			go through `--from-stdin`/`--file` instead. SLACK_BOT_TOKEN is
+			resolved on demand from --agent-config-option immediately before
+			the request and is never echoed; the constructed request
+			(endpoint, channel, payload) is printed to stderr before sending
+			with the token itself redacted.
 
 		--send-email-message <email@address>... -- <subject> -- <body...>
 		--send-email-message <email@address>... -- <subject> -- --from-stdin
+		--send-email-message <email@address>... -- <subject> -- --file <path>
 			Real, standalone SMTP send via curl (EMAIL_USER/EMAIL_APP_PASSWORD/
 			EMAIL_SMTP_HOST/EMAIL_SMTP_PORT from --agent-config-option),
 			not just an internal fallback -- --send-message's exhausted-retry
@@ -162,10 +198,14 @@
 			from stdin instead (call with the tool's absolute path leading and
 			a heredoc, per the team-wide convention above), avoiding the
 			exact multi-line/shell-metacharacter argv fragility that caused
-			the `--format blocks` bug this same day. Giving both `--from-stdin`
-			and trailing body argv together is an error (`⛔ ERROR: ...
-			--from-stdin given alongside trailing body argv`), not silently
-			resolved one way or the other.
+			the `--format blocks` bug this same day. `--file <path>` (added
+			2026-07-22) reads the body from a file instead — same motivation
+			as --send-message's own --file (write the body with a plain Write
+			tool call first, then invoke this op as one single-line command).
+			Giving more than one of `--from-stdin`/`--file`/trailing body argv
+			together is an error (`⛔ ERROR: ... given alongside ... -- use one
+			or the other, not both`), not silently resolved one way or the
+			other -- exactly one body source is required.
 
 		--check-slack <magic-team|human-owner|<channel>:<ts>> [--oldest <ts>] [--raw]
 			Reads Slack activity for ONE specific, caller-chosen target --
@@ -201,9 +241,37 @@
 			(needed for fields the pretty formatter doesn't surface, e.g.
 			`reply_count`/`thread_ts` metadata).
 
+		--react-slack <channel>:<ts> <emoji-name>
+			Posts one Slack reaction (`reactions.add`) to a specific message --
+			<channel>:<ts> only, same target grammar as --read-slack (no
+			magic-team/human-owner shortcut, since a reaction always targets one
+			exact message, not a channel). <emoji-name> has no colons (matches
+			Slack's own `name` field, e.g. `white_check_mark`, not
+			`:white_check_mark:`). Added 2026-07-22 -- closes a real gap: this
+			tool had no reaction-posting op at all until now, so the per-message
+			Slack-reaction-tracking design (`routine-communication-sweep`,
+			`routine-board-actualisation`'s pending-reaction lookup) had nothing
+			to actually call. SLACK_BOT_TOKEN handling identical to
+			--send-message/--read-slack (resolved on demand, never echoed,
+			private temp header file). Prints the raw API response and returns
+			0 on `ok:true` -- an `already_reacted` error is treated as a
+			harmless no-op (also returns 0, with a `#` note, not an error),
+			since Slack itself returns that for a reaction that's already
+			present and this tool family's design already expects that as
+			success, not a retry/investigate case. Any other error returns 1.
+
 		--check-email
 			IMAP STATUS INBOX (UNSEEN) check only -- unread count, not a full
 			fetch. Same EMAIL_* config as --send-email-message.
+
+		--mark-email-seen <uid>
+			Marks one specific email (by IMAP UID, same identifier
+			--read-email takes) as \Seen via IMAP UID STORE. Added
+			2026-07-22 -- closes a real gap: --check-email/--read-email can
+			scan and fetch, but nothing marked a message read after it was
+			actually processed, so every comms-sweep pass kept re-seeing the
+			same UIDs as unseen. Same EMAIL_* config as --check-email/
+			--send-email-message.
 
 		--check-trello
 			Unread Trello notifications only (`read_filter=unread`), not a
@@ -260,6 +328,80 @@
 			argument is stdin, not an error; a <path> that doesn't exist is a
 			separate, explicit "file not found" error, not silently treated
 			as stdin.
+
+			**Not a required pre-step for other ops.** Every op that actually
+			consumes JSON content as part of its own normal operation (today:
+			`--send-message --format blocks`) already self-recurses through
+			this same check internally and fails loud with a clear message at
+			the point of use -- callers never need to run `--validate-json`
+			first as a manual gate before calling the real op. This op's own
+			standalone purpose is ad hoc testing/debugging: checking a JSON
+			blob you or someone else produced (a file on disk, a payload
+			pasted into a heredoc), independent of any specific op, when you
+			just want to know "is this syntactically valid JSON" on its own.
+
+		--list-md <path>...
+			Existence + line count for one or more caller-supplied file paths,
+			one line of output per path: `<path>: <N> lines` if found, `<path>:
+			MISSING` if not -- returns 1 if any path was missing, 0 otherwise.
+			Added 2026-07-22, human-owner-requested directly, to replace the
+			hand-rolled `for f in ...; do wc -l "$f"; done`-style Bash loop
+			agents kept reaching for before editing a batch of markdown/doc
+			files -- each such loop is a fresh, non-matching command string
+			that costs its own permission-prompt grant, same friction class as
+			--validate-json/--from-stdin above. Read-only, no credentials, no
+			network. Despite the flag name, not restricted to `.md` files --
+			any path works; at least one path argument is required.
+
+		--write-slib <routine-name>
+			Regenerates one routine's own routine-contract.SLIB.md from stdin --
+			content is always read from stdin (no argv alternative, no --from-stdin
+			flag to toggle -- unlike --send-message/--send-email-message there is no
+			other content source for this op). <routine-name> is a bare directory
+			name only (no `/`, not `.`/`..`) that must already exist under
+			$HOME/.claude/skills/ -- same fixed-target-per-identifier shape as
+			--purge-cleanup, never a free-form path. Writes
+			$HOME/.claude/skills/<routine-name>/routine-contract.SLIB.md, refusing
+			an empty stdin rather than truncating the file to nothing. Added
+			2026-07-22 -- closes the human-owner's own SLIB-approval-friction
+			question ("I don't want to approve each" [SLIB regeneration]) merged
+			with keeper-myx's broader tool-agnostic-update-mechanism proposal. No
+			caller-identity enforcement -- convention-based trust only, same model
+			as every other op here; intended caller is magic-librarian. Only this
+			op is built this round -- --write-board-item/--write-inbox-note (the
+			same proposal's other illustrative cases) are deliberately deferred,
+			--write-board-item in particular pending its own board-exclusivity
+			scoping decision -- **resolved and built 2026-07-22, see below.**
+
+		--write-board-item <state> <item-filename>
+			**magic-coordinator-only op by design** — BOARD.md states plainly
+			that write authority over the board (creating/moving/scoring an
+			Item) is exclusive to magic-coordinator; this op is the tool-
+			mediated mechanism magic-coordinator itself uses to do that, not
+			a general-purpose board-writing op for any member. No caller-
+			identity enforcement exists (same convention-based-trust model as
+			every other op here) — this is documented, not code-enforced.
+			<state> must be one of the board's real state-folder names
+			(planned/approved/running/testing/blocked/parked/processed/
+			archived/cleanup); <item-filename> must be a bare filename (no
+			`/`, not `.`/`..`). Content via stdin only. Writes (creates or
+			overwrites) `$HOME/.claude/skills/magic-team/board/<state>/
+			<item-filename>`. Moving an Item between states is two calls
+			(write into the new state, then remove the old file separately) —
+			this op has no built-in move/rename primitive.
+
+		--write-inbox-note <member> <item-filename>
+			Writes a note into any member's own personal inbox
+			(`~/.claude/skills/<member>/inbox/`) — unlike the board, inbox
+			write access is not exclusive to one member; any member may post
+			into any other member's inbox (the standard cross-member handoff
+			mechanism, see routine-process-inbox). <member> must already
+			exist as a real skill directory; <item-filename> must be a bare
+			filename. The inbox/ directory is created lazily if it doesn't
+			exist yet (a missing inbox/ is not an error, unlike a missing
+			board-state directory, since board states are a fixed known set
+			and a member's inbox may simply not have been created yet).
+			Content via stdin only.
 
 		--purge-cleanup
 			Empties $MMDAPP/.local/.cleanup/ (the folder itself stays) --
@@ -365,6 +507,27 @@
 		EOF
 		```
 
+		# Send the same via --file instead -- write content with a plain Write tool
+		# call first, then this stays a single-line command
+		`DistroAgentsTools.fn.sh --send-message magic-team --file /path/to/message.txt`
+
+		# Mark an email UID as read after processing it
+		`DistroAgentsTools.fn.sh --mark-email-seen 48`
+
+		# Write/update a board Item -- magic-coordinator-only op, see --write-board-item above
+		```
+		DistroAgentsTools.fn.sh --write-board-item planned task-example.md <<'EOF'
+		... board item content ...
+		EOF
+		```
+
+		# Post a note into another member's own personal inbox
+		```
+		DistroAgentsTools.fn.sh --write-inbox-note keeper-myx 2026-07-22-note-example.md <<'EOF'
+		... note content ...
+		EOF
+		```
+
 		# Send an email with a multi-line body from stdin instead of fragile trailing argv
 		```
 		DistroAgentsTools.fn.sh --send-email-message myx@meloscope.com -- "Status update" -- --from-stdin <<'EOF'
@@ -390,12 +553,28 @@
 		# Audit .local/.agents for anything not chmod 700/600
 		`DistroAgentsTools.fn.sh --verify-permissions`
 
-		# Validate a JSON file before handing it to an API call
+		# Ad hoc: check a JSON file someone produced, independent of any op --
+		# NOT a required pre-step before --send-message --format blocks (that op
+		# already validates its own stdin internally, see --send-message above)
 		`DistroAgentsTools.fn.sh --validate-json /path/to/payload.json`
 
-		# Validate JSON from stdin -- heredoc, not a piping command in front
+		# Ad hoc: check JSON from stdin the same way -- heredoc, not a piping command in front
 		```
 		DistroAgentsTools.fn.sh --validate-json <<'EOF'
 		[{"type":"section","text":{"type":"mrkdwn","text":"*ok*"}}]
 		EOF
 		```
+
+		# Regenerate a routine's own merged contract file -- heredoc, not a piping command in front
+		```
+		DistroAgentsTools.fn.sh --write-slib routine-grooming <<'EOF'
+		... full routine-contract.SLIB.md content ...
+		EOF
+		```
+
+		# Existence + line count for a batch of files in one call, instead of a hand-rolled `for`/`wc -l` loop
+		`DistroAgentsTools.fn.sh --list-md /path/to/one.md /path/to/two.md /path/to/missing.md`
+		# -> /path/to/one.md: 67 lines
+		# -> /path/to/two.md: 43 lines
+		# -> /path/to/missing.md: MISSING
+		# (returns 1 since one path was missing)

@@ -5,10 +5,14 @@ echo "📘 syntax: DistroAgentsTools.fn.sh --list-consoles [--override-workspace
 echo "📘 syntax: DistroAgentsTools.fn.sh --agent-config-option <operation>" >&2
 echo "📘 syntax: DistroAgentsTools.fn.sh --send-message <magic-team|human-owner|<channel>:<ts>> [text...]" >&2
 echo "📘 syntax: DistroAgentsTools.fn.sh --send-message <target> --from-stdin [--format text|blocks]" >&2
+echo "📘 syntax: DistroAgentsTools.fn.sh --send-message <target> --file <path> [--format text|blocks]" >&2
 echo "📘 syntax: DistroAgentsTools.fn.sh --send-email-message <email@address>... -- <subject> -- <body...>" >&2
 echo "📘 syntax: DistroAgentsTools.fn.sh --send-email-message <email@address>... -- <subject> -- --from-stdin" >&2
+echo "📘 syntax: DistroAgentsTools.fn.sh --send-email-message <email@address>... -- <subject> -- --file <path>" >&2
 echo "📘 syntax: DistroAgentsTools.fn.sh --check-slack <magic-team|human-owner|<channel>:<ts>> [--oldest <ts>] [--raw]" >&2
+echo "📘 syntax: DistroAgentsTools.fn.sh --react-slack <channel>:<ts> <emoji-name>" >&2
 echo "📘 syntax: DistroAgentsTools.fn.sh --check-email" >&2
+echo "📘 syntax: DistroAgentsTools.fn.sh --mark-email-seen <uid>" >&2
 echo "📘 syntax: DistroAgentsTools.fn.sh --check-trello" >&2
 echo "📘 syntax: DistroAgentsTools.fn.sh --sweep-read-incoming-comms [--oldest <ts>] [--raw]" >&2
 echo "📘 syntax: DistroAgentsTools.fn.sh --read-slack <channel>:<ts> [--thread]" >&2
@@ -17,6 +21,10 @@ echo "📘 syntax: DistroAgentsTools.fn.sh --read-trello <notification-id>" >&2
 echo "📘 syntax: DistroAgentsTools.fn.sh --self-test" >&2
 echo "📘 syntax: DistroAgentsTools.fn.sh --verify-permissions" >&2
 echo "📘 syntax: DistroAgentsTools.fn.sh --validate-json [<path>]" >&2
+echo "📘 syntax: DistroAgentsTools.fn.sh --list-md <path>..." >&2
+echo "📘 syntax: DistroAgentsTools.fn.sh --write-slib <routine-name>" >&2
+echo "📘 syntax: DistroAgentsTools.fn.sh --write-board-item <state> <item-filename>" >&2
+echo "📘 syntax: DistroAgentsTools.fn.sh --write-inbox-note <member> <item-filename>" >&2
 echo "📘 syntax: DistroAgentsTools.fn.sh --purge-cleanup" >&2
 echo "📘 syntax: DistroAgentsTools.fn.sh [--help]" >&2
 if [ "$1" = "--help" ]; then

@@ -518,7 +518,7 @@ DistroAgentsTools(){
 			esac
 
 			local format="text" fromStdin="false"
-			local textArgs
+			local textArgs stdinContent
 			while [ $# -gt 0 ] ; do
 				case "$1" in
 					--message-from-stdin|--from-stdin)
@@ -532,8 +532,45 @@ DistroAgentsTools(){
 						## additive alias, not a rename.
 						fromStdin="true" ; shift
 					;;
+					--file)
+						## Added 2026-07-22 -- lets a caller write content to a plain
+						## temp file first (an ordinary Write tool call, no Bash
+						## prompt) and still invoke --send-message as one single-line
+						## command, since a heredoc body makes the invoked command
+						## span multiple lines and no longer match a single-line
+						## settings.json allowlist glob. Validated and consumed
+						## directly here, at point of use, into the SAME stdinContent
+						## variable --from-stdin's own downstream handling already
+						## reads -- no separate fromFile="" sentinel held across
+						## branches (that shape was rejected live, 2026-07-22, for
+						## exactly this op -- see keeper-myx/KEEPER-LOG.md's dated
+						## entry for the corrected shape this follows).
+						if [ -z "$2" ] || [ ! -f "$2" ] ; then
+							echo "⛔ ERROR: $MDSC_CMD --send-message: --file: file not found: $2" >&2
+							set +e ; return 1
+						fi
+						stdinContent="$( cat "$2" )"
+						fromStdin="true"
+						shift 2
+					;;
 					--format)
 						format="$2" ; shift 2
+					;;
+					--*)
+						## Bug fix, 2026-07-22 (real live incident): an
+						## unrecognized flag-shaped token silently fell through to
+						## the catch-all below and got posted to #magic-team as
+						## literal message text -- a stray "--from-stdin" ended up
+						## as the entire "text" field, with ok:true coming back,
+						## so it wasn't even a visible failure. Any token starting
+						## with "--" that didn't match a known option above is
+						## almost always a typo/wrong-order/mis-recognized flag,
+						## not intended literal content -- fail loud here instead
+						## of silently absorbing it as text. Genuine literal text
+						## starting with "--" should go through --from-stdin/--file
+						## instead.
+						echo "⛔ ERROR: $MDSC_CMD --send-message: unrecognized option: $1 (if you need literal text starting with '--', use --from-stdin/--file instead of trailing argv)" >&2
+						set +e ; return 1
 					;;
 					*)
 						textArgs="$textArgs $1" ; shift
@@ -543,7 +580,10 @@ DistroAgentsTools(){
 
 			local rawText blocksJson
 			if [ "$fromStdin" = "true" ] ; then
-				local stdinContent ; stdinContent="$( cat )"
+				## stdinContent may already be populated by --file above; only
+				## read real stdin here if it wasn't (--from-stdin, not --file,
+				## is what set fromStdin=true in that case).
+				[ -n "$stdinContent" ] || stdinContent="$( cat )"
 				if [ "$format" = "blocks" ] ; then
 					blocksJson="$stdinContent"
 
@@ -582,6 +622,42 @@ DistroAgentsTools(){
 							set +e ; return 1
 						;;
 					esac
+
+					## Added 2026-07-22, real live incident: Slack rejected a
+					## chat.postMessage call with `invalid_blocks: unsupported type
+					## "mrkdwn" [json-pointer:/blocks/3/type]` -- a caller had nested
+					## a text-object type (`mrkdwn`, only valid inside a block's own
+					## `text` field) directly as a top-level block's own `type`, which
+					## Slack's Block Kit does not accept as a block type. Neither the
+					## --validate-json check above (syntax only) nor the bare-array
+					## check above (shape only) catches this -- both are satisfied by
+					## a syntactically-valid array of objects regardless of what each
+					## object's own "type" value actually is. This is a cheap,
+					## non-recursive structural check (does every top-level element
+					## have a "type" key whose value is one of Slack's known top-level
+					## block types) layered on top of the syntax/shape checks, same
+					## spirit as those -- NOT a full Block Kit schema validator (this
+					## shell layer has no real JSON parser beyond what python3/awk give
+					## it here), so it deliberately does not recurse into each block's
+					## own nested fields (text objects, elements, accessory, ...).
+					local blocksBadTypes
+					blocksBadTypes="$( printf '%s' "$blocksJson" | python3 -c '
+import json, sys
+VALID = {"section","divider","header","context","image","actions","input","video","rich_text","file"}
+try:
+	blocks = json.load(sys.stdin)
+except Exception:
+	sys.exit(0)  # syntax already confirmed valid above; nothing to add here
+if not isinstance(blocks, list):
+	sys.exit(0)  # array shape already confirmed above
+bad = [str(i) for i, b in enumerate(blocks) if not isinstance(b, dict) or b.get("type") not in VALID]
+if bad:
+	print(",".join(bad))
+' 2>/dev/null )"
+					if [ -n "$blocksBadTypes" ] ; then
+						echo "⛔ ERROR: $MDSC_CMD --send-message: --format blocks stdin has an invalid/missing top-level 'type' at block index(es) $blocksBadTypes -- mrkdwn/plain_text/etc. are TEXT-OBJECT types, valid only nested inside a block's own \"text\" field, never as a block's own \"type\" (valid top-level types: section, divider, header, context, image, actions, input, video, rich_text, file)" >&2
+						set +e ; return 1
+					fi
 
 					## NOTE: not auto-deriving a text fallback from the blocks' own
 					## text.text fields yet (that needs real JSON parsing this shell
@@ -687,7 +763,7 @@ DistroAgentsTools(){
 		## fallback calls this same branch via self-recursion.
 		--send-email-message)
 			shift
-			local recipients subject bodyLines state="recipients" bodyFromStdin="false"
+			local recipients subject bodyLines state="recipients" bodyFromStdin="false" bodyFromFile="false"
 			while [ $# -gt 0 ] ; do
 				case "$1" in
 					--)
@@ -709,7 +785,42 @@ DistroAgentsTools(){
 						## token) since recipients/subject aren't meant to come
 						## from stdin.
 						if [ "$state" = "body" ] ; then
+							if [ "$bodyFromFile" = "true" ] ; then
+								echo "⛔ ERROR: $MDSC_CMD --send-email-message: --from-stdin given alongside --file -- use one or the other, not both" >&2
+								set +e ; return 1
+							fi
 							bodyFromStdin="true" ; shift
+						else
+							case "$state" in
+								recipients) recipients="$recipients $1" ;;
+								subject) subject="$subject $1" ;;
+							esac
+							shift
+						fi
+					;;
+					--file)
+						## Added 2026-07-22 -- same motivation as --send-message's own
+						## --file (lets a caller write the body to a plain temp file
+						## first, a normal Write tool call, and still invoke this op
+						## as one single-line command). Validated and consumed
+						## directly here, at point of use, into the existing
+						## bodyLines variable -- a separate bodyFromFile flag (not a
+						## bodyFromFile="" sentinel checked later) records the source
+						## only to gate the conflict checks against --from-stdin/
+						## trailing argv above/below; bodyLines itself is never held
+						## as an empty-default placeholder.
+						if [ "$state" = "body" ] ; then
+							if [ "$bodyFromStdin" = "true" ] ; then
+								echo "⛔ ERROR: $MDSC_CMD --send-email-message: --file given alongside --from-stdin -- use one or the other, not both" >&2
+								set +e ; return 1
+							fi
+							if [ -z "$2" ] || [ ! -f "$2" ] ; then
+								echo "⛔ ERROR: $MDSC_CMD --send-email-message: --file: file not found: $2" >&2
+								set +e ; return 1
+							fi
+							bodyLines="$( cat "$2" )"
+							bodyFromFile="true"
+							shift 2
 						else
 							case "$state" in
 								recipients) recipients="$recipients $1" ;;
@@ -722,8 +833,14 @@ DistroAgentsTools(){
 						case "$state" in
 							recipients) recipients="$recipients $1" ;;
 							subject) subject="$subject $1" ;;
-							body) bodyLines="$bodyLines
-$1" ;;
+							body)
+								if [ "$bodyFromFile" = "true" ] ; then
+									echo "⛔ ERROR: $MDSC_CMD --send-email-message: --file given alongside trailing body argv -- use one or the other, not both" >&2
+									set +e ; return 1
+								fi
+								bodyLines="$bodyLines
+$1"
+							;;
 						esac
 						shift
 					;;
@@ -1106,6 +1223,79 @@ $1" ;;
 			return 0
 		;;
 
+		## Added 2026-07-22: closes a real gap found live -- until now this
+		## tool had no `reactions.add` wrapper at all, so the per-message
+		## Slack-reaction-tracking design (`routine-communication-sweep`,
+		## `routine-board-actualisation`'s pending-reaction lookup) had no
+		## sanctioned way to actually post a reaction. Same target grammar as
+		## --read-slack/--check-slack (<channel>:<ts>, via
+		## DistroAgentsToolsResolveTarget) plus a required emoji name (no
+		## colons, matches Slack's own reactions.add `name` field exactly).
+		--react-slack)
+			shift
+			local target="$1"
+			shift || true
+			local emoji="$1"
+			shift || true
+
+			if [ -z "$target" ] || [ -z "$emoji" ] ; then
+				echo "⛔ ERROR: $MDSC_CMD --react-slack: syntax is <channel>:<ts> <emoji-name>" >&2
+				set +e ; return 1
+			fi
+
+			local resolved channel threadTs
+			resolved="$( DistroAgentsToolsResolveTarget "$target" )"
+			case "$?" in
+				0)
+					channel="$( printf '%s\n' "$resolved" | sed -n 's/^CHANNEL=//p' )"
+					threadTs="$( printf '%s\n' "$resolved" | sed -n 's/^THREAD_TS=//p' )"
+				;;
+				*)
+					echo "⛔ ERROR: $MDSC_CMD --react-slack: could not resolve target '$target' -- pass <channel>:<ts>" >&2
+					set +e ; return 1
+				;;
+			esac
+			if [ -z "$threadTs" ] ; then
+				echo "⛔ ERROR: $MDSC_CMD --react-slack: a specific <ts> is required -- use <channel>:<ts>" >&2
+				set +e ; return 1
+			fi
+
+			local token
+			token="$( DistroAgentsTools --agent-config-option --select SLACK_BOT_TOKEN )"
+			if [ -z "$token" ] ; then
+				echo "⛔ ERROR: $MDSC_CMD --react-slack: SLACK_BOT_TOKEN not set in .local/.agents" >&2
+				set +e ; return 1
+			fi
+
+			local headerFile
+			headerFile="$( mktemp )" || { set +e ; return 1 ; }
+			chmod 600 "$headerFile"
+			trap 'rm -f "$headerFile"' EXIT
+			printf 'Authorization: Bearer %s\n' "$token" > "$headerFile"
+
+			echo "# $MDSC_CMD --react-slack: POST reactions.add channel=$channel timestamp=$threadTs name=$emoji" >&2
+			local response
+			response="$( curl -sS -X POST "https://slack.com/api/reactions.add" -H @"$headerFile" \
+				--data-urlencode "channel=$channel" --data-urlencode "timestamp=$threadTs" \
+				--data-urlencode "name=$emoji" )"
+
+			rm -f "$headerFile"
+			trap - EXIT
+
+			printf '%s\n' "$response"
+			if printf '%s' "$response" | grep -q '"ok":true' ; then
+				return 0
+			fi
+			## already_reacted is a harmless no-op per Slack's own API and per
+			## this feature's own design doc, not a real failure to retry.
+			if printf '%s' "$response" | grep -q '"error":"already_reacted"' ; then
+				echo "# $MDSC_CMD --react-slack: already reacted (no-op, not an error)" >&2
+				return 0
+			fi
+			echo "⛔ $MDSC_CMD --react-slack: FAILED -- $response" >&2
+			set +e ; return 1
+		;;
+
 		## NOT a general-purpose "check any Slack target" op -- that's
 		## --check-slack, above (real design bug fixed 2026-07-21: this used
 		## to accept an arbitrary <target> argument too, conflating "the
@@ -1329,6 +1519,258 @@ $1" ;;
 					set +e ; return 1
 				fi
 			fi
+		;;
+
+		--list-md)
+			## Added 2026-07-22, human-owner-requested directly (folded into a
+			## routine-coworking session touching unrelated reaction-design
+			## work). Replaces the hand-rolled `for f in ...; do wc -l "$f";
+			## done`-style Bash loop agents kept reaching for before editing a
+			## batch of markdown/doc files -- each such loop is a fresh,
+			## non-matching command string that costs its own permission
+			## prompt, same friction class as the --validate-json/--from-stdin
+			## additions above. Read-only, no credentials, no network -- just
+			## existence + line count for a caller-supplied list of paths (not
+			## restricted to .md, despite the flag name -- any path works).
+			shift
+			if [ $# -eq 0 ] ; then
+				echo "⛔ ERROR: $MDSC_CMD --list-md: at least one file path required" >&2
+				set +e ; return 1
+			fi
+			local mdPath mdLines mdMissing
+			mdMissing=0
+			while [ $# -gt 0 ] ; do
+				mdPath="$1"
+				shift
+				if [ -f "$mdPath" ] ; then
+					mdLines="$( wc -l < "$mdPath" | tr -d '[:space:]' )"
+					echo "$mdPath: $mdLines lines"
+				else
+					echo "$mdPath: MISSING"
+					mdMissing=1
+				fi
+			done
+			if [ "$mdMissing" -eq 1 ] ; then
+				set +e ; return 1
+			fi
+			return 0
+		;;
+
+		## Added 2026-07-22 (routine-grooming pass, first live duplicate-check-and-merge
+		## exercise): regenerates one routine's own routine-contract.SLIB.md without going
+		## through this session's own Edit/Write tool call -- closes the human-owner's own
+		## SLIB-approval-friction question ("Should be special tooling for SLIB updates be
+		## added? --save-slib? - these are generated files - I don't want to approve each",
+		## magic-coordinator/inbox/2026-07-22-note-save-slib-tooling-question.md) merged
+		## with keeper-myx's own broader tool-agnostic-update-mechanism proposal (same
+		## underlying ask -- keeper-myx/inbox/2026-07-22-proposal-tool-agnostic-skill-doc-
+		## update-mechanism.md already named --write-slib as the concrete recommended op).
+		##
+		## Same fixed-target-per-identifier shape as --purge-cleanup: <routine-name> is
+		## never a free-form path -- it's validated as a bare directory name (no '/', not
+		## '.'/'..') and must already exist as a real skill directory under
+		## $HOME/.claude/skills/, so this op can only ever touch that one directory's own
+		## routine-contract.SLIB.md, never an arbitrary path. Content is always read from
+		## stdin -- no argv alternative exists for a multi-paragraph markdown document, so
+		## unlike --send-message/--send-email-message there's no --from-stdin flag to
+		## toggle; stdin is simply the only content source. Call with this tool's absolute
+		## path leading and a heredoc supplying the content, per magic-team/CONSOLE-
+		## SESSIONS.md's "Heredoc for stdin" convention.
+		##
+		## Caller-identity gap, stated plainly rather than silently ignored (per the
+		## proposal's own finding): this tool has no privilege separation -- nothing stops
+		## any caller from regenerating any routine's SLIB file. Convention-based trust
+		## only, same model as every other op here (see magic-coordinator/SKILL.md's
+		## DistroAgentsTools trust-policy entry). Intended caller is magic-librarian,
+		## regenerating a routine's own merged contract file after a source SKILL.md/
+		## ACCESS.md change -- not enforced, just documented.
+		##
+		## --write-board-item/--write-inbox-note (this proposal's other two illustrative
+		## cases) built 2026-07-22, same routine-coworking batch that resolved the
+		## board-exclusivity gap flagged above: --write-board-item is documented (its own
+		## comment block below), not code-enforced, as magic-coordinator-only -- exposing
+		## it as a general callable op does not create a bypass of BOARD.md's "write
+		## authority is exclusive over the board," since nothing about calling this op
+		## grants a caller any authority BOARD.md itself doesn't already recognize; it is
+		## simply the sanctioned mechanism magic-coordinator itself now uses to write,
+		## same convention-based-trust model as every other op here.
+		--write-slib)
+			shift
+			local routineName="$1"
+			shift || true
+			if [ -z "$routineName" ] ; then
+				echo "⛔ ERROR: $MDSC_CMD --write-slib: routine name required (e.g. routine-grooming) -- content via stdin" >&2
+				set +e ; return 1
+			fi
+			case "$routineName" in
+				*/*|.|..)
+					echo "⛔ ERROR: $MDSC_CMD --write-slib: routine name must be a bare directory name, not a path: $routineName" >&2
+					set +e ; return 1
+				;;
+			esac
+			local skillDir="$HOME/.claude/skills/$routineName"
+			if [ ! -d "$skillDir" ] ; then
+				echo "⛔ ERROR: $MDSC_CMD --write-slib: no such skill directory: $skillDir" >&2
+				set +e ; return 1
+			fi
+			local target="$skillDir/routine-contract.SLIB.md"
+			local content ; content="$( cat )"
+			if [ -z "$content" ] ; then
+				echo "⛔ ERROR: $MDSC_CMD --write-slib: empty stdin -- refusing to write an empty routine-contract.SLIB.md" >&2
+				set +e ; return 1
+			fi
+			printf '%s\n' "$content" > "$target"
+			echo "# $MDSC_CMD --write-slib: wrote $target ($( printf '%s\n' "$content" | wc -l | tr -d '[:space:]' ) lines)" >&2
+			return 0
+		;;
+
+		## Added 2026-07-22, same batch that resolved this op's own board-exclusivity
+		## gap (see the comment above --write-slib). **magic-coordinator-only by
+		## design** -- BOARD.md states plainly "magic-coordinator's write authority is
+		## exclusive over the board -- full stop... creating an Item, moving one
+		## between these states, or scoring it -- is magic-coordinator-only." This op
+		## is the sanctioned mechanism magic-coordinator itself uses to do that
+		## writing/moving without going through a separate Edit/Write tool call --
+		## it is NOT a general-purpose board-writing op for any member to call. Same
+		## convention-based-trust model as every other op here (no caller-identity
+		## enforcement exists in this tool at all, see --write-slib's own comment) --
+		## this is documented, not code-enforced, exactly like every other trust
+		## boundary in this file.
+		##
+		## Same fixed-target-per-identifier shape as --write-slib/--purge-cleanup:
+		## <state> must be one of the board's own real state-folder names (never a
+		## free-form path), <item-filename> must be a bare filename (no '/', not
+		## '.'/'..'). Content via stdin only (a board Item is a multi-paragraph
+		## markdown document, same reasoning as --write-slib). Writing to an
+		## already-existing <state>/<item-filename> overwrites it in place (an
+		## update to an existing Item's content) -- moving an Item between states is
+		## two calls (write into the new state, then a separate cleanup of the old
+		## file), not a single move op, since this tool has no existing "move/rename"
+		## primitive anywhere else to mirror.
+		--write-board-item)
+			shift
+			local boardState="$1"
+			shift || true
+			local itemName="$1"
+			shift || true
+			if [ -z "$boardState" ] || [ -z "$itemName" ] ; then
+				echo "⛔ ERROR: $MDSC_CMD --write-board-item: syntax is <state> <item-filename> -- content via stdin (magic-coordinator-only op)" >&2
+				set +e ; return 1
+			fi
+			case "$boardState" in
+				planned|approved|running|testing|blocked|parked|processed|archived|cleanup)
+				;;
+				*)
+					echo "⛔ ERROR: $MDSC_CMD --write-board-item: unrecognized board state: $boardState (must be one of planned/approved/running/testing/blocked/parked/processed/archived/cleanup)" >&2
+					set +e ; return 1
+				;;
+			esac
+			case "$itemName" in
+				*/*|.|..)
+					echo "⛔ ERROR: $MDSC_CMD --write-board-item: item filename must be a bare filename, not a path: $itemName" >&2
+					set +e ; return 1
+				;;
+			esac
+			local boardDir="$HOME/.claude/skills/magic-team/board/$boardState"
+			if [ ! -d "$boardDir" ] ; then
+				echo "⛔ ERROR: $MDSC_CMD --write-board-item: no such board state directory: $boardDir" >&2
+				set +e ; return 1
+			fi
+			local target="$boardDir/$itemName"
+			local content ; content="$( cat )"
+			if [ -z "$content" ] ; then
+				echo "⛔ ERROR: $MDSC_CMD --write-board-item: empty stdin -- refusing to write an empty board item" >&2
+				set +e ; return 1
+			fi
+			printf '%s\n' "$content" > "$target"
+			echo "# $MDSC_CMD --write-board-item: wrote $target ($( printf '%s\n' "$content" | wc -l | tr -d '[:space:]' ) lines)" >&2
+			return 0
+		;;
+
+		## Added 2026-07-22, same batch as --write-board-item above. Any member's own
+		## personal inbox (~/.claude/skills/<member>/inbox/, see routine-process-inbox)
+		## -- unlike the board, inbox write access is NOT exclusive to one member; any
+		## member may post a note into any other member's inbox (that's the whole
+		## cross-member handoff mechanism). This op is simply the tool-mediated way to
+		## do that write. <member> must already exist as a real skill directory;
+		## <item-filename> must be a bare filename. The inbox/ directory itself is
+		## created lazily if it doesn't exist yet (matches the established
+		## lazily-created-inbox convention, see BOARD.md/routine-process-inbox), not
+		## treated as an error the way a missing board-state directory is (board
+		## states are a fixed, known set; a member's inbox may simply not have been
+		## created yet).
+		--write-inbox-note)
+			shift
+			local memberName="$1"
+			shift || true
+			local itemName="$1"
+			shift || true
+			if [ -z "$memberName" ] || [ -z "$itemName" ] ; then
+				echo "⛔ ERROR: $MDSC_CMD --write-inbox-note: syntax is <member> <item-filename> -- content via stdin" >&2
+				set +e ; return 1
+			fi
+			case "$memberName" in
+				*/*|.|..)
+					echo "⛔ ERROR: $MDSC_CMD --write-inbox-note: member name must be a bare directory name, not a path: $memberName" >&2
+					set +e ; return 1
+				;;
+			esac
+			case "$itemName" in
+				*/*|.|..)
+					echo "⛔ ERROR: $MDSC_CMD --write-inbox-note: item filename must be a bare filename, not a path: $itemName" >&2
+					set +e ; return 1
+				;;
+			esac
+			local memberDir="$HOME/.claude/skills/$memberName"
+			if [ ! -d "$memberDir" ] ; then
+				echo "⛔ ERROR: $MDSC_CMD --write-inbox-note: no such member skill directory: $memberDir" >&2
+				set +e ; return 1
+			fi
+			local inboxDir="$memberDir/inbox"
+			mkdir -p "$inboxDir" || {
+				echo "⛔ ERROR: $MDSC_CMD --write-inbox-note: can't create inbox directory: $inboxDir" >&2
+				set +e ; return 1
+			}
+			local target="$inboxDir/$itemName"
+			local content ; content="$( cat )"
+			if [ -z "$content" ] ; then
+				echo "⛔ ERROR: $MDSC_CMD --write-inbox-note: empty stdin -- refusing to write an empty inbox note" >&2
+				set +e ; return 1
+			fi
+			printf '%s\n' "$content" > "$target"
+			echo "# $MDSC_CMD --write-inbox-note: wrote $target ($( printf '%s\n' "$content" | wc -l | tr -d '[:space:]' ) lines)" >&2
+			return 0
+		;;
+
+		## Added 2026-07-22 -- closes a real gap: --check-email/--read-email can scan
+		## and fetch, but nothing marks a message read after it's actually been
+		## processed, so every comms-sweep pass kept re-seeing the same UIDs as
+		## unseen. IMAP UID STORE with the \Seen flag, same curl --request pattern
+		## --check-email already uses for STATUS/SEARCH (not the URL-based ;UID=
+		## addressing --read-email uses, since this is a STORE command, not a
+		## fetch).
+		--mark-email-seen)
+			shift
+			local uid="$1"
+			shift || true
+			if [ -z "$uid" ] ; then
+				echo "⛔ ERROR: $MDSC_CMD --mark-email-seen: UID required" >&2
+				set +e ; return 1
+			fi
+
+			local imapHost imapUser imapPass
+			imapHost="$( DistroAgentsTools --agent-config-option --select EMAIL_IMAP_HOST )"
+			imapUser="$( DistroAgentsTools --agent-config-option --select EMAIL_USER )"
+			imapPass="$( DistroAgentsTools --agent-config-option --select EMAIL_APP_PASSWORD )"
+			if [ -z "$imapHost" ] || [ -z "$imapUser" ] || [ -z "$imapPass" ] ; then
+				echo "⛔ ERROR: $MDSC_CMD --mark-email-seen: EMAIL_IMAP_HOST/EMAIL_USER/EMAIL_APP_PASSWORD not fully set in .local/.agents" >&2
+				set +e ; return 1
+			fi
+
+			echo "# $MDSC_CMD --mark-email-seen: marking UID=$uid as \\Seen" >&2
+			curl -sS --url "imaps://${imapHost}/INBOX" --user "${imapUser}:${imapPass}" \
+				--request "UID STORE ${uid} +FLAGS (\Seen)"
+			return $?
 		;;
 
 		--help|--help-syntax|'')
