@@ -408,6 +408,46 @@
 			Content via stdin by default, or via --file <path> (added
 			2026-07-22, same shape as --write-slib's own --file above).
 
+		--owner-workspace-upsert <path>
+			Adds one filesystem path to the human-owner's tracked workspace
+			list at $HOME/.claude/skills/human-owner/human-owner.workspaces.md
+			-- a bare, one-absolute-path-per-line file that is the ONLY
+			authoritative source of truth for the workspace paths the
+			magic-* team tracks (see magic-team.armed.md's "Workspace" term
+			entry for the model this backs -- that file never states a
+			literal path itself). <path> must be absolute (starts with `/`);
+			a single trailing slash is stripped before comparing/storing, so
+			`/foo/bar` and `/foo/bar/` collapse to the same entry. Idempotent
+			-- upserting an already-tracked path is a harmless no-op, not an
+			error. Existence of <path> on disk is not checked (a tracked
+			workspace may live on a currently-unmounted volume). The
+			human-owner skill directory itself must already exist (it does,
+			as a standing skill folder) -- this op does not create that
+			directory, only the workspaces.md file inside it on first use.
+
+		--owner-workspace-forget <path>
+			Removes one filesystem path from the same tracked workspace list.
+			Same trailing-slash normalization as --owner-workspace-upsert.
+			Forgetting a path that isn't tracked, or when the file doesn't
+			exist yet at all, is a harmless no-op, not an error.
+
+		--owner-workspace-list
+			Prints every currently-tracked workspace path, one per line, in
+			file order -- reads only lines that look like an absolute path
+			(start with `/`), so any stray non-data content in
+			human-owner.workspaces.md is never treated as data. Takes no
+			arguments. Prints nothing (and does not error) if the file
+			doesn't exist yet or has no tracked paths.
+
+		--owner-workspace-current
+			Registers this tool's own workspace root ($MMDAPP) into the
+			tracked workspace list (delegates to --owner-workspace-upsert
+			internally, so the same idempotent/no-error-on-already-tracked
+			behavior applies), then prints that path to stdout. Takes no
+			arguments. Convenience op for a caller that wants "track my
+			current workspace and tell me its path" in one call instead of
+			spelling out $MMDAPP itself for --owner-workspace-upsert.
+
 		--purge-cleanup
 			Empties $MMDAPP/.local/.cleanup/ (the folder itself stays) --
 			exists because Claude Code's own permission engine has no
