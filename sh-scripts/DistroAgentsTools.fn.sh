@@ -1793,6 +1793,131 @@ $1"
 			return 0
 		;;
 
+		## Added 2026-07-24 -- manages human-owner.workspaces.md, the bare
+		## one-absolute-path-per-line file at
+		## $HOME/.claude/skills/human-owner/human-owner.workspaces.md that is the
+		## ONLY authoritative source of truth for the workspace paths the team
+		## tracks (see magic-team.armed.md's "Workspace" entry -- that file never
+		## states a literal path itself). Every line in the target file IS data
+		## (no header/prose, unlike --write-inbox-note's free-form note body), so
+		## matching is always exact-whole-line (`grep -Fx`), never a regex/glob --
+		## this also makes a path containing spaces or shell metacharacters safe
+		## as long as the caller passes it as one argument. <path> must be
+		## absolute; a single trailing slash is stripped before comparing/storing
+		## so `/foo/bar` and `/foo/bar/` collapse to one entry (`/` itself is
+		## special-cased so stripping never reduces it to an empty/blank line).
+		## Existence of <path> on disk is deliberately NOT checked -- a tracked
+		## workspace may legitimately live on a currently-unmounted volume (e.g.
+		## /Volumes/ws-2017). Same temp-file+trap+mv idiom as
+		## LocalTools.Config.include's own --upsert/--delete.
+		--owner-workspace-upsert)
+			shift
+			local wsPath="$1"
+			shift || true
+			if [ -z "$wsPath" ] ; then
+				echo "⛔ ERROR: $MDSC_CMD --owner-workspace-upsert: <path> required" >&2
+				set +e ; return 1
+			fi
+			case "$wsPath" in
+				/*)
+				;;
+				*)
+					echo "⛔ ERROR: $MDSC_CMD --owner-workspace-upsert: path must be absolute: $wsPath" >&2
+					set +e ; return 1
+				;;
+			esac
+			[ "$wsPath" = "/" ] || wsPath="${wsPath%/}"
+			local ownerDir="$HOME/.claude/skills/human-owner"
+			if [ ! -d "$ownerDir" ] ; then
+				echo "⛔ ERROR: $MDSC_CMD --owner-workspace-upsert: no such skill directory: $ownerDir" >&2
+				set +e ; return 1
+			fi
+			local ownerFile="$ownerDir/human-owner.workspaces.md"
+			touch "$ownerFile"
+			if grep -Fxq -- "$wsPath" "$ownerFile" ; then
+				echo "# $MDSC_CMD --owner-workspace-upsert: already tracked: $wsPath" >&2
+				return 0
+			fi
+			## Guard against a missing trailing newline on the existing file --
+			## confirmed live 2026-07-24: a bare `>>` append onto a file whose
+			## last byte isn't already a newline silently merges the new path
+			## onto the end of the previous last line instead of starting a new
+			## one (`grep '^/'` in --owner-workspace-list then reads both as one
+			## bogus concatenated path). `-s`/non-empty-tail-byte check, not
+			## `wc -l`-based, since a single-line file with no trailing newline
+			## has "1 line" by most line-counting tools despite lacking the
+			## newline this op actually depends on.
+			if [ -s "$ownerFile" ] && [ -n "$( tail -c1 -- "$ownerFile" )" ] ; then
+				printf '\n' >> "$ownerFile"
+			fi
+			printf '%s\n' "$wsPath" >> "$ownerFile"
+			echo "# $MDSC_CMD --owner-workspace-upsert: added: $wsPath" >&2
+			return 0
+		;;
+
+		--owner-workspace-forget)
+			shift
+			local wsPath="$1"
+			shift || true
+			if [ -z "$wsPath" ] ; then
+				echo "⛔ ERROR: $MDSC_CMD --owner-workspace-forget: <path> required" >&2
+				set +e ; return 1
+			fi
+			[ "$wsPath" = "/" ] || wsPath="${wsPath%/}"
+			local ownerFile="$HOME/.claude/skills/human-owner/human-owner.workspaces.md"
+			if [ ! -f "$ownerFile" ] ; then
+				echo "# $MDSC_CMD --owner-workspace-forget: $ownerFile does not exist -- nothing to forget" >&2
+				return 0
+			fi
+			if ! grep -Fxq -- "$wsPath" "$ownerFile" ; then
+				echo "# $MDSC_CMD --owner-workspace-forget: not tracked, nothing to do: $wsPath" >&2
+				return 0
+			fi
+			(
+				tmp="$ownerFile.$$"
+				trap 'rm -f -- "$tmp"' EXIT
+				: > "$tmp"
+				grep -Fxv -- "$wsPath" "$ownerFile" >>"$tmp" 2>/dev/null || :
+				mv "$tmp" "$ownerFile"
+			)
+			echo "# $MDSC_CMD --owner-workspace-forget: removed: $wsPath" >&2
+			return 0
+		;;
+
+		--owner-workspace-list)
+			shift
+			if [ $# -gt 0 ] ; then
+				echo "⛔ ERROR: $MDSC_CMD --owner-workspace-list: takes no arguments" >&2
+				set +e ; return 1
+			fi
+			local ownerFile="$HOME/.claude/skills/human-owner/human-owner.workspaces.md"
+			if [ ! -f "$ownerFile" ] ; then
+				echo "# $MDSC_CMD --owner-workspace-list: $ownerFile does not exist -- no workspaces tracked yet" >&2
+				return 0
+			fi
+			grep '^/' "$ownerFile" || :
+			return 0
+		;;
+
+		## Registers this tool's own workspace root ($MMDAPP) into the same
+		## tracked-workspace registry --owner-workspace-upsert maintains, then
+		## prints it to stdout -- a one-shot "track + tell me where I am"
+		## convenience op for a caller that already knows it wants the
+		## current workspace tracked and doesn't want to spell out $MMDAPP
+		## itself. Delegates to --owner-workspace-upsert internally (same
+		## self-call idiom as --agent-config-option's own internal callers
+		## above) rather than duplicating its file-write logic.
+		--owner-workspace-current)
+			shift
+			if [ $# -gt 0 ] ; then
+				echo "⛔ ERROR: $MDSC_CMD --owner-workspace-current: takes no arguments" >&2
+				set +e ; return 1
+			fi
+			DistroAgentsTools --owner-workspace-upsert "$MMDAPP" || return 1
+			echo "$MMDAPP"
+			return 0
+		;;
+
 		## Added 2026-07-22 -- closes a real gap: --check-email/--read-email can scan
 		## and fetch, but nothing marks a message read after it's actually been
 		## processed, so every comms-sweep pass kept re-seeing the same UIDs as
