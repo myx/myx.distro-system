@@ -577,6 +577,18 @@
 		# first, then this stays a single-line command
 		`DistroAgentsTools.fn.sh --write-inbox-note keeper-myx 2026-07-22-note-example.md --file /path/to/note.md`
 
+		# Track a workspace path for the human-owner
+		`DistroAgentsTools.fn.sh --owner-workspace-upsert /Volumes/ws-2017/myx-work`
+
+		# Stop tracking it
+		`DistroAgentsTools.fn.sh --owner-workspace-forget /Volumes/ws-2017/myx-work`
+
+		# List every currently-tracked workspace path
+		`DistroAgentsTools.fn.sh --owner-workspace-list`
+
+		# Track this tool's own workspace root and print its path
+		`DistroAgentsTools.fn.sh --owner-workspace-current`
+
 		# Send an email with a multi-line body from stdin instead of fragile trailing argv
 		```
 		DistroAgentsTools.fn.sh --send-email-message myx@meloscope.com -- "Status update" -- --from-stdin <<'EOF'
