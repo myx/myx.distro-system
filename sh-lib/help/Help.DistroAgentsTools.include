@@ -22,6 +22,8 @@ echo "📘 syntax: DistroAgentsTools.fn.sh --self-test" >&2
 echo "📘 syntax: DistroAgentsTools.fn.sh --verify-permissions" >&2
 echo "📘 syntax: DistroAgentsTools.fn.sh --validate-json [<path>]" >&2
 echo "📘 syntax: DistroAgentsTools.fn.sh --list-md <path>..." >&2
+echo "📘 syntax: DistroAgentsTools.fn.sh --librarian-list-team-files [<path>...]" >&2
+echo "📘 syntax: DistroAgentsTools.fn.sh --librarian-list-team-files-dates [<path>...]" >&2
 echo "📘 syntax: DistroAgentsTools.fn.sh --write-slib <routine-name> [--file <path>]" >&2
 echo "📘 syntax: DistroAgentsTools.fn.sh --write-board-item <state> <item-filename>" >&2
 echo "📘 syntax: DistroAgentsTools.fn.sh --member-upsert-inbox-note <member> <item-filename> [--file <path>]" >&2

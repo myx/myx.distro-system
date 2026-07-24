@@ -159,13 +159,6 @@ DistroAgentsToolsResolveConsoleShortName(){
 	esac
 }
 
-## Portable single-path permission lookup (BSD stat, then GNU stat) -- no
-## existing precedent for this in myx.distro-*/myx.common, so falls back
-## across both flavors rather than assuming one.
-DistroAgentsToolsPermOf(){
-	stat -f '%Lp' "$1" 2>/dev/null || stat -c '%a' "$1" 2>/dev/null
-}
-
 ## Resolves a --send-message/--sweep-read-incoming-comms/--send-email-message
 ## style target (magic-team|human-owner|<channel>:<ts>) to a channel id +
 ## optional thread ts. Shared resolution grammar across three ops -- kept as
@@ -361,6 +354,47 @@ DistroAgentsTools(){
 			shift || true
 			local channelDir
 			channelDir="$( DistroAgentsToolsResolveChannelDir "$ref" )" || { set +e ; return 1 ; }
+
+			## ASSUME SURVIVAL, 2026-07-24 (human-owner instruction, verbatim:
+			## "ASSUME SURVIVAL - INCLUDE CHECK AND RESTART IN TOOLING
+			## OPERATION, TEST, APPLY, UPDATE, USE") -- this op used to trust
+			## the channel was alive with no check at all, leaving every caller
+			## responsible for verifying first. That was actually dangerous, not
+			## just inconvenient: a dead console still leaves its directory and
+			## FIFO special file behind (only --stop-console's rm -rf removes
+			## them), so writing here with no liveness check doesn't fail loud
+			## -- POSIX FIFO semantics mean opening the write end with no reader
+			## on the other end blocks indefinitely (see --stop-console's own
+			## comment below for the confirmed-live precedent of this exact
+			## hang, 2026-07-20). Same liveness test --start-console's own
+			## idempotent-reuse logic already uses (kill -0 on both stored
+			## PIDs); same recreate mechanism too (self-recursion into
+			## --start-console, which already wipes a stale channel and mints a
+			## fresh one under the same deterministic channel id -- not a
+			## second, parallel restart implementation). meta.env (written by
+			## --start-console) is the source of truth for which
+			## workspace/console/ttl to restart with, since $ref may have been
+			## a raw path rather than a channel id.
+			local consolePid holderPid
+			if [ -f "$channelDir/console.pid" ] ; then consolePid="$( cat "$channelDir/console.pid" 2>/dev/null )" ; fi
+			if [ -f "$channelDir/holder.pid" ] ; then holderPid="$( cat "$channelDir/holder.pid" 2>/dev/null )" ; fi
+			if [ -z "$consolePid" ] || ! kill -0 "$consolePid" 2>/dev/null \
+				|| [ -z "$holderPid" ] || ! kill -0 "$holderPid" 2>/dev/null ; then
+				echo "# $MDSC_CMD --send-console: console dead, auto-restarting: $channelDir" >&2
+				if [ ! -f "$channelDir/meta.env" ] ; then
+					echo "⛔ ERROR: $MDSC_CMD --send-console: console dead and no meta.env to restart from: $channelDir" >&2
+					set +e ; return 1
+				fi
+				local MDAT_WORKSPACE MDAT_CONSOLE MDAT_TTL
+				set -a ; . "$channelDir/meta.env" ; set +a
+				DistroAgentsTools --start-console --override-workspace "$MDAT_WORKSPACE" --console "$MDAT_CONSOLE" --ttl "$MDAT_TTL" >/dev/null || {
+					echo "⛔ ERROR: $MDSC_CMD --send-console: auto-restart failed for $channelDir" >&2
+					set +e ; return 1
+				}
+				## channelDir is deterministic (workspace+console hash), so
+				## it's unchanged after restart -- no need to re-resolve $ref.
+			fi
+
 			local fifo="$channelDir/fifo"
 			if [ ! -p "$fifo" ] ; then
 				echo "⛔ ERROR: $MDSC_CMD --send-console: fifo not found: $fifo" >&2
@@ -1394,7 +1428,12 @@ $1"
 
 			local failed=0
 			local perm
-			perm="$( DistroAgentsToolsPermOf "$dir" )"
+			## BSD stat then GNU stat fallback, inlined here rather than a
+			## shared helper function, per this file's actual convention:
+			## logic stays inline within the case arm (human-owner
+			## correction, 2026-07-24 -- this file postdates the
+			## inline-only convention entirely, so no exception applies).
+			perm="$( stat -f '%Lp' "$dir" 2>/dev/null || stat -c '%a' "$dir" 2>/dev/null )"
 			if [ "$perm" = "700" ] ; then
 				echo "OK   700  $dir"
 			else
@@ -1405,7 +1444,7 @@ $1"
 			local f
 			for f in "$dir"/* ; do
 				[ -e "$f" ] || continue
-				perm="$( DistroAgentsToolsPermOf "$f" )"
+				perm="$( stat -f '%Lp' "$f" 2>/dev/null || stat -c '%a' "$f" 2>/dev/null )"
 				if [ "$perm" = "600" ] ; then
 					echo "OK   600  $f"
 				else
@@ -1559,6 +1598,151 @@ $1"
 				fi
 			done
 			if [ "$mdMissing" -eq 1 ] ; then
+				set +e ; return 1
+			fi
+			return 0
+		;;
+
+		## Added 2026-07-24, human-owner-approved directly -- closes a real gap
+		## confirmed against this file's own source: no sanctioned read-only
+		## listing op existed for skill-folder files (--write-slib/
+		## --write-board-item/--member-upsert-* all cover different, specific
+		## write targets, not this). find-based (not a hand-rolled directory
+		## walk), pure path listing -- no per-file stat call, so this stays
+		## fast even across the whole skill-root (measured: the mtime variant
+		## below took ~3s over 678 files; this one is the no-stat fast path,
+		## sub-second). Takes zero or more optional scope arguments, each
+		## either a bare path relative to the skill-root
+		## ($HOME/.claude/skills/) or an absolute path that must resolve
+		## inside it (anything outside is rejected, not silently ignored); a
+		## bare file scopes to just that file, a directory scopes
+		## recursively. No arguments means the whole skill-root. Prints one
+		## skill-root-relative path per matched file (never absolute),
+		## sorted alphabetically. A missing or outside-skill-root scope
+		## argument is reported and skipped, not a hard abort -- matches
+		## --list-md's own per-path error handling, so one bad argument
+		## among several doesn't lose the rest of the listing. See
+		## --librarian-list-team-files-dates below for the same listing with
+		## per-file modification dates (slower, real stat overhead).
+		--librarian-list-team-files)
+			shift
+			local skillRoot="$HOME/.claude/skills"
+			local hadError="false"
+			local pathsTmp
+			pathsTmp="$( mktemp )" || { set +e ; return 1 ; }
+			trap 'rm -f "$pathsTmp"' EXIT
+
+			if [ $# -eq 0 ] ; then
+				find "$skillRoot" -type f 2>/dev/null > "$pathsTmp" || true
+			else
+				: > "$pathsTmp"
+				while [ $# -gt 0 ] ; do
+					local argPath="$1"
+					shift
+					local resolvedPath="$argPath"
+					case "$resolvedPath" in
+						/*) : ;;
+						*) resolvedPath="$skillRoot/$resolvedPath" ;;
+					esac
+					case "$resolvedPath" in
+						"$skillRoot"|"$skillRoot"/*) : ;;
+						*)
+							echo "⛔ ERROR: $MDSC_CMD --librarian-list-team-files: path outside skill-root, skipping: $argPath" >&2
+							hadError="true"
+							continue
+						;;
+					esac
+					if [ ! -e "$resolvedPath" ] ; then
+						echo "⛔ ERROR: $MDSC_CMD --librarian-list-team-files: not found, skipping: $resolvedPath" >&2
+						hadError="true"
+						continue
+					fi
+					find "$resolvedPath" -type f 2>/dev/null >> "$pathsTmp" || true
+				done
+			fi
+
+			while IFS= read -r f ; do
+				printf '%s\n' "${f#"$skillRoot"/}"
+			done < "$pathsTmp" | sort
+
+			rm -f "$pathsTmp"
+			trap - EXIT
+			if [ "$hadError" = "true" ] ; then
+				set +e ; return 1
+			fi
+			return 0
+		;;
+
+		## Added 2026-07-24, human-owner-approved directly -- same as
+		## --librarian-list-team-files above (find-based scope
+		## resolution/error handling, identical argument grammar), but with
+		## a per-file modification date printed alongside each path -- the
+		## real reason this is a separate op rather than a flag on the plain
+		## version: the per-file stat call this needs is real, measured
+		## overhead (~3s over the full 678-file skill-root vs. sub-second for
+		## the plain listing), so a caller who only needs paths (the more
+		## common case) shouldn't pay for dates it isn't asking for. BSD stat
+		## then GNU stat fallback, inlined directly here rather than factored
+		## into a shared helper function, per this file's actual convention:
+		## logic stays inline within the case arm; a `source`d include file,
+		## never a function, is the answer if an arm gets too long
+		## (human-owner correction, 2026-07-24). Normalized to a common
+		## "YYYY-MM-DD HH:MM:SS" width on both platforms -- GNU stat's own
+		## %y includes sub-second precision + a timezone offset by default,
+		## trimmed to the same 19 characters as BSD's explicit -t format so
+		## output sorts/compares consistently regardless of which stat
+		## flavor actually answered. Prints one line per matched file: mtime
+		## ("YYYY-MM-DD HH:MM:SS") then two spaces then the path relative to
+		## the skill-root (never absolute), sorted newest-first -- the most
+		## useful order for the actual trigger case (confirming a
+		## just-edited batch of files really did just change).
+		--librarian-list-team-files-dates)
+			shift
+			local skillRoot="$HOME/.claude/skills"
+			local hadError="false"
+			local pathsTmp
+			pathsTmp="$( mktemp )" || { set +e ; return 1 ; }
+			trap 'rm -f "$pathsTmp"' EXIT
+
+			if [ $# -eq 0 ] ; then
+				find "$skillRoot" -type f 2>/dev/null > "$pathsTmp" || true
+			else
+				: > "$pathsTmp"
+				while [ $# -gt 0 ] ; do
+					local argPath="$1"
+					shift
+					local resolvedPath="$argPath"
+					case "$resolvedPath" in
+						/*) : ;;
+						*) resolvedPath="$skillRoot/$resolvedPath" ;;
+					esac
+					case "$resolvedPath" in
+						"$skillRoot"|"$skillRoot"/*) : ;;
+						*)
+							echo "⛔ ERROR: $MDSC_CMD --librarian-list-team-files-dates: path outside skill-root, skipping: $argPath" >&2
+							hadError="true"
+							continue
+						;;
+					esac
+					if [ ! -e "$resolvedPath" ] ; then
+						echo "⛔ ERROR: $MDSC_CMD --librarian-list-team-files-dates: not found, skipping: $resolvedPath" >&2
+						hadError="true"
+						continue
+					fi
+					find "$resolvedPath" -type f 2>/dev/null >> "$pathsTmp" || true
+				done
+			fi
+
+			while IFS= read -r f ; do
+				local mtime relPath
+				mtime="$( stat -f '%Sm' -t '%Y-%m-%d %H:%M:%S' "$f" 2>/dev/null || stat -c '%y' "$f" 2>/dev/null | cut -c1-19 )"
+				relPath="${f#"$skillRoot"/}"
+				printf '%s  %s\n' "$mtime" "$relPath"
+			done < "$pathsTmp" | sort -r
+
+			rm -f "$pathsTmp"
+			trap - EXIT
+			if [ "$hadError" = "true" ] ; then
 				set +e ; return 1
 			fi
 			return 0

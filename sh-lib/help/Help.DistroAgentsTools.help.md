@@ -21,6 +21,8 @@
 📘 syntax: DistroAgentsTools.fn.sh --verify-permissions
 📘 syntax: DistroAgentsTools.fn.sh --validate-json [<path>]
 📘 syntax: DistroAgentsTools.fn.sh --list-md <path>...
+📘 syntax: DistroAgentsTools.fn.sh --librarian-list-team-files [<path>...]
+📘 syntax: DistroAgentsTools.fn.sh --librarian-list-team-files-dates [<path>...]
 📘 syntax: DistroAgentsTools.fn.sh --write-slib <routine-name> [--file <path>]
 📘 syntax: DistroAgentsTools.fn.sh --write-board-item <state> <item-filename>
 📘 syntax: DistroAgentsTools.fn.sh --member-upsert-inbox-note <member> <item-filename> [--file <path>]
@@ -354,6 +356,34 @@
 			--validate-json/--from-stdin above. Read-only, no credentials, no
 			network. Despite the flag name, not restricted to `.md` files --
 			any path works; at least one path argument is required.
+
+		--librarian-list-team-files [<path>...]
+			find-based (not a hand-rolled directory walk) read-only path
+			listing of skill-folder files -- no per-file stat call, so this
+			stays fast even across the whole skill-root (measured: the
+			-dates variant below took ~3s over 678 files; this one is the
+			no-stat fast path, sub-second). Zero or more optional scope
+			arguments, each either a bare path relative to the skill-root
+			(`$HOME/.claude/skills/`) or an absolute path that must resolve
+			inside it (anything outside is rejected and skipped, not
+			silently ignored, same per-argument error handling as
+			--list-md); a bare file scopes to just that file, a directory
+			scopes recursively. No arguments means the whole skill-root.
+			Prints one skill-root-relative path per matched file (never
+			absolute), sorted alphabetically. Added 2026-07-24,
+			human-owner-approved directly.
+
+		--librarian-list-team-files-dates [<path>...]
+			Same as --librarian-list-team-files above (identical scope-
+			argument grammar and error handling), but with a per-file
+			modification date printed alongside each path -- split into its
+			own op (2026-07-24) once the per-file stat call this needs was
+			measured as real overhead (~3s over the full 678-file
+			skill-root vs. sub-second for the plain listing), so a caller
+			who only needs paths isn't forced to pay for dates. Prints one
+			line per matched file: mtime (`YYYY-MM-DD HH:MM:SS`) then two
+			spaces then the path relative to the skill-root (never
+			absolute), sorted newest-first.
 
 		--write-slib <routine-name> [--file <path>]
 			Regenerates one routine's own routine-contract.SLIB.md -- content
