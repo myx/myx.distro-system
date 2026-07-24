@@ -23,7 +23,9 @@
 📘 syntax: DistroAgentsTools.fn.sh --list-md <path>...
 📘 syntax: DistroAgentsTools.fn.sh --write-slib <routine-name> [--file <path>]
 📘 syntax: DistroAgentsTools.fn.sh --write-board-item <state> <item-filename>
-📘 syntax: DistroAgentsTools.fn.sh --write-inbox-note <member> <item-filename> [--file <path>]
+📘 syntax: DistroAgentsTools.fn.sh --member-upsert-inbox-note <member> <item-filename> [--file <path>]
+📘 syntax: DistroAgentsTools.fn.sh --member-upsert-member-inquiry <member> <item-filename> [--file <path>]
+📘 syntax: DistroAgentsTools.fn.sh --member-upsert-inbox-reflection <member> <item-filename> [--file <path>]
 📘 syntax: DistroAgentsTools.fn.sh --purge-cleanup
 📘 syntax: DistroAgentsTools.fn.sh [--help]
 
@@ -394,19 +396,36 @@
 			(write into the new state, then remove the old file separately) —
 			this op has no built-in move/rename primitive.
 
-		--write-inbox-note <member> <item-filename> [--file <path>]
-			Writes a note into any member's own personal inbox
-			(`~/.claude/skills/<member>/inbox/`) — unlike the board, inbox
-			write access is not exclusive to one member; any member may post
-			into any other member's inbox (the standard cross-member handoff
-			mechanism, see routine-process-inbox). <member> must already
-			exist as a real skill directory; <item-filename> must be a bare
-			filename. The inbox/ directory is created lazily if it doesn't
-			exist yet (a missing inbox/ is not an error, unlike a missing
-			board-state directory, since board states are a fixed known set
-			and a member's inbox may simply not have been created yet).
-			Content via stdin by default, or via --file <path> (added
-			2026-07-22, same shape as --write-slib's own --file above).
+		--member-upsert-inbox-note <member> <item-filename> [--file <path>]
+			Writes (creates or overwrites) a note into any member's own
+			personal inbox (`~/.claude/skills/<member>/inbox/`) — unlike
+			the board, inbox write access is not exclusive to one member;
+			any member may post into any other member's inbox (the
+			standard cross-member handoff mechanism, see
+			routine-process-inbox). <member> must already exist as a real
+			skill directory; <item-filename> must be a bare filename. The
+			inbox/ directory is created lazily if it doesn't exist yet (a
+			missing inbox/ is not an error, unlike a missing board-state
+			directory, since board states are a fixed known set and a
+			member's inbox may simply not have been created yet). Content
+			via stdin by default, or via --file <path>. Renamed 2026-07-24
+			from --write-inbox-note (verb-suffixed to match the existing
+			--owner-workspace-upsert/-forget/-list/-current convention,
+			first op under the new --member-* prefix category) —
+			--write-inbox-note still works, unchanged, as a thin
+			backward-compatible shim calling this op, but is no longer
+			documented separately here.
+
+		--member-upsert-member-inquiry <member> <item-filename> [--file <path>]
+			Passes an inquiry along to a specific named member's own
+			inbox — same argument shape and file-writing mechanics as
+			--member-upsert-inbox-note (in fact self-recurses directly
+			into it), kept as its own distinctly-named op because the two
+			represent semantically distinct fallback cases ("note it for
+			later" vs. "pass it to another member," per
+			magic-team.armed.md's Process/dynamics rule formulation) even
+			though they currently resolve to the identical mechanism.
+			Added 2026-07-24.
 
 		--owner-workspace-upsert <path>
 			Adds one filesystem path to the human-owner's tracked workspace
@@ -568,14 +587,21 @@
 
 		# Post a note into another member's own personal inbox
 		```
-		DistroAgentsTools.fn.sh --write-inbox-note keeper-myx 2026-07-22-note-example.md <<'EOF'
+		DistroAgentsTools.fn.sh --member-upsert-inbox-note keeper-myx 2026-07-22-note-example.md <<'EOF'
 		... note content ...
 		EOF
 		```
 
 		# Same, via --file instead -- write content with a plain Write tool call
 		# first, then this stays a single-line command
-		`DistroAgentsTools.fn.sh --write-inbox-note keeper-myx 2026-07-22-note-example.md --file /path/to/note.md`
+		`DistroAgentsTools.fn.sh --member-upsert-inbox-note keeper-myx 2026-07-22-note-example.md --file /path/to/note.md`
+
+		# Pass an inquiry along to another member's own inbox
+		```
+		DistroAgentsTools.fn.sh --member-upsert-member-inquiry keeper-ae3 2026-07-24-inquiry-example.md <<'EOF'
+		... inquiry content ...
+		EOF
+		```
 
 		# Track a workspace path for the human-owner
 		`DistroAgentsTools.fn.sh --owner-workspace-upsert /Volumes/ws-2017/myx-work`

@@ -24,7 +24,9 @@ echo "📘 syntax: DistroAgentsTools.fn.sh --validate-json [<path>]" >&2
 echo "📘 syntax: DistroAgentsTools.fn.sh --list-md <path>..." >&2
 echo "📘 syntax: DistroAgentsTools.fn.sh --write-slib <routine-name> [--file <path>]" >&2
 echo "📘 syntax: DistroAgentsTools.fn.sh --write-board-item <state> <item-filename>" >&2
-echo "📘 syntax: DistroAgentsTools.fn.sh --write-inbox-note <member> <item-filename> [--file <path>]" >&2
+echo "📘 syntax: DistroAgentsTools.fn.sh --member-upsert-inbox-note <member> <item-filename> [--file <path>]" >&2
+echo "📘 syntax: DistroAgentsTools.fn.sh --member-upsert-member-inquiry <member> <item-filename> [--file <path>]" >&2
+echo "📘 syntax: DistroAgentsTools.fn.sh --member-upsert-inbox-reflection <member> <item-filename> [--file <path>]" >&2
 echo "📘 syntax: DistroAgentsTools.fn.sh --owner-workspace-upsert <path>" >&2
 echo "📘 syntax: DistroAgentsTools.fn.sh --owner-workspace-forget <path>" >&2
 echo "📘 syntax: DistroAgentsTools.fn.sh --owner-workspace-list" >&2

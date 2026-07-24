@@ -180,6 +180,14 @@ DistroAgentsToolsResolveTarget(){
 		human-owner)
 			channel="$( DistroAgentsTools --agent-config-option --select SLACK_CHANNEL_HUMAN_OWNER )"
 		;;
+		magic-team:*)
+			channel="$( DistroAgentsTools --agent-config-option --select SLACK_CHANNEL_MAGIC_TEAM )"
+			threadTs="${target#*:}"
+		;;
+		human-owner:*)
+			channel="$( DistroAgentsTools --agent-config-option --select SLACK_CHANNEL_HUMAN_OWNER )"
+			threadTs="${target#*:}"
+		;;
 		*:*)
 			channel="${target%%:*}"
 			threadTs="${target#*:}"
@@ -1713,48 +1721,57 @@ $1"
 			return 0
 		;;
 
-		## Added 2026-07-22, same batch as --write-board-item above. Any member's own
-		## personal inbox (~/.claude/skills/<member>/inbox/, see routine-process-inbox)
-		## -- unlike the board, inbox write access is NOT exclusive to one member; any
-		## member may post a note into any other member's inbox (that's the whole
-		## cross-member handoff mechanism). This op is simply the tool-mediated way to
-		## do that write. <member> must already exist as a real skill directory;
-		## <item-filename> must be a bare filename. The inbox/ directory itself is
-		## created lazily if it doesn't exist yet (matches the established
-		## lazily-created-inbox convention, see BOARD.md/routine-process-inbox), not
-		## treated as an error the way a missing board-state directory is (board
-		## states are a fixed, known set; a member's inbox may simply not have been
-		## created yet).
-		--write-inbox-note)
+		## Renamed 2026-07-24 from --write-inbox-note (kept below as a thin
+		## backward-compatible shim) -- first op under the new --member-* prefix
+		## category (alongside the existing --owner-* prefix), part-preparation
+		## for a future general tooling-operation-prefix convention for clearer
+		## docs/instructions. Verb-suffixed name (matches the existing
+		## --owner-workspace-upsert/-forget/-list/-current convention for the
+		## --owner-* prefix) per human-owner naming correction, 2026-07-24.
+		## Backs magic-team.armed.md's Process/dynamics rule formulation "note
+		## it for later" no-approval-available fallback. Behavior is unchanged
+		## from --write-inbox-note: writes a note into any member's own
+		## personal inbox (~/.claude/skills/<member>/inbox/, see
+		## routine-process-inbox) -- unlike the board, inbox write access is NOT
+		## exclusive to one member; any member may post a note into any other
+		## member's inbox (that's the whole cross-member handoff mechanism).
+		## <member> must already exist as a real skill directory; <item-filename>
+		## must be a bare filename. The inbox/ directory itself is created
+		## lazily if it doesn't exist yet (matches the established
+		## lazily-created-inbox convention, see BOARD.md/routine-process-inbox),
+		## not treated as an error the way a missing board-state directory is
+		## (board states are a fixed, known set; a member's inbox may simply not
+		## have been created yet).
+		--member-upsert-inbox-note)
 			shift
 			local memberName="$1"
 			shift || true
 			local itemName="$1"
 			shift || true
 			if [ -z "$memberName" ] || [ -z "$itemName" ] ; then
-				echo "⛔ ERROR: $MDSC_CMD --write-inbox-note: syntax is <member> <item-filename> -- content via stdin or --file <path>" >&2
+				echo "⛔ ERROR: $MDSC_CMD --member-upsert-inbox-note: syntax is <member> <item-filename> -- content via stdin or --file <path>" >&2
 				set +e ; return 1
 			fi
 			case "$memberName" in
 				*/*|.|..)
-					echo "⛔ ERROR: $MDSC_CMD --write-inbox-note: member name must be a bare directory name, not a path: $memberName" >&2
+					echo "⛔ ERROR: $MDSC_CMD --member-upsert-inbox-note: member name must be a bare directory name, not a path: $memberName" >&2
 					set +e ; return 1
 				;;
 			esac
 			case "$itemName" in
 				*/*|.|..)
-					echo "⛔ ERROR: $MDSC_CMD --write-inbox-note: item filename must be a bare filename, not a path: $itemName" >&2
+					echo "⛔ ERROR: $MDSC_CMD --member-upsert-inbox-note: item filename must be a bare filename, not a path: $itemName" >&2
 					set +e ; return 1
 				;;
 			esac
 			local memberDir="$HOME/.claude/skills/$memberName"
 			if [ ! -d "$memberDir" ] ; then
-				echo "⛔ ERROR: $MDSC_CMD --write-inbox-note: no such member skill directory: $memberDir" >&2
+				echo "⛔ ERROR: $MDSC_CMD --member-upsert-inbox-note: no such member skill directory: $memberDir" >&2
 				set +e ; return 1
 			fi
 			local inboxDir="$memberDir/inbox"
 			mkdir -p "$inboxDir" || {
-				echo "⛔ ERROR: $MDSC_CMD --write-inbox-note: can't create inbox directory: $inboxDir" >&2
+				echo "⛔ ERROR: $MDSC_CMD --member-upsert-inbox-note: can't create inbox directory: $inboxDir" >&2
 				set +e ; return 1
 			}
 			local target="$inboxDir/$itemName"
@@ -1762,15 +1779,8 @@ $1"
 			while [ $# -gt 0 ] ; do
 				case "$1" in
 					--file)
-						## Added 2026-07-22 -- same --file shape as --write-slib/
-						## --send-message/--send-email-message: lets a caller write the
-						## note content to a plain temp file first (an ordinary Write
-						## tool call) and still invoke this op as one single-line
-						## command. Explicit contentFromFile flag gates the stdin-read
-						## below, same reasoning as --write-slib's own --file (don't
-						## infer source from non-emptiness of $content).
 						if [ -z "$2" ] || [ ! -f "$2" ] ; then
-							echo "⛔ ERROR: $MDSC_CMD --write-inbox-note: --file: file not found: $2" >&2
+							echo "⛔ ERROR: $MDSC_CMD --member-upsert-inbox-note: --file: file not found: $2" >&2
 							set +e ; return 1
 						fi
 						content="$( cat "$2" )"
@@ -1778,20 +1788,83 @@ $1"
 						shift 2
 					;;
 					*)
-						echo "⛔ ERROR: $MDSC_CMD --write-inbox-note: unrecognized argument: $1" >&2
+						echo "⛔ ERROR: $MDSC_CMD --member-upsert-inbox-note: unrecognized argument: $1" >&2
 						set +e ; return 1
 					;;
 				esac
 			done
 			[ "$contentFromFile" = "true" ] || content="$( cat )"
 			if [ -z "$content" ] ; then
-				echo "⛔ ERROR: $MDSC_CMD --write-inbox-note: empty content -- refusing to write an empty inbox note" >&2
+				echo "⛔ ERROR: $MDSC_CMD --member-upsert-inbox-note: empty content -- refusing to write an empty inbox note" >&2
 				set +e ; return 1
 			fi
 			printf '%s\n' "$content" > "$target"
-			echo "# $MDSC_CMD --write-inbox-note: wrote $target ($( printf '%s\n' "$content" | wc -l | tr -d '[:space:]' ) lines)" >&2
+			echo "# $MDSC_CMD --member-upsert-inbox-note: wrote $target ($( printf '%s\n' "$content" | wc -l | tr -d '[:space:]' ) lines)" >&2
 			return 0
 		;;
+
+		## Added 2026-07-24, same batch as --member-upsert-inbox-note above --
+		## the real op backing magic-team.armed.md's Process/dynamics rule
+		## formulation's other no-approval-available fallback, "pass it to
+		## another member" (as distinct from that section's "note it for
+		## later," which --member-upsert-inbox-note backs). Verb-suffixed name
+		## per human-owner naming correction, 2026-07-24 (matches the
+		## --owner-workspace-upsert/-forget/-list/-current convention). Same
+		## <member> <item-filename> argument shape and file-writing mechanics
+		## as --member-upsert-inbox-note -- this op self-recurses directly into
+		## it (same self-call idiom as --owner-workspace-current delegating to
+		## --owner-workspace-upsert, or --send-message's own exhausted-retry
+		## path calling --send-email-message) rather than duplicating the write
+		## logic a second time. Kept as its own distinctly-named op, not just
+		## an alias, because the two fallback cases are semantically distinct
+		## callsites in the routine text even though they currently resolve to
+		## the identical mechanism -- a future revision could give
+		## --member-upsert-member-inquiry its own real behavior (e.g. routing
+		## metadata, a required "from" field) without touching
+		## --member-upsert-inbox-note.
+		--member-upsert-member-inquiry)
+			shift
+			DistroAgentsTools --member-upsert-inbox-note "$@" || return 1
+			return 0
+		;;
+
+		## Added 2026-07-24, human-owner direct addition to the same batch as
+		## --member-upsert-inbox-note/--member-upsert-member-inquiry above -- for
+		## reflection-type inbox items specifically. Same argument shape and
+		## file-writing mechanics as --member-upsert-inbox-note (self-recurses
+		## directly into it, same idiom as --member-upsert-member-inquiry) --
+		## kept as its own distinctly-named op because reflection notes are a
+		## real, already-established content family in this team's inboxes
+		## (see e.g. magic-coordinator/inbox/*-reflection-*.md: a frontmatter
+		## block -- source/type/from/posted_at/owner/approved_by/references --
+		## followed by a "# Reflection: <title>" heading and "## What
+		## happened"/"## Why this is worth keeping"-style sections), distinct
+		## from a plain free-form note or a passed inquiry. <item-filename> is
+		## conventionally expected to contain "reflection-" in its slug,
+		## matching every existing example, but this is a naming convention to
+		## follow, not something enforced here -- this op does not validate or
+		## impose the frontmatter/heading shape on content either; the caller
+		## supplies real, already-formed reflection content (via stdin or
+		## --file), same as every other content-carrying op in this file.
+		--member-upsert-inbox-reflection)
+			shift
+			DistroAgentsTools --member-upsert-inbox-note "$@" || return 1
+			return 0
+		;;
+
+		## DEPRECATED 2026-07-24 -- superseded by --member-upsert-inbox-note
+		## (identical behavior, new --member-* prefix; see that op's own
+		## comment above for the full rationale). Removed from --help/--help.md
+		## output as of this change; kept here, working, as a thin
+		## backward-compatible shim (not a breaking removal) -- any existing
+		## caller still using this name keeps working unchanged, indefinitely,
+		## unless a real removal is separately proposed and approved.
+		--write-inbox-note)
+			shift
+			DistroAgentsTools --member-upsert-inbox-note "$@" || return 1
+			return 0
+		;;
+
 
 		## Added 2026-07-24 -- manages human-owner.workspaces.md, the bare
 		## one-absolute-path-per-line file at
