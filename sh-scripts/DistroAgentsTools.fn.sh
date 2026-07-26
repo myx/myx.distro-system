@@ -2036,6 +2036,168 @@ $1"
 			return 0
 		;;
 
+		## Added 2026-07-26 -- append one transcript entry into a planned-board
+		## transcript file. Writes exactly one canonical entry block per call:
+		##
+		##   <speaker-name> (<timestamp>):
+		##
+		##   > <message line 1>
+		##   > <message line 2>
+		##
+		## Target path is fixed to:
+		##   <workspace-root>/board/planned/<transcript-file-name>
+		##
+		## Missing target file is an error unless --create is passed.
+		--member-append-session-transcript)
+			shift
+			local memberName speakerName timestampUtc messageText transcriptName workspaceRoot
+			local messageFromStdin="false" messageFile messageArgProvided="false"
+			local allowCreate="false"
+			while [ $# -gt 0 ] ; do
+				case "$1" in
+					--member)
+						memberName="$2"
+						shift 2
+					;;
+					--speaker)
+						speakerName="$2"
+						shift 2
+					;;
+					--timestamp)
+						timestampUtc="$2"
+						shift 2
+					;;
+					--message)
+						messageText="$2"
+						messageArgProvided="true"
+						shift 2
+					;;
+					--message-from-stdin|--from-stdin)
+						messageFromStdin="true"
+						shift
+					;;
+					--message-file)
+						messageFile="$2"
+						shift 2
+					;;
+					--transcript-name)
+						transcriptName="$2"
+						shift 2
+					;;
+					--workspace-root)
+						workspaceRoot="$2"
+						shift 2
+					;;
+					--create)
+						allowCreate="true"
+						shift
+					;;
+					*)
+						echo "⛔ ERROR: $MDSC_CMD --member-append-session-transcript: unrecognized argument: $1" >&2
+						set +e ; return 1
+					;;
+				esac
+			done
+
+			if [ -z "$memberName" ] || [ -z "$speakerName" ] || [ -z "$timestampUtc" ] || [ -z "$transcriptName" ] || [ -z "$workspaceRoot" ] ; then
+				echo "⛔ ERROR: $MDSC_CMD --member-append-session-transcript: required args: --member --speaker --timestamp --transcript-name --workspace-root" >&2
+				set +e ; return 1
+			fi
+			local payloadSources=0
+			if [ "$messageArgProvided" = "true" ] ; then
+				payloadSources=$((payloadSources + 1))
+			fi
+			if [ "$messageFromStdin" = "true" ] ; then
+				payloadSources=$((payloadSources + 1))
+			fi
+			if [ -n "$messageFile" ] ; then
+				payloadSources=$((payloadSources + 1))
+			fi
+			if [ "$payloadSources" -ne 1 ] ; then
+				echo "⛔ ERROR: $MDSC_CMD --member-append-session-transcript: provide exactly one payload source: --message, --message-from-stdin/--from-stdin, or --message-file" >&2
+				set +e ; return 1
+			fi
+			if [ "$messageFromStdin" = "true" ] ; then
+				messageText="$(cat)"
+			elif [ -n "$messageFile" ] ; then
+				if [ ! -f "$messageFile" ] ; then
+					echo "⛔ ERROR: $MDSC_CMD --member-append-session-transcript: message file not found: $messageFile" >&2
+					set +e ; return 1
+				fi
+				messageText="$(cat -- "$messageFile")"
+			fi
+			case "$memberName" in
+				*/*|.|..)
+					echo "⛔ ERROR: $MDSC_CMD --member-append-session-transcript: member name must be a bare name, not a path: $memberName" >&2
+					set +e ; return 1
+				;;
+			esac
+			case "$transcriptName" in
+				*/*|.|..)
+					echo "⛔ ERROR: $MDSC_CMD --member-append-session-transcript: transcript name must be a bare filename, not a path: $transcriptName" >&2
+					set +e ; return 1
+				;;
+			esac
+			case "$workspaceRoot" in
+				/*)
+				;;
+				*)
+					echo "⛔ ERROR: $MDSC_CMD --member-append-session-transcript: --workspace-root must be absolute: $workspaceRoot" >&2
+					set +e ; return 1
+				;;
+			esac
+			if [ ! -d "$workspaceRoot" ] ; then
+				echo "⛔ ERROR: $MDSC_CMD --member-append-session-transcript: workspace root not found: $workspaceRoot" >&2
+				set +e ; return 1
+			fi
+			if ! printf '%s' "$timestampUtc" | grep -Eq '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?Z$' ; then
+				echo "⛔ ERROR: $MDSC_CMD --member-append-session-transcript: --timestamp must be ISO UTC date-time (suffix Z): $timestampUtc" >&2
+				set +e ; return 1
+			fi
+
+			local transcriptDir="$workspaceRoot/board/planned"
+			if [ ! -d "$transcriptDir" ] ; then
+				echo "⛔ ERROR: $MDSC_CMD --member-append-session-transcript: transcript directory missing: $transcriptDir" >&2
+				set +e ; return 1
+			fi
+			local target="$transcriptDir/$transcriptName"
+			if [ ! -f "$target" ] && [ "$allowCreate" != "true" ] ; then
+				echo "⛔ ERROR: $MDSC_CMD --member-append-session-transcript: transcript does not exist (pass --create to allow creation): $target" >&2
+				set +e ; return 1
+			fi
+			if [ ! -f "$target" ] ; then
+				: > "$target" || {
+					echo "⛔ ERROR: $MDSC_CMD --member-append-session-transcript: failed to create transcript: $target" >&2
+					set +e ; return 1
+				}
+			fi
+
+			local tmpEntry
+			tmpEntry="$( mktemp "${TMPDIR:-/tmp}/mdat-session-transcript-entry.XXXXXX" )" || {
+				echo "⛔ ERROR: $MDSC_CMD --member-append-session-transcript: failed to create temp file" >&2
+				set +e ; return 1
+			}
+			trap 'rm -f -- "$tmpEntry"' EXIT
+
+			printf '%s (%s):\n\n' "$speakerName" "$timestampUtc" > "$tmpEntry"
+			printf '%s' "$messageText" | awk '{ print "> " $0 } END { if (NR == 0) print "> " }' >> "$tmpEntry"
+			printf '\n' >> "$tmpEntry"
+
+			local addedBytes addedLines
+			addedBytes="$( wc -c < "$tmpEntry" | tr -d '[:space:]' )"
+			addedLines="$( wc -l < "$tmpEntry" | tr -d '[:space:]' )"
+			cat "$tmpEntry" >> "$target" || {
+				echo "⛔ ERROR: $MDSC_CMD --member-append-session-transcript: failed to append to transcript: $target" >&2
+				set +e ; return 1
+			}
+			rm -f -- "$tmpEntry"
+			trap - EXIT
+
+			echo "# $MDSC_CMD --member-append-session-transcript: appended $target (+${addedLines} lines, +${addedBytes} bytes)" >&2
+			echo "$target"
+			return 0
+		;;
+
 		## DEPRECATED 2026-07-24 -- superseded by --member-upsert-inbox-note
 		## (identical behavior, new --member-* prefix; see that op's own
 		## comment above for the full rationale). Removed from --help/--help.md

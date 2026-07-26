@@ -28,6 +28,7 @@
 📘 syntax: DistroAgentsTools.fn.sh --member-upsert-inbox-note <member> <item-filename> [--file <path>]
 📘 syntax: DistroAgentsTools.fn.sh --member-upsert-member-inquiry <member> <item-filename> [--file <path>]
 📘 syntax: DistroAgentsTools.fn.sh --member-upsert-inbox-reflection <member> <item-filename> [--file <path>]
+📘 syntax: DistroAgentsTools.fn.sh --member-append-session-transcript --member <member-name> --speaker <speaker-name> --timestamp <ISO-UTC-date-time> (--message <verbatim-text>|--message-from-stdin|--from-stdin|--message-file <path>) --transcript-name <transcript-file-name> --workspace-root <path> [--create]
 📘 syntax: DistroAgentsTools.fn.sh --purge-cleanup
 📘 syntax: DistroAgentsTools.fn.sh [--help]
 
@@ -457,6 +458,16 @@
 			though they currently resolve to the identical mechanism.
 			Added 2026-07-24.
 
+		--member-append-session-transcript --member <member-name> --speaker <speaker-name> --timestamp <ISO-UTC-date-time> (--message <verbatim-text>|--message-from-stdin|--from-stdin|--message-file <path>) --transcript-name <transcript-file-name> --workspace-root <path> [--create]
+			Appends exactly one canonical transcript-entry block into
+			<workspace-root>/board/planned/<transcript-file-name>:
+			<speaker-name> (<timestamp>): followed by quoted message lines.
+			Does not rewrite prior content. Missing target transcript is an
+			error unless --create is passed. Payload must be provided by
+			exactly one source: --message, --message-from-stdin/--from-stdin,
+			or --message-file <path>. Returns append audit details:
+			target path plus added line and byte counts.
+
 		--owner-workspace-upsert <path>
 			Adds one filesystem path to the human-owner's tracked workspace
 			list at $HOME/.claude/skills/human-owner/human-owner.workspaces.md
@@ -632,6 +643,9 @@
 		... inquiry content ...
 		EOF
 		```
+
+		# Append one session transcript entry (one call = one entry block)
+		`DistroAgentsTools.fn.sh --member-append-session-transcript --member magic-coordinator --speaker human-owner --timestamp 2026-07-26T12:34:56Z --message "Approved. Proceed." --transcript-name transcript-2026-07-26-example.md --workspace-root /Users/myx/.claude/skills/magic-team --create`
 
 		# Track a workspace path for the human-owner
 		`DistroAgentsTools.fn.sh --owner-workspace-upsert /Volumes/ws-2017/myx-work`
