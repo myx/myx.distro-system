@@ -167,19 +167,13 @@ DistroAgentsToolsResolveTarget(){
 	local target="$1"
 	local channel threadTs
 	case "$target" in
-		magic-team)
+		magic-team|magic-team:*)
 			channel="$( DistroAgentsTools --agent-config-option --select SLACK_CHANNEL_MAGIC_TEAM )"
+			case "$target" in *:*) threadTs="${target#*:}" ;; esac
 		;;
-		human-owner)
+		human-owner|human-owner:*)
 			channel="$( DistroAgentsTools --agent-config-option --select SLACK_CHANNEL_HUMAN_OWNER )"
-		;;
-		magic-team:*)
-			channel="$( DistroAgentsTools --agent-config-option --select SLACK_CHANNEL_MAGIC_TEAM )"
-			threadTs="${target#*:}"
-		;;
-		human-owner:*)
-			channel="$( DistroAgentsTools --agent-config-option --select SLACK_CHANNEL_HUMAN_OWNER )"
-			threadTs="${target#*:}"
+			case "$target" in *:*) threadTs="${target#*:}" ;; esac
 		;;
 		*:*)
 			channel="${target%%:*}"
@@ -542,9 +536,9 @@ DistroAgentsTools(){
 				set +e ; return 1
 			fi
 
-			local resolved channel="" threadTs=""
-			resolved="$( DistroAgentsToolsResolveTarget "$target" )"
-			case "$?" in
+			local resolved rc channel="" threadTs=""
+			resolved="$( DistroAgentsToolsResolveTarget "$target" )" && rc=0 || rc=$?
+			case "$rc" in
 				0)
 					channel="$( printf '%s\n' "$resolved" | sed -n 's/^CHANNEL=//p' )"
 					threadTs="$( printf '%s\n' "$resolved" | sed -n 's/^THREAD_TS=//p' )"
@@ -1036,9 +1030,9 @@ $1"
 				esac
 			done
 
-			local resolved channel threadTs
-			resolved="$( DistroAgentsToolsResolveTarget "$target" )"
-			case "$?" in
+			local resolved rc channel threadTs
+			resolved="$( DistroAgentsToolsResolveTarget "$target" )" && rc=0 || rc=$?
+			case "$rc" in
 				0)
 					channel="$( printf '%s\n' "$resolved" | sed -n 's/^CHANNEL=//p' )"
 					threadTs="$( printf '%s\n' "$resolved" | sed -n 's/^THREAD_TS=//p' )"
@@ -1189,9 +1183,9 @@ $1"
 				esac
 			done
 
-			local resolved channel threadTs
-			resolved="$( DistroAgentsToolsResolveTarget "$target" )"
-			case "$?" in
+			local resolved rc channel threadTs
+			resolved="$( DistroAgentsToolsResolveTarget "$target" )" && rc=0 || rc=$?
+			case "$rc" in
 				0)
 					channel="$( printf '%s\n' "$resolved" | sed -n 's/^CHANNEL=//p' )"
 					threadTs="$( printf '%s\n' "$resolved" | sed -n 's/^THREAD_TS=//p' )"
@@ -1285,9 +1279,9 @@ $1"
 				set +e ; return 1
 			fi
 
-			local resolved channel threadTs
-			resolved="$( DistroAgentsToolsResolveTarget "$target" )"
-			case "$?" in
+			local resolved rc channel threadTs
+			resolved="$( DistroAgentsToolsResolveTarget "$target" )" && rc=0 || rc=$?
+			case "$rc" in
 				0)
 					channel="$( printf '%s\n' "$resolved" | sed -n 's/^CHANNEL=//p' )"
 					threadTs="$( printf '%s\n' "$resolved" | sed -n 's/^THREAD_TS=//p' )"
