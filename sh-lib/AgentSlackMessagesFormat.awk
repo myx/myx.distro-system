@@ -8,6 +8,16 @@
 # main-loop, and every dispatched member tonight; this is the actual fix,
 # not another one-off script.
 #
+# A message's `reactions` array and its `reply_count`/`latest_reply`/
+# `reply_users` thread-metadata fields are present directly on the message
+# object in both conversations.history and conversations.replies, even
+# without fetching the thread itself -- when present, they get appended to
+# that message's line as "[reactions: NAME xCOUNT (USERS)]" (one bracket per
+# distinct reaction) and "[thread: N replies, latest by USER at TS]". A
+# channel-wide sweep still can't discover thread replies it has no ts for --
+# these annotations only flag that a known message has activity worth an
+# explicit `--read-slack <channel>:<ts> --thread` follow-up.
+#
 # Lives here (myx.distro-system/sh-lib, not myx.common) because it's
 # 100% Slack/DistroAgentsTools-specific with no general devops-CLI use --
 # the only real consumer is DistroAgentsTools.fn.sh --sweep-read-incoming-comms
@@ -110,10 +120,11 @@ function parseString(   c, out, hex, code, hex2, code2, cp) {
 	return out
 }
 
-## Slack-specific: track ts/user/bot_id/text per message index, print in
-## END once every field for that index has been seen -- field order in
-## Slack's real API responses isn't something to depend on.
-function emitLeaf(path, raw, val,   idx, rest) {
+## Slack-specific: track ts/user/bot_id/text plus each message's own
+## reactions[] array and reply_count/latest_reply/reply_users fields, per
+## message index; print in END once every field has been seen -- field
+## order in Slack's real API responses isn't something to depend on.
+function emitLeaf(path, raw, val,   idx, rest, afterIdx, afterReactions, j, afterJ, jNum) {
 	if (index(path, "messages.") != 1) return
 	rest = substr(path, length("messages.") + 1)
 	idx = rest
@@ -121,10 +132,41 @@ function emitLeaf(path, raw, val,   idx, rest) {
 	if (idx !~ /^[0-9]+$/) return
 	if (idx + 1 > msgCount) msgCount = idx + 1
 
-	if (rest == idx ".ts") tsOf[idx] = val
-	else if (rest == idx ".user") userOf[idx] = val
-	else if (rest == idx ".bot_id" && !(idx in userOf)) userOf[idx] = val
-	else if (rest == idx ".text") textOf[idx] = val
+	if (rest == idx ".ts") { tsOf[idx] = val; return; }
+	if (rest == idx ".user") { userOf[idx] = val; return; }
+	if (rest == idx ".bot_id" && !(idx in userOf)) { userOf[idx] = val; return; }
+	if (rest == idx ".text") { textOf[idx] = val; return; }
+
+	## Everything below is nested under messages.<idx>. -- pull off that
+	## prefix once, then match the remaining sub-path.
+	if (index(rest, idx ".") != 1) return
+	afterIdx = substr(rest, length(idx) + 2)
+
+	if (afterIdx == "reply_count") { replyCountOf[idx] = val; return; }
+	if (afterIdx == "latest_reply") { latestReplyOf[idx] = val; return; }
+	if (index(afterIdx, "reply_users.") == 1) {
+		## reply_users[0] is Slack's own most-recently-replied user -- only
+		## that one is surfaced (matches the "[thread: ... latest by ...]"
+		## annotation, not a full replier roster).
+		if (substr(afterIdx, length("reply_users.") + 1) == "0") latestReplyUserOf[idx] = val
+		return
+	}
+	if (index(afterIdx, "reactions.") == 1) {
+		afterReactions = substr(afterIdx, length("reactions.") + 1)
+		j = afterReactions
+		sub(/\..*/, "", j)
+		if (j !~ /^[0-9]+$/) return
+		jNum = j + 0
+		if (!(idx in reactionCountPerMsg) || jNum + 1 > reactionCountPerMsg[idx]) reactionCountPerMsg[idx] = jNum + 1
+		afterJ = substr(afterReactions, length(j) + 2)
+		if (afterJ == "name") reactionNameOf[idx, j] = val
+		else if (afterJ == "count") reactionCountOf[idx, j] = val
+		else if (index(afterJ, "users.") == 1) {
+			if ((idx, j) in reactionUsersOf) reactionUsersOf[idx, j] = reactionUsersOf[idx, j] "," val
+			else reactionUsersOf[idx, j] = val
+		}
+		return
+	}
 }
 
 function parseValue(path,   c, startp, val, raw) {
@@ -199,9 +241,28 @@ function parseArray(path,   idx, c) {
 
 ## Slack returns messages newest-first; print oldest-first (chronological,
 ## matching how every hand-rolled python reader tonight already reversed
-## it) since that's what's actually useful to read.
+## it) since that's what's actually useful to read. Reaction/thread
+## annotations are appended to the same line, never a separate output line,
+## so a "ts | user | text" parser downstream keeps working unchanged.
 END {
 	for (i = msgCount - 1; i >= 0; i--) {
-		printf "%s | %s | %s\n", tsOf[i], (i in userOf ? userOf[i] : "?"), textOf[i]
+		line = sprintf("%s | %s | %s", tsOf[i], (i in userOf ? userOf[i] : "?"), textOf[i])
+
+		if (i in reactionCountPerMsg) {
+			for (j = 0; j < reactionCountPerMsg[i]; j++) {
+				rName = ((i, j) in reactionNameOf) ? reactionNameOf[i, j] : "?"
+				rCount = ((i, j) in reactionCountOf) ? reactionCountOf[i, j] : "?"
+				rUsers = ((i, j) in reactionUsersOf) ? reactionUsersOf[i, j] : "?"
+				line = line sprintf(" [reactions: %s x%s (%s)]", rName, rCount, rUsers)
+			}
+		}
+
+		if ((i in replyCountOf) && replyCountOf[i] + 0 > 0) {
+			line = line sprintf(" [thread: %s replies, latest by %s at %s]", \
+				replyCountOf[i], (i in latestReplyUserOf ? latestReplyUserOf[i] : "?"), \
+				(i in latestReplyOf ? latestReplyOf[i] : "?"))
+		}
+
+		print line
 	}
 }
