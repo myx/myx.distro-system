@@ -521,14 +521,11 @@ DistroAgentsTools(){
 		## printed before sending mirrors DistroLocalTools.fn.sh:316's
 		## convention, with the token redacted.
 		##
-		## Resilience (2026-07-21, per direct human-owner instruction after a
-		## transient DNS blip on slack.com silently dropped a send): "do not
-		## quit - assume it is working - backoff to email if see no response."
-		## Retries a handful of times with increasing backoff before treating
-		## the send as failed (covers exactly the class of transient network
-		## hiccup already documented for imap.gmail.com/smtp.gmail.com in this
-		## same environment, not a persistent block) -- only falls back to
-		## email once genuinely exhausted, never on the first blip. Success is
+		## Resilience: retries a handful of times with increasing backoff before
+		## treating the send as failed -- covers the transient-network-hiccup
+		## class already handled for imap.gmail.com/smtp.gmail.com in this same
+		## environment, not a persistent block. Falls back to email only once
+		## genuinely exhausted, never on the first blip. Success is
 		## detected by grepping for `"ok":true` in the raw response body --
 		## this shell layer has no real JSON parser, and a literal `"ok":true`
 		## substring match is reliable enough for Slack's actual response
