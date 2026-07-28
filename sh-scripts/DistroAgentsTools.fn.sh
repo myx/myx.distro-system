@@ -1753,7 +1753,7 @@ $1"
 		;;
 
 		## Added 2026-07-22 (routine-grooming pass, first live duplicate-check-and-merge
-		## exercise): regenerates one routine's own routine-contract.SLIB.md without going
+		## exercise): regenerates one member's own <name>.SLIB.md without going
 		## through this session's own Edit/Write tool call -- closes the human-owner's own
 		## SLIB-approval-friction question ("Should be special tooling for SLIB updates be
 		## added? --save-slib? - these are generated files - I don't want to approve each",
@@ -1766,7 +1766,7 @@ $1"
 		## never a free-form path -- it's validated as a bare directory name (no '/', not
 		## '.'/'..') and must already exist as a real skill directory under
 		## $HOME/.claude/skills/, so this op can only ever touch that one directory's own
-		## routine-contract.SLIB.md, never an arbitrary path. Content comes from stdin by
+		## <name>.SLIB.md, never an arbitrary path. Content comes from stdin by
 		## default, or from a plain file via --file <path> (added 2026-07-22, same
 		## motivation/shape as --send-message/--send-email-message's own --file: lets a
 		## caller write the regenerated content to a plain temp file first, an ordinary
@@ -1798,12 +1798,12 @@ $1"
 			local routineName="$1"
 			shift || true
 			if [ -z "$routineName" ] ; then
-				echo "⛔ ERROR: $MDSC_CMD --write-slib: routine name required (e.g. routine-grooming) -- content via stdin or --file <path>" >&2
+				echo "⛔ ERROR: $MDSC_CMD --write-slib: member name required (e.g. routine-grooming, keeper-acm) -- content via stdin or --file <path>" >&2
 				set +e ; return 1
 			fi
 			case "$routineName" in
 				*/*|.|..)
-					echo "⛔ ERROR: $MDSC_CMD --write-slib: routine name must be a bare directory name, not a path: $routineName" >&2
+					echo "⛔ ERROR: $MDSC_CMD --write-slib: member name must be a bare directory name, not a path: $routineName" >&2
 					set +e ; return 1
 				;;
 			esac
@@ -1812,7 +1812,15 @@ $1"
 				echo "⛔ ERROR: $MDSC_CMD --write-slib: no such skill directory: $skillDir" >&2
 				set +e ; return 1
 			fi
-			local target="$skillDir/routine-contract.SLIB.md"
+			## There is only ONE SLIB filename convention across the whole team, acting
+			## members and routine-* virtual members alike: <name>.SLIB.md (confirmed live
+			## 2026-07-28 -- every real routine-*/ folder already has its own
+			## <routine-name>.SLIB.md, e.g. routine-daily.SLIB.md; no routine-contract.SLIB.md
+			## file exists or ever existed anywhere in ~/.claude/skills). This op previously
+			## hardcoded routine-contract.SLIB.md as the target -- a bug, not a second real
+			## convention -- which silently mis-wrote every target (e.g. keeper-acm) to a
+			## stray, wrongly-named file instead of that member's real <name>.SLIB.md.
+			local target="$skillDir/$routineName.SLIB.md"
 			local content contentFromFile="false"
 			while [ $# -gt 0 ] ; do
 				case "$1" in
@@ -1838,7 +1846,7 @@ $1"
 			done
 			[ "$contentFromFile" = "true" ] || content="$( cat )"
 			if [ -z "$content" ] ; then
-				echo "⛔ ERROR: $MDSC_CMD --write-slib: empty content -- refusing to write an empty routine-contract.SLIB.md" >&2
+				echo "⛔ ERROR: $MDSC_CMD --write-slib: empty content -- refusing to write an empty $( basename "$target" )" >&2
 				set +e ; return 1
 			fi
 			printf '%s\n' "$content" > "$target"
