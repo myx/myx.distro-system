@@ -23,7 +23,7 @@
 📘 syntax: DistroAgentsTools.fn.sh --list-md <path>...
 📘 syntax: DistroAgentsTools.fn.sh --librarian-list-team-files [<path>...]
 📘 syntax: DistroAgentsTools.fn.sh --librarian-list-team-files-dates [<path>...]
-📘 syntax: DistroAgentsTools.fn.sh --write-slib <routine-name> [--file <path>]
+📘 syntax: DistroAgentsTools.fn.sh --write-slib <member-name> [--file <path>]
 📘 syntax: DistroAgentsTools.fn.sh --write-board-item <state> <item-filename>
 📘 syntax: DistroAgentsTools.fn.sh --member-upsert-inbox-note <member> <item-filename> [--file <path>]
 📘 syntax: DistroAgentsTools.fn.sh --member-upsert-member-inquiry <member> <item-filename> [--file <path>]
@@ -388,19 +388,19 @@
 			spaces then the path relative to the skill-root (never
 			absolute), sorted newest-first.
 
-		--write-slib <routine-name> [--file <path>]
-			Regenerates one routine's own routine-contract.SLIB.md -- content
+		--write-slib <member-name> [--file <path>]
+			Regenerates one member's own <member-name>.SLIB.md -- content
 			comes from stdin by default, or from a plain file via --file <path>
 			(added 2026-07-22, same shape as --send-message/--send-email-message's
 			own --file: lets a caller write the regenerated content to a plain
 			temp file first, an ordinary Write tool call, and still invoke this op
 			as one single-line command, since a heredoc body spans multiple lines
 			and stops matching a single-line settings.json allowlist glob).
-			<routine-name> is a bare directory name only (no `/`, not `.`/`..`)
+			<member-name> is a bare directory name only (no `/`, not `.`/`..`)
 			that must already exist under $HOME/.claude/skills/ -- same
 			fixed-target-per-identifier shape as --purge-cleanup, never a
 			free-form path. Writes
-			$HOME/.claude/skills/<routine-name>/routine-contract.SLIB.md, refusing
+			$HOME/.claude/skills/<member-name>/<member-name>.SLIB.md, refusing
 			empty content (whether from stdin or --file) rather than truncating
 			the file to nothing. Added 2026-07-22 -- closes the human-owner's own
 			SLIB-approval-friction question ("I don't want to approve each" [SLIB
@@ -698,16 +698,16 @@
 		EOF
 		```
 
-		# Regenerate a routine's own merged contract file -- heredoc, not a piping command in front
+		# Regenerate a member's own assembled SLIB file -- heredoc, not a piping command in front
 		```
 		DistroAgentsTools.fn.sh --write-slib routine-grooming <<'EOF'
-		... full routine-contract.SLIB.md content ...
+		... full routine-grooming.SLIB.md content ...
 		EOF
 		```
 
 		# Same, via --file instead -- write content with a plain Write tool call
 		# first, then this stays a single-line command
-		`DistroAgentsTools.fn.sh --write-slib routine-grooming --file /path/to/routine-contract.SLIB.md`
+		`DistroAgentsTools.fn.sh --write-slib keeper-acm --file /path/to/keeper-acm.SLIB.md`
 
 		# Existence + line count for a batch of files in one call, instead of a hand-rolled `for`/`wc -l` loop
 		`DistroAgentsTools.fn.sh --list-md /path/to/one.md /path/to/two.md /path/to/missing.md`
