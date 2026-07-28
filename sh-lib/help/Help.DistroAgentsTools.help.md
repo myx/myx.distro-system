@@ -3,13 +3,13 @@
 📘 syntax: DistroAgentsTools.fn.sh --stop-console <channel>
 📘 syntax: DistroAgentsTools.fn.sh --list-consoles [--override-workspace <path>]
 📘 syntax: DistroAgentsTools.fn.sh --agent-config-option <operation>
-📘 syntax: DistroAgentsTools.fn.sh --send-message <magic-team|human-owner|<channel>:<ts>> [text...]
+📘 syntax: DistroAgentsTools.fn.sh --send-message <magic-team|human-owner|event-track|event-alert|<channel>:<ts>> [text...]
 📘 syntax: DistroAgentsTools.fn.sh --send-message <target> --from-stdin [--format text|blocks]
 📘 syntax: DistroAgentsTools.fn.sh --send-message <target> --file <path> [--format text|blocks]
 📘 syntax: DistroAgentsTools.fn.sh --send-email-message <email@address>... -- <subject> -- <body...>
 📘 syntax: DistroAgentsTools.fn.sh --send-email-message <email@address>... -- <subject> -- --from-stdin
 📘 syntax: DistroAgentsTools.fn.sh --send-email-message <email@address>... -- <subject> -- --file <path>
-📘 syntax: DistroAgentsTools.fn.sh --check-slack <magic-team|human-owner|<channel>:<ts>> [--oldest <ts>] [--raw]
+📘 syntax: DistroAgentsTools.fn.sh --check-slack <magic-team|human-owner|event-track|event-alert|<channel>:<ts>> [--oldest <ts>] [--raw]
 📘 syntax: DistroAgentsTools.fn.sh --check-email
 📘 syntax: DistroAgentsTools.fn.sh --mark-email-seen <uid>
 📘 syntax: DistroAgentsTools.fn.sh --check-trello
@@ -132,7 +132,9 @@
 			Posts a message to Slack via chat.postMessage. <target> is
 			`magic-team` or `human-owner` (channel id resolved from
 			SLACK_CHANNEL_MAGIC_TEAM/SLACK_CHANNEL_HUMAN_OWNER in
-			--agent-config-option) or a literal `<channel>:<ts>` string
+			--agent-config-option), `event-track` or `event-alert` (fixed
+			channels `#bot-messages`/`#cloud-alert`, not resolved via
+			--agent-config-option), or a literal `<channel>:<ts>` string
 			(posted as a threaded reply via thread_ts — the caller supplies
 			this directly; nothing is looked up by name). Plain trailing
 			arguments (or plain stdin) become the `text` field.
@@ -212,15 +214,15 @@
 			or the other, not both`), not silently resolved one way or the
 			other -- exactly one body source is required.
 
-		--check-slack <magic-team|human-owner|<channel>:<ts>> [--oldest <ts>] [--raw]
+		--check-slack <magic-team|human-owner|event-track|event-alert|<channel>:<ts>> [--oldest <ts>] [--raw]
 			Reads Slack activity for ONE specific, caller-chosen target --
 			target is required, this is a general-purpose single-target
 			reader, not the comms-sweep macro-op (see --sweep-read-incoming-comms
 			below; these two used to be conflated into one op that
 			accepted an optional target, which was a real design bug, fixed
 			2026-07-21). Target grammar mirrors --send-message's:
-			`magic-team`/`human-owner` reads that watched target's
-			conversations.history; `<channel>:<ts>` fetches
+			`magic-team`/`human-owner`/`event-track`/`event-alert` reads that
+			watched target's conversations.history; `<channel>:<ts>` fetches
 			conversations.replies for that specific thread instead (same
 			addressing --send-message already uses for threaded replies).
 			`--oldest <ts>` is passed through to the Slack API call as-is,

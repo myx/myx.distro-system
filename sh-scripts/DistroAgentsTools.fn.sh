@@ -160,13 +160,22 @@ DistroAgentsToolsResolveConsoleShortName(){
 }
 
 ## Resolves a --send-message/--sweep-read-incoming-comms/--send-email-message
-## style target (magic-team|human-owner|<channel>:<ts>) to a channel id +
-## optional thread ts. Shared resolution grammar across three ops -- kept as
-## a utility helper (like the ones above) rather than duplicated three times.
+## style target (magic-team|human-owner|event-track|event-alert|<channel>:<ts>)
+## to a channel id + optional thread ts. Shared resolution grammar across
+## three ops -- kept as a utility helper (like the ones above) rather than
+## duplicated three times.
 DistroAgentsToolsResolveTarget(){
 	local target="$1"
 	local channel threadTs
 	case "$target" in
+		event-track|event-track:*)
+			channel="#bot-messages"
+			case "$target" in *:*) threadTs="${target#*:}" ;; esac
+		;;
+		event-alert|event-alert:*)
+			channel="#cloud-alert"
+			case "$target" in *:*) threadTs="${target#*:}" ;; esac
+		;;
 		magic-team|magic-team:*)
 			channel="$( DistroAgentsTools --agent-config-option --select SLACK_CHANNEL_MAGIC_TEAM )"
 			case "$target" in *:*) threadTs="${target#*:}" ;; esac
@@ -532,7 +541,7 @@ DistroAgentsTools(){
 			shift || true
 
 			if [ -z "$target" ] ; then
-				echo "⛔ ERROR: $MDSC_CMD --send-message: target required (magic-team|human-owner|<channel>:<ts>)" >&2
+				echo "⛔ ERROR: $MDSC_CMD --send-message: target required (magic-team|human-owner|event-track|event-alert|<channel>:<ts>)" >&2
 				set +e ; return 1
 			fi
 
@@ -1013,7 +1022,7 @@ $1"
 			local target="$1"
 			shift || true
 			if [ -z "$target" ] ; then
-				echo "⛔ ERROR: $MDSC_CMD --read-slack: target required (magic-team|human-owner|<channel>:<ts>)" >&2
+				echo "⛔ ERROR: $MDSC_CMD --read-slack: target required (magic-team|human-owner|event-track|event-alert|<channel>:<ts>)" >&2
 				set +e ; return 1
 			fi
 
@@ -1142,13 +1151,14 @@ $1"
 		;;
 
 		## Reads Slack activity for ONE specific target -- a required
-		## <magic-team|human-owner|<channel>:<ts>>, no "check everything"
-		## mode (that's --sweep-read-incoming-comms's job specifically, see
-		## its own comment below; conflating the two is a real design bug
-		## found and fixed 2026-07-21). Deliberately does NOT parse the
-		## Slack JSON response internally -- see the --pretty/--raw handling
-		## near the bottom of this branch. Target grammar mirrors
-		## --send-message's (magic-team|human-owner|<channel>:<ts>) so a
+		## <magic-team|human-owner|event-track|event-alert|<channel>:<ts>>,
+		## no "check everything" mode (that's --sweep-read-incoming-comms's
+		## job specifically, see its own comment below; conflating the two
+		## is a real design bug found and fixed 2026-07-21). Deliberately
+		## does NOT parse the Slack JSON response internally -- see the
+		## --pretty/--raw handling near the bottom of this branch. Target
+		## grammar mirrors --send-message's
+		## (magic-team|human-owner|event-track|event-alert|<channel>:<ts>) so a
 		## bare channel name means "history" and a <channel>:<ts> pair means
 		## "replies in that thread" -- no new addressing scheme invented.
 		--check-slack)
@@ -1157,7 +1167,7 @@ $1"
 			shift || true
 
 			if [ -z "$target" ] ; then
-				echo "⛔ ERROR: $MDSC_CMD --check-slack: target required (magic-team|human-owner|<channel>:<ts>)" >&2
+				echo "⛔ ERROR: $MDSC_CMD --check-slack: target required (magic-team|human-owner|event-track|event-alert|<channel>:<ts>)" >&2
 				set +e ; return 1
 			fi
 
