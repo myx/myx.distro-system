@@ -30,7 +30,7 @@
 ## anywhere in myx.distro-*/myx.common; revisit only if/when multiple
 ## independent producers need to submit into one shared console out of band.
 ##
-## Convention note (2026-07-21 refactor): brought in line with the rest of
+## Convention: brought in line with the rest of
 ## the Distro*Tools/Distro*Command family (DistroLocalTools.fn.sh,
 ## DistroSourceCommand.fn.sh, DistroImageCommand.fn.sh) — exactly ONE
 ## top-level function matching this file's own name (`DistroAgentsTools`),
@@ -52,9 +52,7 @@
 ## precedent (`DistroLocalTools --install-distro-$ITEM`), not via a private
 ## helper function.
 ##
-## Direct human-owner correction, 2026-07-21: "Stop doing tons of simple
-## functions in DistroAgentsTools — convention is to inline, ESPECIALLY
-## SINGLE-LINERS." If a piece of logic is only ever used by one op, it goes
+## Convention: inline, especially single-liners. If a piece of logic is only ever used by one op, it goes
 ## inline in that op's own `case` arm — it does NOT become a new top-level
 ## helper just because it's a few lines long or "could be reused someday."
 ## The existing helpers above this line are already-established, genuinely
@@ -358,18 +356,13 @@ DistroAgentsTools(){
 			local channelDir
 			channelDir="$( DistroAgentsToolsResolveChannelDir "$ref" )" || { set +e ; return 1 ; }
 
-			## ASSUME SURVIVAL, 2026-07-24 (human-owner instruction, verbatim:
-			## "ASSUME SURVIVAL - INCLUDE CHECK AND RESTART IN TOOLING
-			## OPERATION, TEST, APPLY, UPDATE, USE") -- this op used to trust
-			## the channel was alive with no check at all, leaving every caller
-			## responsible for verifying first. That was actually dangerous, not
-			## just inconvenient: a dead console still leaves its directory and
-			## FIFO special file behind (only --stop-console's rm -rf removes
-			## them), so writing here with no liveness check doesn't fail loud
-			## -- POSIX FIFO semantics mean opening the write end with no reader
-			## on the other end blocks indefinitely (see --stop-console's own
-			## comment below for the confirmed-live precedent of this exact
-			## hang, 2026-07-20). Same liveness test --start-console's own
+			## Checks liveness and restarts rather than trusting the channel is
+			## alive: a dead console still leaves its directory and FIFO special
+			## file behind (only --stop-console's rm -rf removes them), so
+			## writing here with no liveness check doesn't fail loud -- POSIX
+			## FIFO semantics mean opening the write end with no reader on the
+			## other end blocks indefinitely (see --stop-console's own comment
+			## below for that exact hang). Same liveness test --start-console's own
 			## idempotent-reuse logic already uses (kill -0 on both stored
 			## PIDs); same recreate mechanism too (self-recursion into
 			## --start-console, which already wipes a stale channel and mints a
@@ -424,8 +417,7 @@ DistroAgentsTools(){
 			## its own. Every check below is an `if`/`|| true`, never a bare
 			## `&&`, so a partial/already-dead session still reaches the final
 			## `rm -rf` instead of leaving a half-cleaned channel dir behind.
-			## Confirmed live (2026-07-20, against a real stale channel):
-			## opening a FIFO for writing blocks indefinitely if there's no
+			## Opening a FIFO for writing blocks indefinitely if there's no
 			## reader on the other end (POSIX FIFO semantics, not a bash
 			## quirk). A channel whose console process already died still
 			## leaves the FIFO special file behind, so an unconditional write
@@ -564,29 +556,26 @@ DistroAgentsTools(){
 			while [ $# -gt 0 ] ; do
 				case "$1" in
 					--message-from-stdin|--from-stdin)
-						## Added 2026-07-22: `--from-stdin` is the standardized,
-						## uniform name for "read content from stdin instead of argv"
-						## across every DistroAgentsTools op that accepts free-text
-						## content (see also --send-email-message's body below,
-						## --validate-json's bare-stdin mode) -- `--message-from-stdin`
-						## stays recognized too, unchanged, since it's already
-						## documented/used across several skill files; this is an
-						## additive alias, not a rename.
+						## `--from-stdin` is the standardized, uniform name for "read
+						## content from stdin instead of argv" across every
+						## DistroAgentsTools op that accepts free-text content (see
+						## also --send-email-message's body below, --validate-json's
+						## bare-stdin mode). `--message-from-stdin` stays recognized
+						## too, unchanged, since it's already documented/used across
+						## several skill files -- this is an additive alias, not a
+						## rename.
 						fromStdin="true" ; shift
 					;;
 					--file)
-						## Added 2026-07-22 -- lets a caller write content to a plain
-						## temp file first (an ordinary Write tool call, no Bash
-						## prompt) and still invoke --send-message as one single-line
-						## command, since a heredoc body makes the invoked command
-						## span multiple lines and no longer match a single-line
-						## settings.json allowlist glob. Validated and consumed
-						## directly here, at point of use, into the SAME stdinContent
-						## variable --from-stdin's own downstream handling already
-						## reads -- no separate fromFile="" sentinel held across
-						## branches (that shape was rejected live, 2026-07-22, for
-						## exactly this op -- see keeper-myx/KEEPER-LOG.md's dated
-						## entry for the corrected shape this follows).
+						## Lets a caller write content to a plain temp file first (an
+						## ordinary Write tool call, no Bash prompt) and still invoke
+						## --send-message as one single-line command, since a heredoc
+						## body makes the invoked command span multiple lines and no
+						## longer match a single-line settings.json allowlist glob.
+						## Validated and consumed directly here, at point of use, into
+						## the SAME stdinContent variable --from-stdin's own downstream
+						## handling already reads -- no separate fromFile="" sentinel
+						## held across branches.
 						if [ -z "$2" ] || [ ! -f "$2" ] ; then
 							echo "⛔ ERROR: $MDSC_CMD --send-message: --file: file not found: $2" >&2
 							set +e ; return 1
@@ -599,12 +588,12 @@ DistroAgentsTools(){
 						format="$2" ; shift 2
 					;;
 					--*)
-						## Bug fix, 2026-07-22 (real live incident): an
-						## unrecognized flag-shaped token silently fell through to
-						## the catch-all below and got posted to #magic-team as
-						## literal message text -- a stray "--from-stdin" ended up
-						## as the entire "text" field, with ok:true coming back,
-						## so it wasn't even a visible failure. Any token starting
+						## Guards against an unrecognized flag-shaped token silently
+						## falling through to the catch-all below and getting posted
+						## as literal message text -- a stray "--from-stdin" would
+						## otherwise end up as the entire "text" field, with ok:true
+						## coming back, so it wouldn't even be a visible failure. Any
+						## token starting
 						## with "--" that didn't match a known option above is
 						## almost always a typo/wrong-order/mis-recognized flag,
 						## not intended literal content -- fail loud here instead
@@ -634,18 +623,17 @@ DistroAgentsTools(){
 					## (which goes through agentMcpJsonEscape.awk) -- this command's
 					## own contract for --format blocks always expects a bare JSON
 					## array here, so validate that before it ever reaches curl.
-					## Bug reproduced live 2026-07-22: a caller's stdin content
-					## carried a stray leading ":" (leftover from a "blocks: [...]"
-					## -style paste, i.e. not actually a bare array), which spliced
+					## Guards against a caller's stdin content carrying a stray
+					## leading ":" (leftover from a "blocks: [...]" -style paste,
+					## i.e. not actually a bare array), which would splice
 					## into a literal `"blocks"::[...]` in the payload -- Slack's
-					## chat.postMessage bounced that as invalid_json on all 5
+					## chat.postMessage would bounce that as invalid_json on all 5
 					## retries, with nothing in the error pointing at the actual
 					## cause. Reuses this same file's own --validate-json op via
 					## self-recursion (same convention as --send-email-message's
-					## fallback call below) for full JSON-syntax validation, per
-					## the human-owner's own "always use it" instruction for
-					## --validate-json, rather than hand-rolling a second, weaker
-					## JSON check here. --validate-json accepts any syntactically
+					## fallback call below) for full JSON-syntax validation,
+					## rather than hand-rolling a second, weaker JSON check here.
+					## --validate-json accepts any syntactically
 					## valid top-level JSON value though (object, string, number,
 					## ...), so a cheap bare `[` ... `]` shape check is layered on
 					## top of it to enforce the array-specifically requirement
@@ -665,12 +653,12 @@ DistroAgentsTools(){
 						;;
 					esac
 
-					## Added 2026-07-22, real live incident: Slack rejected a
-					## chat.postMessage call with `invalid_blocks: unsupported type
-					## "mrkdwn" [json-pointer:/blocks/3/type]` -- a caller had nested
-					## a text-object type (`mrkdwn`, only valid inside a block's own
-					## `text` field) directly as a top-level block's own `type`, which
-					## Slack's Block Kit does not accept as a block type. Neither the
+					## Guards against a chat.postMessage rejection shaped like
+					## `invalid_blocks: unsupported type "mrkdwn" [json-pointer:/blocks/3/type]`
+					## -- a caller nesting a text-object type (`mrkdwn`, only valid
+					## inside a block's own `text` field) directly as a top-level
+					## block's own `type`, which Slack's Block Kit does not accept as
+					## a block type. Neither the
 					## --validate-json check above (syntax only) nor the bare-array
 					## check above (shape only) catches this -- both are satisfied by
 					## a syntactically-valid array of objects regardless of what each
@@ -775,9 +763,7 @@ if bad:
 			## NOT a channel switch -- email here is a notification that Slack
 			## itself is stuck, not a substitute delivery path for the message.
 			## The message stays queued for Slack; the email's job is only to
-			## say so and describe what's waiting, per direct human-owner
-			## instruction: "do not switch from Slack to email just use email
-			## to inform that comms stuck (in Slack)."
+			## say so and describe what's waiting.
 			echo "⛔ $MDSC_CMD --send-message: Slack did not confirm after $maxAttempts attempts -- notifying by email that Slack comms are stuck" >&2
 			local fallbackUser
 			fallbackUser="$( DistroAgentsTools --agent-config-option --select EMAIL_USER )"
@@ -815,17 +801,15 @@ if bad:
 						shift
 					;;
 					--from-stdin)
-						## Added 2026-07-22: standardized stdin-content flag (same
-						## name as --send-message's), only meaningful in the body
-						## state -- reads the whole body from stdin instead of
-						## trailing argv lines, avoiding the exact
-						## shell-escaping/quoting fragility (multi-line free text as
-						## separate argv words) that caused the --format blocks
-						## bug this same day. Outside the body state it's treated
-						## as ordinary literal content (matches this loop's
-						## existing catch-all behavior for any other unrecognized
-						## token) since recipients/subject aren't meant to come
-						## from stdin.
+						## Standardized stdin-content flag (same name as
+						## --send-message's), only meaningful in the body state --
+						## reads the whole body from stdin instead of trailing argv
+						## lines, avoiding shell-escaping/quoting fragility from
+						## multi-line free text as separate argv words. Outside the
+						## body state it's treated as ordinary literal content
+						## (matches this loop's existing catch-all behavior for any
+						## other unrecognized token) since recipients/subject aren't
+						## meant to come from stdin.
 						if [ "$state" = "body" ] ; then
 							if [ "$bodyFromFile" = "true" ] ; then
 								echo "⛔ ERROR: $MDSC_CMD --send-email-message: --from-stdin given alongside --file -- use one or the other, not both" >&2
@@ -841,10 +825,10 @@ if bad:
 						fi
 					;;
 					--file)
-						## Added 2026-07-22 -- same motivation as --send-message's own
-						## --file (lets a caller write the body to a plain temp file
-						## first, a normal Write tool call, and still invoke this op
-						## as one single-line command). Validated and consumed
+						## Same motivation as --send-message's own --file (lets a
+						## caller write the body to a plain temp file first, a normal
+						## Write tool call, and still invoke this op as one
+						## single-line command). Validated and consumed
 						## directly here, at point of use, into the existing
 						## bodyLines variable -- a separate bodyFromFile flag (not a
 						## bodyFromFile="" sentinel checked later) records the source
@@ -956,21 +940,14 @@ $1"
 			return "$rc"
 		;;
 
-		## Real gap this closes (2026-07-21, per direct human-owner
-		## complaint): --sweep-read-incoming-comms already precodes Slack
-		## reads, but email/Trello checks had no equivalent op, so every
-		## comms sweep kept hand-rolling raw curl in Bash for those two --
-		## exactly the "why is this not in tooling" friction that keeps
-		## triggering fresh permission prompts a precoded op would avoid.
 		## IMAP STATUS check (unseen count) plus a UID SEARCH UNSEEN (which
 		## UIDs those are) -- not a full fetch, matches what the comms-sweep
-		## routine's Check step needs, but also closes a real follow-on gap
-		## found live the same session: STATUS alone gives a count with no
-		## way to discover which UID(s) to hand to --read-email. UID SEARCH
+		## routine's Check step needs. STATUS alone gives a count with no way
+		## to discover which UID(s) to hand to --read-email. UID SEARCH
 		## returns a clean single-line response through curl --request
 		## (unlike UID FETCH's literal-string body, which does not come
-		## through this way -- confirmed live, that's why --read-email uses
-		## curl's URL-based ;UID= addressing instead, not --request).
+		## through this way -- that's why --read-email uses curl's
+		## URL-based ;UID= addressing instead, not --request).
 		--check-email)
 			shift
 			local imapHost imapUser imapPass
@@ -1004,8 +981,7 @@ $1"
 			return $?
 		;;
 
-		## Added 2026-07-21, per direct human-owner instruction: --check-*/
-		## --sweep-read-incoming-comms are deliberately lightweight scanning
+		## --check-*/--sweep-read-incoming-comms are deliberately lightweight scanning
 		## tools (short/pretty descriptions) -- they will legitimately
 		## truncate/summarize. --read-* is the different, complementary
 		## concern: given one specific message/thread's own id/address,
@@ -1151,7 +1127,7 @@ $1"
 		## <magic-team|human-owner|event-track|event-alert|<channel>:<ts>>,
 		## no "check everything" mode (that's --sweep-read-incoming-comms's
 		## job specifically, see its own comment below; conflating the two
-		## is a real design bug found and fixed 2026-07-21). Deliberately
+		## is a real design bug). Deliberately
 		## does NOT parse the Slack JSON response internally -- see the
 		## --pretty/--raw handling near the bottom of this branch. Target
 		## grammar mirrors --send-message's
@@ -1169,9 +1145,7 @@ $1"
 			fi
 
 			## Pretty (formatted "ts | user | text" lines) is the default, not
-			## an opt-in -- per direct human-owner correction: "at least pretty
-			## by default, I don't imagine you calling non-pretty." --raw is
-			## the escape hatch for the rare case the full raw JSON is
+			## an opt-in. --raw is the escape hatch for the rare case the full raw JSON is
 			## actually needed (e.g. inspecting reply_count/thread metadata
 			## fields the pretty formatter doesn't surface).
 			local oldest pretty="true"
@@ -1237,12 +1211,8 @@ $1"
 			[ -z "$threadTs" ] || curlArgs+=( --data-urlencode "ts=$threadTs" )
 			[ -z "$oldest" ] || curlArgs+=( --data-urlencode "oldest=$oldest" )
 
-			## No retry logic here, by design -- human-owner correction,
-			## 2026-07-21: "check slack DO NOT NEED RETRY LOGIC - if they
-			## fail - they fail - all. --check" (applies to the whole
-			## --check-* family, not just this op). A brief retry-loop
-			## version existed for a few minutes the same day and was
-			## reverted; don't reintroduce it here.
+			## No retry logic here, by design -- applies to the whole --check-*
+			## family, not just this op: if a check fails, it fails, full stop.
 			##
 			## --pretty pipes the response through this repo's own
 			## sh-lib/AgentSlackMessagesFormat.awk (reuses myx.common's
@@ -1266,11 +1236,10 @@ $1"
 			return 0
 		;;
 
-		## Added 2026-07-22: closes a real gap found live -- until now this
-		## tool had no `reactions.add` wrapper at all, so the per-message
-		## Slack-reaction-tracking design (`routine-communication-sweep`,
-		## `routine-board-actualisation`'s pending-reaction lookup) had no
-		## sanctioned way to actually post a reaction. Same target grammar as
+		## The `reactions.add` wrapper -- the per-message Slack-reaction-tracking
+		## design (`routine-communication-sweep`, `routine-board-actualisation`'s
+		## pending-reaction lookup) uses this as its sanctioned way to actually
+		## post a reaction. Same target grammar as
 		## --read-slack/--check-slack (<channel>:<ts>, via
 		## DistroAgentsToolsResolveTarget) plus a required emoji name (no
 		## colons, matches Slack's own reactions.add `name` field exactly).
@@ -1340,10 +1309,7 @@ $1"
 		;;
 
 		## NOT a general-purpose "check any Slack target" op -- that's
-		## --check-slack, above (real design bug fixed 2026-07-21: this used
-		## to accept an arbitrary <target> argument too, conflating "the
-		## comms-sweep routine's own fixed macro-op" with "read one specific
-		## thread," which they are not). This op takes no target at all --
+		## --check-slack, above. This op takes no target at all --
 		## it always reads the exact same predefined, pre-configured set of
 		## watched sources (both Slack targets, email, Trello) in one
 		## optimized combined pass, producing one specific mixed output
@@ -1431,9 +1397,7 @@ $1"
 			local perm
 			## BSD stat then GNU stat fallback, inlined here rather than a
 			## shared helper function, per this file's actual convention:
-			## logic stays inline within the case arm (human-owner
-			## correction, 2026-07-24 -- this file postdates the
-			## inline-only convention entirely, so no exception applies).
+			## logic stays inline within the case arm.
 			perm="$( stat -f '%Lp' "$dir" 2>/dev/null || stat -c '%a' "$dir" 2>/dev/null )"
 			if [ "$perm" = "700" ] ; then
 				echo "OK   700  $dir"
@@ -1508,9 +1472,7 @@ $1"
 
 		--purge-cleanup)
 			shift
-			## No path argument by design (human-owner correction, 2026-07-21:
-			## "should NOT have a path argument. It cleans predefined
-			## .local/.cleanup folder"). Always operates on exactly
+			## No path argument by design. Always operates on exactly
 			## $MMDAPP/.local/.cleanup -- a fixed, code-determined path, never
 			## caller input, which is what makes this safe to route around the
 			## `Bash(rm *)` deny in the first place (see CLAUDE.md's
@@ -1537,10 +1499,7 @@ $1"
 		;;
 
 		--validate-json)
-			## Added 2026-07-22, human-owner-requested directly during a live
-			## routine-coworking session, after a `chat.postMessage --data @file`
-			## call failed with Slack's `invalid_json` and the JSON wasn't checked
-			## first. Validates a JSON file (path arg) or stdin (no arg) is
+			## Validates a JSON file (path arg) or stdin (no arg) is
 			## syntactically valid, before it's ever handed to curl/an API call.
 			## Uses python3 (present on every supported OS here) rather than jq,
 			## matching this tool family's existing jq-avoidance convention.
@@ -1570,14 +1529,11 @@ $1"
 		;;
 
 		--list-md)
-			## Added 2026-07-22, human-owner-requested directly (folded into a
-			## routine-coworking session touching unrelated reaction-design
-			## work). Replaces the hand-rolled `for f in ...; do wc -l "$f";
-			## done`-style Bash loop agents kept reaching for before editing a
-			## batch of markdown/doc files -- each such loop is a fresh,
-			## non-matching command string that costs its own permission
-			## prompt, same friction class as the --validate-json/--from-stdin
-			## additions above. Read-only, no credentials, no network -- just
+			## Replaces the hand-rolled `for f in ...; do wc -l "$f"; done`-style
+			## Bash loop agents kept reaching for before editing a batch of
+			## markdown/doc files -- each such loop is a fresh, non-matching
+			## command string that costs its own permission prompt. Read-only,
+			## no credentials, no network -- just
 			## existence + line count for a caller-supplied list of paths (not
 			## restricted to .md, despite the flag name -- any path works).
 			shift
@@ -1604,9 +1560,8 @@ $1"
 			return 0
 		;;
 
-		## Added 2026-07-24, human-owner-approved directly -- closes a real gap
-		## confirmed against this file's own source: no sanctioned read-only
-		## listing op existed for skill-folder files (--write-slib/
+		## No sanctioned read-only listing op existed for skill-folder files
+		## before this (--write-slib/
 		## --write-board-item/--member-upsert-* all cover different, specific
 		## write targets, not this). find-based (not a hand-rolled directory
 		## walk), pure path listing -- no per-file stat call, so this stays
@@ -1674,8 +1629,7 @@ $1"
 			return 0
 		;;
 
-		## Added 2026-07-24, human-owner-approved directly -- same as
-		## --librarian-list-team-files above (find-based scope
+		## Same as --librarian-list-team-files above (find-based scope
 		## resolution/error handling, identical argument grammar), but with
 		## a per-file modification date printed alongside each path -- the
 		## real reason this is a separate op rather than a flag on the plain
@@ -1686,8 +1640,7 @@ $1"
 		## then GNU stat fallback, inlined directly here rather than factored
 		## into a shared helper function, per this file's actual convention:
 		## logic stays inline within the case arm; a `source`d include file,
-		## never a function, is the answer if an arm gets too long
-		## (human-owner correction, 2026-07-24). Normalized to a common
+		## never a function, is the answer if an arm gets too long. Normalized to a common
 		## "YYYY-MM-DD HH:MM:SS" width on both platforms -- GNU stat's own
 		## %y includes sub-second precision + a timezone offset by default,
 		## trimmed to the same 19 characters as BSD's explicit -t format so
@@ -1749,46 +1702,39 @@ $1"
 			return 0
 		;;
 
-		## Added 2026-07-22 (routine-grooming pass, first live duplicate-check-and-merge
-		## exercise): regenerates one member's own <name>.SLIB.md without going
-		## through this session's own Edit/Write tool call -- closes the human-owner's own
-		## SLIB-approval-friction question ("Should be special tooling for SLIB updates be
-		## added? --save-slib? - these are generated files - I don't want to approve each",
-		## magic-coordinator/inbox/2026-07-22-note-save-slib-tooling-question.md) merged
-		## with keeper-myx's own broader tool-agnostic-update-mechanism proposal (same
-		## underlying ask -- keeper-myx/inbox/2026-07-22-proposal-tool-agnostic-skill-doc-
-		## update-mechanism.md already named --write-slib as the concrete recommended op).
+		## Regenerates one member's own <name>.SLIB.md without going through this
+		## session's own Edit/Write tool call, since SLIB files are generated
+		## content that shouldn't need per-write approval the way real source
+		## edits do.
 		##
 		## Same fixed-target-per-identifier shape as --purge-cleanup: <routine-name> is
 		## never a free-form path -- it's validated as a bare directory name (no '/', not
 		## '.'/'..') and must already exist as a real skill directory under
 		## $HOME/.claude/skills/, so this op can only ever touch that one directory's own
 		## <name>.SLIB.md, never an arbitrary path. Content comes from stdin by
-		## default, or from a plain file via --file <path> (added 2026-07-22, same
-		## motivation/shape as --send-message/--send-email-message's own --file: lets a
-		## caller write the regenerated content to a plain temp file first, an ordinary
-		## Write tool call, and still invoke this op as one single-line command, since a
-		## heredoc body spans multiple lines and stops matching a single-line
-		## settings.json allowlist glob). Call with this tool's absolute path leading and
-		## either a heredoc supplying stdin content (per magic-team/CONSOLE-SESSIONS.md's
-		## "Heredoc for stdin" convention) or --file <path>.
+		## default, or from a plain file via --file <path>, same motivation/shape as
+		## --send-message/--send-email-message's own --file: lets a caller write the
+		## regenerated content to a plain temp file first, an ordinary Write tool call,
+		## and still invoke this op as one single-line command, since a heredoc body
+		## spans multiple lines and stops matching a single-line settings.json allowlist
+		## glob. Call with this tool's absolute path leading and either a heredoc
+		## supplying stdin content (per magic-team/CONSOLE-SESSIONS.md's "Heredoc for
+		## stdin" convention) or --file <path>.
 		##
-		## Caller-identity gap, stated plainly rather than silently ignored (per the
-		## proposal's own finding): this tool has no privilege separation -- nothing stops
-		## any caller from regenerating any routine's SLIB file. Convention-based trust
-		## only, same model as every other op here (see magic-coordinator/SKILL.md's
-		## DistroAgentsTools trust-policy entry). Intended caller is magic-librarian,
-		## regenerating a routine's own merged contract file after a source SKILL.md/
-		## ACCESS.md change -- not enforced, just documented.
+		## Caller-identity gap, stated plainly rather than silently ignored: this tool
+		## has no privilege separation -- nothing stops any caller from regenerating any
+		## routine's SLIB file. Convention-based trust only, same model as every other op
+		## here (see magic-coordinator/SKILL.md's DistroAgentsTools trust-policy entry).
+		## Intended caller is magic-librarian, regenerating a routine's own merged
+		## contract file after a source SKILL.md/ACCESS.md change -- not enforced, just
+		## documented.
 		##
-		## --write-board-item/--write-inbox-note (this proposal's other two illustrative
-		## cases) built 2026-07-22, same routine-coworking batch that resolved the
-		## board-exclusivity gap flagged above: --write-board-item is documented (its own
-		## comment block below), not code-enforced, as magic-coordinator-only -- exposing
-		## it as a general callable op does not create a bypass of BOARD.md's "write
-		## authority is exclusive over the board," since nothing about calling this op
-		## grants a caller any authority BOARD.md itself doesn't already recognize; it is
-		## simply the sanctioned mechanism magic-coordinator itself now uses to write,
+		## --write-board-item/--write-inbox-note are documented (their own comment
+		## blocks below), not code-enforced, as magic-coordinator-only -- exposing them
+		## as general callable ops does not create a bypass of BOARD.md's "write
+		## authority is exclusive over the board," since nothing about calling these ops
+		## grants a caller any authority BOARD.md itself doesn't already recognize; they
+		## are simply the sanctioned mechanism magic-coordinator itself uses to write,
 		## same convention-based-trust model as every other op here.
 		--write-slib)
 			shift
@@ -1810,20 +1756,19 @@ $1"
 				set +e ; return 1
 			fi
 			## There is only ONE SLIB filename convention across the whole team, acting
-			## members and routine-* virtual members alike: <name>.SLIB.md (confirmed live
-			## 2026-07-28 -- every real routine-*/ folder already has its own
-			## <routine-name>.SLIB.md, e.g. routine-daily.SLIB.md; no routine-contract.SLIB.md
-			## file exists or ever existed anywhere in ~/.claude/skills). This op previously
-			## hardcoded routine-contract.SLIB.md as the target -- a bug, not a second real
-			## convention -- which silently mis-wrote every target (e.g. keeper-acm) to a
-			## stray, wrongly-named file instead of that member's real <name>.SLIB.md.
+			## members and routine-* virtual members alike: <name>.SLIB.md -- every real
+			## routine-*/ folder has its own <routine-name>.SLIB.md, e.g.
+			## routine-daily.SLIB.md; no routine-contract.SLIB.md file exists anywhere in
+			## ~/.claude/skills. Hardcoding routine-contract.SLIB.md as the target here
+			## would silently mis-write every other target (e.g. keeper-acm) to a stray,
+			## wrongly-named file instead of that member's real <name>.SLIB.md.
 			local target="$skillDir/$routineName.SLIB.md"
 			local content contentFromFile="false"
 			while [ $# -gt 0 ] ; do
 				case "$1" in
 					--file)
-						## Added 2026-07-22 -- same shape as --send-email-message's own
-						## --file (an explicit contentFromFile flag gates the later
+						## Same shape as --send-email-message's own --file (an explicit
+						## contentFromFile flag gates the later
 						## stdin-read, rather than inferring source from whether
 						## $content is non-empty, which would wrongly fall through to
 						## reading stdin if the given file happened to be empty).
@@ -1851,9 +1796,8 @@ $1"
 			return 0
 		;;
 
-		## Added 2026-07-22, same batch that resolved this op's own board-exclusivity
-		## gap (see the comment above --write-slib). **magic-coordinator-only by
-		## design** -- BOARD.md states plainly "magic-coordinator's write authority is
+		## **magic-coordinator-only by design** -- BOARD.md states plainly
+		## "magic-coordinator's write authority is
 		## exclusive over the board -- full stop... creating an Item, moving one
 		## between these states, or scoring it -- is magic-coordinator-only." This op
 		## is the sanctioned mechanism magic-coordinator itself uses to do that
@@ -1914,13 +1858,13 @@ $1"
 			return 0
 		;;
 
-		## Renamed 2026-07-24 from --write-inbox-note (kept below as a thin
-		## backward-compatible shim) -- first op under the new --member-* prefix
-		## category (alongside the existing --owner-* prefix), part-preparation
+		## Renamed from --write-inbox-note (kept below as a thin
+		## backward-compatible shim) -- first op under the --member-* prefix
+		## category (alongside the existing --owner-* prefix), preparation
 		## for a future general tooling-operation-prefix convention for clearer
-		## docs/instructions. Verb-suffixed name (matches the existing
+		## docs/instructions. Verb-suffixed name matches the existing
 		## --owner-workspace-upsert/-forget/-list/-current convention for the
-		## --owner-* prefix) per human-owner naming correction, 2026-07-24.
+		## --owner-* prefix.
 		## Backs magic-team.armed.md's Process/dynamics rule formulation "note
 		## it for later" no-approval-available fallback. Behavior is unchanged
 		## from --write-inbox-note: writes a note into any member's own
@@ -1996,14 +1940,13 @@ $1"
 			return 0
 		;;
 
-		## Added 2026-07-24, same batch as --member-upsert-inbox-note above --
-		## the real op backing magic-team.armed.md's Process/dynamics rule
+		## The real op backing magic-team.armed.md's Process/dynamics rule
 		## formulation's other no-approval-available fallback, "pass it to
 		## another member" (as distinct from that section's "note it for
 		## later," which --member-upsert-inbox-note backs). Verb-suffixed name
-		## per human-owner naming correction, 2026-07-24 (matches the
-		## --owner-workspace-upsert/-forget/-list/-current convention). Same
-		## <member> <item-filename> argument shape and file-writing mechanics
+		## matches the --owner-workspace-upsert/-forget/-list/-current
+		## convention. Same <member> <item-filename> argument shape and
+		## file-writing mechanics
 		## as --member-upsert-inbox-note -- this op self-recurses directly into
 		## it (same self-call idiom as --owner-workspace-current delegating to
 		## --owner-workspace-upsert, or --send-message's own exhausted-retry
@@ -2021,9 +1964,7 @@ $1"
 			return 0
 		;;
 
-		## Added 2026-07-24, human-owner direct addition to the same batch as
-		## --member-upsert-inbox-note/--member-upsert-member-inquiry above -- for
-		## reflection-type inbox items specifically. Same argument shape and
+		## For reflection-type inbox items specifically. Same argument shape and
 		## file-writing mechanics as --member-upsert-inbox-note (self-recurses
 		## directly into it, same idiom as --member-upsert-member-inquiry) --
 		## kept as its own distinctly-named op because reflection notes are a
@@ -2045,8 +1986,8 @@ $1"
 			return 0
 		;;
 
-		## Added 2026-07-26 -- append one transcript entry into a planned-board
-		## transcript file. Writes exactly one canonical entry block per call:
+		## Append one transcript entry into a planned-board transcript file.
+		## Writes exactly one canonical entry block per call:
 		##
 		##   <speaker-name> (<timestamp>):
 		##
@@ -2207,10 +2148,10 @@ $1"
 			return 0
 		;;
 
-		## DEPRECATED 2026-07-24 -- superseded by --member-upsert-inbox-note
-		## (identical behavior, new --member-* prefix; see that op's own
+		## DEPRECATED -- superseded by --member-upsert-inbox-note
+		## (identical behavior, --member-* prefix; see that op's own
 		## comment above for the full rationale). Removed from --help/--help.md
-		## output as of this change; kept here, working, as a thin
+		## output; kept here, working, as a thin
 		## backward-compatible shim (not a breaking removal) -- any existing
 		## caller still using this name keeps working unchanged, indefinitely,
 		## unless a real removal is separately proposed and approved.
@@ -2221,8 +2162,8 @@ $1"
 		;;
 
 
-		## Added 2026-07-24 -- manages human-owner.workspaces.md, the bare
-		## one-absolute-path-per-line file at
+		## Manages human-owner.workspaces.md, the bare one-absolute-path-per-line
+		## file at
 		## $HOME/.claude/skills/human-owner/human-owner.workspaces.md that is the
 		## ONLY authoritative source of truth for the workspace paths the team
 		## tracks (see magic-team.armed.md's "Workspace" entry -- that file never
@@ -2267,8 +2208,8 @@ $1"
 				return 0
 			fi
 			## Guard against a missing trailing newline on the existing file --
-			## confirmed live 2026-07-24: a bare `>>` append onto a file whose
-			## last byte isn't already a newline silently merges the new path
+			## a bare `>>` append onto a file whose last byte isn't already a
+			## newline silently merges the new path
 			## onto the end of the previous last line instead of starting a new
 			## one (`grep '^/'` in --owner-workspace-list then reads both as one
 			## bogus concatenated path). `-s`/non-empty-tail-byte check, not
@@ -2346,10 +2287,9 @@ $1"
 			return 0
 		;;
 
-		## Added 2026-07-22 -- closes a real gap: --check-email/--read-email can scan
-		## and fetch, but nothing marks a message read after it's actually been
-		## processed, so every comms-sweep pass kept re-seeing the same UIDs as
-		## unseen. IMAP UID STORE with the \Seen flag, same curl --request pattern
+		## Marks a message read after it's been processed -- otherwise every
+		## comms-sweep pass keeps re-seeing the same UIDs as unseen. IMAP UID
+		## STORE with the \Seen flag, same curl --request pattern
 		## --check-email already uses for STATUS/SEARCH (not the URL-based ;UID=
 		## addressing --read-email uses, since this is a STORE command, not a
 		## fetch).
