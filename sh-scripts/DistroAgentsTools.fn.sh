@@ -2123,11 +2123,16 @@ $1"
 				set +e ; return 1
 			fi
 
-			local transcriptDir="$workspaceRoot/board/planned"
-			if [ ! -d "$transcriptDir" ] ; then
-				echo "⛔ ERROR: $MDSC_CMD --member-append-session-transcript: transcript directory missing: $transcriptDir" >&2
+			local memberDir="$HOME/.claude/skills/$memberName"
+			if [ ! -d "$memberDir" ] ; then
+				echo "⛔ ERROR: $MDSC_CMD --member-append-session-transcript: no such member skill directory: $memberDir" >&2
 				set +e ; return 1
 			fi
+			local transcriptDir="$memberDir/archived"
+			mkdir -p "$transcriptDir" || {
+				echo "⛔ ERROR: $MDSC_CMD --member-append-session-transcript: can't create transcript directory: $transcriptDir" >&2
+				set +e ; return 1
+			}
 			local target="$transcriptDir/$transcriptName"
 			if [ ! -f "$target" ] && [ "$allowCreate" != "true" ] ; then
 				echo "⛔ ERROR: $MDSC_CMD --member-append-session-transcript: transcript does not exist (pass --create to allow creation): $target" >&2
