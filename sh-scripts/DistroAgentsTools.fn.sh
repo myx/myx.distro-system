@@ -1829,10 +1829,10 @@ $1"
 				set +e ; return 1
 			fi
 			case "$boardState" in
-				backlog|pending|running|blocked|parked|processed|archived|cleanup)
+				backlog|pending|running|blocked|parked|processed|archived|retained|cleanup)
 				;;
 				*)
-					echo "⛔ ERROR: $MDSC_CMD --write-board-item: unrecognized board state: $boardState (must be one of backlog/pending/running/blocked/parked/processed/archived/cleanup)" >&2
+					echo "⛔ ERROR: $MDSC_CMD --write-board-item: unrecognized board state: $boardState (must be one of backlog/pending/running/blocked/parked/processed/archived/retained/cleanup)" >&2
 					set +e ; return 1
 				;;
 			esac

@@ -410,7 +410,7 @@
 			every other op here) — this is documented, not code-enforced.
 			<state> must be one of the board's real state-folder names
 			(backlog/pending/running/blocked/parked/processed/
-			archived/cleanup); <item-filename> must be a bare filename (no
+			archived/retained/cleanup); <item-filename> must be a bare filename (no
 			`/`, not `.`/`..`). Content via stdin only. Writes (creates or
 			overwrites) `$HOME/.claude/skills/magic-team/board/<state>/
 			<item-filename>`. Moving an Item between states is two calls
@@ -449,13 +449,21 @@
 
 		--member-append-session-transcript --member <member-name> --speaker <speaker-name> --timestamp <ISO-UTC-date-time> (--message <verbatim-text>|--message-from-stdin|--from-stdin|--message-file <path>) --transcript-name <transcript-file-name> --workspace-root <path> [--create]
 			Appends exactly one canonical transcript-entry block into
-			<workspace-root>/board/planned/<transcript-file-name>:
+			$HOME/.claude/skills/<member-name>/archived/<transcript-file-name>:
 			<speaker-name> (<timestamp>): followed by quoted message lines.
-			Does not rewrite prior content. Missing target transcript is an
-			error unless --create is passed. Payload must be provided by
-			exactly one source: --message, --message-from-stdin/--from-stdin,
-			or --message-file <path>. Returns append audit details:
-			target path plus added line and byte counts.
+			Per magic-team.conversations.md rule 11, transcripts save to each
+			participant's own archived/ -- not a board/<state>/ folder; see
+			--write-board-item above for the real board state-folder names.
+			<member-name>'s skill directory must already exist; its archived/
+			subfolder is created on demand if missing (same as
+			--member-upsert-inbox-note's inbox/ handling). --workspace-root is
+			still required and validated (absolute, existing directory) but no
+			longer determines the target path. Does not rewrite prior content.
+			Missing target transcript is an error unless --create is passed.
+			Payload must be provided by exactly one source: --message,
+			--message-from-stdin/--from-stdin, or --message-file <path>.
+			Returns append audit details: target path plus added line and byte
+			counts.
 
 		--owner-workspace-upsert <path>
 			Adds one filesystem path to the human-owner's tracked workspace
