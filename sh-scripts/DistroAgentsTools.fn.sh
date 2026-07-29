@@ -1986,8 +1986,8 @@ $1"
 			return 0
 		;;
 
-		## Append one transcript entry into a planned-board transcript file.
-		## Writes exactly one canonical entry block per call:
+		## Append one transcript entry into a per-member archived/ transcript
+		## file. Writes exactly one canonical entry block per call:
 		##
 		##   <speaker-name> (<timestamp>):
 		##
@@ -1995,7 +1995,25 @@ $1"
 		##   > <message line 2>
 		##
 		## Target path is fixed to:
-		##   <workspace-root>/board/planned/<transcript-file-name>
+		##   $HOME/.claude/skills/<member-name>/archived/<transcript-file-name>
+		##
+		## Per magic-team.conversations.md rule 11 ("save transcript-<date>-
+		## <short-topic> in each participant archived/") -- not a board/*/ state
+		## folder. transcript-* is a named board-item type by filename/frontmatter
+		## convention (magic-team.armed.md), but unlike task-/project-/inquiry- it
+		## is not walked through the board's lifecycle states (magic-team.board.md)
+		## -- confirmed 2026-07-29, when a stray transcript misfiled into
+		## board/cleanup/ was explicitly left in place rather than forced into a
+		## lifecycle folder. Previously hardcoded to board/planned/ (workspace-
+		## root-relative), which this board's folder-state model retired this
+		## epic (folded into running/ + header fields) -- fixed onto the real
+		## per-member convention instead of another stale board-relative path.
+		## <member-name>'s own skill directory must already exist; its archived/
+		## subfolder is created on demand (lazily, same convention as
+		## --member-upsert-inbox-note's inbox/ handling) since not every member
+		## has one yet. --workspace-root stays required/validated (caller-
+		## environment sanity check) but no longer feeds the target path --
+		## flagged as a loose end, not resolved here.
 		##
 		## Missing target file is an error unless --create is passed.
 		--member-append-session-transcript)
