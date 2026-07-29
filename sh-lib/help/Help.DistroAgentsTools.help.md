@@ -144,8 +144,8 @@
 			call this op with its absolute path leading and a heredoc, never a
 			separate command piping into it); `--message-from-stdin` is the
 			original name and still works identically, unchanged, for
-			anything already written against it. `--file <path>` (added
-			2026-07-22) reads content from a file instead — lets a caller
+			anything already written against it. `--file <path>` reads
+			content from a file instead — lets a caller
 			write content with a plain `Write` tool call first (no Bash
 			permission prompt for the write itself) and still invoke
 			--send-message as a single-line command, since a multi-line
@@ -156,7 +156,7 @@
 			silently) — use exactly one.
 			--from-stdin/--file --format blocks treats the content as a raw
 			JSON array assigned directly to the `blocks` field (caller-supplied
-			Block Kit). Since 2026-07-22, that content is validated before it's
+			Block Kit). That content is validated before it's
 			spliced into the payload: it must pass this command's own
 			--validate-json (real JSON-syntax check, via self-recursion), must
 			be a bare JSON array (starts with `[`, ends with `]`), and every
@@ -170,8 +170,8 @@
 			and never reaches curl. That last check exists because a
 			text-object type (`mrkdwn`/`plain_text`, only valid nested inside a
 			block's own `text` field) mistakenly used as a block's own `type`
-			is exactly the shape of a real live incident (Slack's
-			`invalid_blocks: unsupported type "mrkdwn"`) — it is a cheap,
+			would otherwise trigger Slack's
+			`invalid_blocks: unsupported type "mrkdwn"` rejection — it is a cheap,
 			non-recursive structural check, not a full Block Kit schema
 			validator; it does not look inside each block's own nested fields.
 			Beyond these three checks, content is not otherwise escaped (Block
@@ -180,11 +180,11 @@
 			from the blocks' own content. Any trailing argv token starting with
 			`--` that isn't a recognized option is rejected immediately with a
 			`⛔ ERROR: ... unrecognized option: ...` message rather than being
-			silently absorbed into the plain-text `text` field — a real live
-			incident (an unrecognized/mis-parsed flag-shaped token silently
-			became the entire posted message text, e.g. a stray "--from-stdin"
-			posted as-is with `ok:true` and no visible failure) is exactly what
-			this guard prevents; genuine literal text starting with `--` must
+			silently absorbed into the plain-text `text` field — an
+			unrecognized/mis-parsed flag-shaped token would otherwise silently
+			become the entire posted message text (e.g. a stray "--from-stdin"
+			posted as-is with `ok:true` and no visible failure); this guard
+			prevents that. Genuine literal text starting with `--` must
 			go through `--from-stdin`/`--file` instead. SLACK_BOT_TOKEN is
 			resolved on demand from --agent-config-option immediately before
 			the request and is never echoed; the constructed request
@@ -200,13 +200,12 @@
 			path calls this same op via self-recursion. Multiple recipients
 			accepted before the first `--`; subject is everything between the
 			two `--` separators; everything after the second `--` becomes the
-			body, one line per remaining argument -- OR, since 2026-07-22,
+			body, one line per remaining argument -- OR
 			`--from-stdin` in place of trailing body argv reads the whole body
 			from stdin instead (call with the tool's absolute path leading and
-			a heredoc, per the team-wide convention above), avoiding the
-			exact multi-line/shell-metacharacter argv fragility that caused
-			the `--format blocks` bug this same day. `--file <path>` (added
-			2026-07-22) reads the body from a file instead — same motivation
+			a heredoc, per the team-wide convention above), avoiding
+			multi-line/shell-metacharacter argv fragility. `--file <path>`
+			reads the body from a file instead — same motivation
 			as --send-message's own --file (write the body with a plain Write
 			tool call first, then invoke this op as one single-line command).
 			Giving more than one of `--from-stdin`/`--file`/trailing body argv
@@ -218,9 +217,8 @@
 			Reads Slack activity for ONE specific, caller-chosen target --
 			target is required, this is a general-purpose single-target
 			reader, not the comms-sweep macro-op (see --sweep-read-incoming-comms
-			below; these two used to be conflated into one op that
-			accepted an optional target, which was a real design bug, fixed
-			2026-07-21). Target grammar mirrors --send-message's:
+			below; conflating the two into one op that accepted an optional
+			target would be a real design bug). Target grammar mirrors --send-message's:
 			`magic-team`/`human-owner`/`event-track`/`event-alert` reads that
 			watched target's conversations.history; `<channel>:<ts>` fetches
 			conversations.replies for that specific thread instead (same
@@ -233,8 +231,7 @@
 			to --send-message's (resolved on demand, never echoed, private
 			temp header file).
 
-			**No retry logic** -- human-owner correction, 2026-07-21: "if
-			they fail - they fail," applies to the whole --check-* family.
+			**No retry logic** -- applies to the whole --check-* family.
 			One attempt, fails clean if it fails.
 
 			**Output is pretty-formatted by default** ("ts | user | text"
@@ -254,11 +251,10 @@
 			magic-team/human-owner shortcut, since a reaction always targets one
 			exact message, not a channel). <emoji-name> has no colons (matches
 			Slack's own `name` field, e.g. `white_check_mark`, not
-			`:white_check_mark:`). Added 2026-07-22 -- closes a real gap: this
-			tool had no reaction-posting op at all until now, so the per-message
-			Slack-reaction-tracking design (`routine-communication-sweep`,
-			`routine-board-actualisation`'s pending-reaction lookup) had nothing
-			to actually call. SLACK_BOT_TOKEN handling identical to
+			`:white_check_mark:`). The per-message Slack-reaction-tracking
+			design (`routine-communication-sweep`,
+			`routine-board-actualisation`'s pending-reaction lookup) calls
+			this op to actually post. SLACK_BOT_TOKEN handling identical to
 			--send-message/--read-slack (resolved on demand, never echoed,
 			private temp header file). Prints the raw API response and returns
 			0 on `ok:true` -- an `already_reacted` error is treated as a
@@ -273,11 +269,9 @@
 
 		--mark-email-seen <uid>
 			Marks one specific email (by IMAP UID, same identifier
-			--read-email takes) as \Seen via IMAP UID STORE. Added
-			2026-07-22 -- closes a real gap: --check-email/--read-email can
-			scan and fetch, but nothing marked a message read after it was
-			actually processed, so every comms-sweep pass kept re-seeing the
-			same UIDs as unseen. Same EMAIL_* config as --check-email/
+			--read-email takes) as \Seen via IMAP UID STORE -- otherwise every
+			comms-sweep pass keeps re-seeing the same UIDs as unseen.
+			Same EMAIL_* config as --check-email/
 			--send-email-message.
 
 		--check-trello
@@ -322,11 +316,10 @@
 		--validate-json [<path>]
 			Checks that a JSON file (<path>) or stdin (no argument) is
 			syntactically valid JSON -- nothing more, no schema/shape check of
-			its own. Added 2026-07-22 after a real `--send-message ... --format
-			blocks` failure (Slack's `invalid_json`/`missing_charset`) traced
-			back to unvalidated stdin being spliced straight into the request
-			payload; `--format blocks` now self-recurses through this same op
-			before it splices anything (see --send-message above). Uses
+			its own. `--format blocks` self-recurses through this same op
+			before it splices anything into the request payload (see
+			--send-message above), guarding against unvalidated stdin causing
+			Slack's `invalid_json`/`missing_charset` rejection. Uses
 			python3 (present on every supported OS here), not jq, matching
 			this tool family's existing jq-avoidance convention. Prints `#
 			... --validate-json: valid JSON: <path|(stdin)>` and returns 0 on
@@ -351,12 +344,11 @@
 			Existence + line count for one or more caller-supplied file paths,
 			one line of output per path: `<path>: <N> lines` if found, `<path>:
 			MISSING` if not -- returns 1 if any path was missing, 0 otherwise.
-			Added 2026-07-22, human-owner-requested directly, to replace the
-			hand-rolled `for f in ...; do wc -l "$f"; done`-style Bash loop
-			agents kept reaching for before editing a batch of markdown/doc
-			files -- each such loop is a fresh, non-matching command string
-			that costs its own permission-prompt grant, same friction class as
-			--validate-json/--from-stdin above. Read-only, no credentials, no
+			Replaces the hand-rolled `for f in ...; do wc -l "$f"; done`-style
+			Bash loop agents kept reaching for before editing a batch of
+			markdown/doc files -- each such loop is a fresh, non-matching
+			command string that costs its own permission-prompt grant.
+			Read-only, no credentials, no
 			network. Despite the flag name, not restricted to `.md` files --
 			any path works; at least one path argument is required.
 
@@ -373,15 +365,14 @@
 			--list-md); a bare file scopes to just that file, a directory
 			scopes recursively. No arguments means the whole skill-root.
 			Prints one skill-root-relative path per matched file (never
-			absolute), sorted alphabetically. Added 2026-07-24,
-			human-owner-approved directly.
+			absolute), sorted alphabetically.
 
 		--librarian-list-team-files-dates [<path>...]
 			Same as --librarian-list-team-files above (identical scope-
 			argument grammar and error handling), but with a per-file
-			modification date printed alongside each path -- split into its
-			own op (2026-07-24) once the per-file stat call this needs was
-			measured as real overhead (~3s over the full 678-file
+			modification date printed alongside each path -- its own separate
+			op since the per-file stat call this needs is real overhead
+			(~3s over the full 678-file
 			skill-root vs. sub-second for the plain listing), so a caller
 			who only needs paths isn't forced to pay for dates. Prints one
 			line per matched file: mtime (`YYYY-MM-DD HH:MM:SS`) then two
@@ -391,10 +382,10 @@
 		--write-slib <member-name> [--file <path>]
 			Regenerates one member's own <member-name>.SLIB.md -- content
 			comes from stdin by default, or from a plain file via --file <path>
-			(added 2026-07-22, same shape as --send-message/--send-email-message's
-			own --file: lets a caller write the regenerated content to a plain
-			temp file first, an ordinary Write tool call, and still invoke this op
-			as one single-line command, since a heredoc body spans multiple lines
+			(same shape as --send-message/--send-email-message's own --file:
+			lets a caller write the regenerated content to a plain temp file
+			first, an ordinary Write tool call, and still invoke this op as
+			one single-line command, since a heredoc body spans multiple lines
 			and stops matching a single-line settings.json allowlist glob).
 			<member-name> is a bare directory name only (no `/`, not `.`/`..`)
 			that must already exist under $HOME/.claude/skills/ -- same
@@ -402,15 +393,12 @@
 			free-form path. Writes
 			$HOME/.claude/skills/<member-name>/<member-name>.SLIB.md, refusing
 			empty content (whether from stdin or --file) rather than truncating
-			the file to nothing. Added 2026-07-22 -- closes the human-owner's own
-			SLIB-approval-friction question ("I don't want to approve each" [SLIB
-			regeneration]) merged with keeper-myx's broader
-			tool-agnostic-update-mechanism proposal. No caller-identity
+			the file to nothing. SLIB files are generated content, so this op
+			exists to avoid needing per-write approval the way real source
+			edits do. No caller-identity
 			enforcement -- convention-based trust only, same model as every other
-			op here; intended caller is magic-librarian. --write-board-item/
-			--write-inbox-note (the same proposal's other illustrative cases) are
-			**resolved and built 2026-07-22, see below** -- --write-inbox-note also
-			carries the same --file option as of this round.
+			op here; intended caller is magic-librarian. --write-board-item and
+			--write-inbox-note also carry the same --file option.
 
 		--write-board-item <state> <item-filename>
 			**magic-coordinator-only op by design** — BOARD.md states plainly
@@ -441,10 +429,10 @@
 			missing inbox/ is not an error, unlike a missing board-state
 			directory, since board states are a fixed known set and a
 			member's inbox may simply not have been created yet). Content
-			via stdin by default, or via --file <path>. Renamed 2026-07-24
+			via stdin by default, or via --file <path>. Renamed
 			from --write-inbox-note (verb-suffixed to match the existing
 			--owner-workspace-upsert/-forget/-list/-current convention,
-			first op under the new --member-* prefix category) —
+			first op under the --member-* prefix category) —
 			--write-inbox-note still works, unchanged, as a thin
 			backward-compatible shim calling this op, but is no longer
 			documented separately here.
@@ -458,7 +446,6 @@
 			later" vs. "pass it to another member," per
 			magic-team.armed.md's Process/dynamics rule formulation) even
 			though they currently resolve to the identical mechanism.
-			Added 2026-07-24.
 
 		--member-append-session-transcript --member <member-name> --speaker <speaker-name> --timestamp <ISO-UTC-date-time> (--message <verbatim-text>|--message-from-stdin|--from-stdin|--message-file <path>) --transcript-name <transcript-file-name> --workspace-root <path> [--create]
 			Appends exactly one canonical transcript-entry block into
@@ -515,16 +502,15 @@
 			exists because Claude Code's own permission engine has no
 			negative-glob syntax, so a blanket `Bash(rm *)` deny can never
 			be carved into "except .cleanup/*" at the settings.json layer
-			(deny always wins over allow regardless of specificity,
-			confirmed live 2026-07-21). This op is the sanctioned way to
+			(deny always wins over allow regardless of specificity). This op
+			is the sanctioned way to
 			actually empty it: the real `rm` call happens inside this
 			already-allowlisted script invocation, never as a raw top-level
 			`rm` command, so the deny rule's literal prefix-match on `rm `
 			never sees it. **Takes no arguments** -- the target is a fixed,
-			code-determined path, never caller input (human-owner correction,
-			2026-07-21: an earlier version took an optional `<path>`/`--all`,
-			which was wrong -- this op cleans exactly one predefined folder,
-			nothing else, so there's nothing to parameterize). That fixed
+			code-determined path, never caller input: this op cleans exactly
+			one predefined folder, nothing else, so there's nothing to
+			parameterize. That fixed
 			path is also what makes the whole thing safe: no traversal/
 			injection surface exists because there's no path input to
 			validate in the first place.
