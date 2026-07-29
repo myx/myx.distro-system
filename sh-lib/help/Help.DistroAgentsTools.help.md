@@ -409,7 +409,7 @@
 			identity enforcement exists (same convention-based-trust model as
 			every other op here) — this is documented, not code-enforced.
 			<state> must be one of the board's real state-folder names
-			(planned/approved/running/testing/blocked/parked/processed/
+			(backlog/pending/running/blocked/parked/processed/
 			archived/cleanup); <item-filename> must be a bare filename (no
 			`/`, not `.`/`..`). Content via stdin only. Writes (creates or
 			overwrites) `$HOME/.claude/skills/magic-team/board/<state>/
@@ -609,7 +609,7 @@
 
 		# Write/update a board Item -- magic-coordinator-only op, see --write-board-item above
 		```
-		DistroAgentsTools.fn.sh --write-board-item planned task-example.md <<'EOF'
+		DistroAgentsTools.fn.sh --write-board-item backlog task-example.md <<'EOF'
 		... board item content ...
 		EOF
 		```
