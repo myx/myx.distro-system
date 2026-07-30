@@ -34,6 +34,10 @@ echo "📘 syntax: DistroAgentsTools.fn.sh --owner-workspace-upsert <path>" >&2
 echo "📘 syntax: DistroAgentsTools.fn.sh --owner-workspace-forget <path>" >&2
 echo "📘 syntax: DistroAgentsTools.fn.sh --owner-workspace-list" >&2
 echo "📘 syntax: DistroAgentsTools.fn.sh --owner-workspace-current" >&2
+echo "📘 syntax: DistroAgentsTools.fn.sh --main-loop-lock-acquire <owner-label>" >&2
+echo "📘 syntax: DistroAgentsTools.fn.sh --main-loop-lock-heartbeat" >&2
+echo "📘 syntax: DistroAgentsTools.fn.sh --main-loop-lock-release" >&2
+echo "📘 syntax: DistroAgentsTools.fn.sh --main-loop-lock-status" >&2
 echo "📘 syntax: DistroAgentsTools.fn.sh --purge-cleanup" >&2
 echo "📘 syntax: DistroAgentsTools.fn.sh [--help]" >&2
 if [ "$1" = "--help" ]; then

@@ -29,6 +29,10 @@
 📘 syntax: DistroAgentsTools.fn.sh --member-upsert-member-inquiry <member> <item-filename> [--file <path>]
 📘 syntax: DistroAgentsTools.fn.sh --member-upsert-inbox-reflection <member> <item-filename> [--file <path>]
 📘 syntax: DistroAgentsTools.fn.sh --member-append-session-transcript --member <member-name> --speaker <speaker-name> --timestamp <ISO-UTC-date-time> (--message <verbatim-text>|--message-from-stdin|--from-stdin|--message-file <path>) --transcript-name <transcript-file-name> --workspace-root <path> [--create]
+📘 syntax: DistroAgentsTools.fn.sh --main-loop-lock-acquire <owner-label>
+📘 syntax: DistroAgentsTools.fn.sh --main-loop-lock-heartbeat
+📘 syntax: DistroAgentsTools.fn.sh --main-loop-lock-release
+📘 syntax: DistroAgentsTools.fn.sh --main-loop-lock-status
 📘 syntax: DistroAgentsTools.fn.sh --purge-cleanup
 📘 syntax: DistroAgentsTools.fn.sh [--help]
 

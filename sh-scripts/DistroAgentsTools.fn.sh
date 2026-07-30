@@ -1871,6 +1871,11 @@ $1"
 			return $?
 		;;
 
+		--main-loop-*)
+			. "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/AgentsTools.MainLoop.include"
+			return $?
+		;;
+
 		## Marks a message read after it's been processed -- otherwise every
 		## comms-sweep pass keeps re-seeing the same UIDs as unseen. IMAP UID
 		## STORE with the \Seen flag, same curl --request pattern

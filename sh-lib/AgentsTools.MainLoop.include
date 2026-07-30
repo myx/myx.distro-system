@@ -1,0 +1,134 @@
+#!/usr/bin/env bash
+# ^^^ for syntax checking in the editor only
+
+##
+## AgentsTools.MainLoop.include -- the --main-loop-* operation-group body for
+## DistroAgentsTools.fn.sh's single dispatcher, sourced lazily (only when $1
+## matches --main-loop-*) from that file's own `--main-loop-*)` arm, via the
+## absolute $MDLT_ORIGIN-based path used for every cross-file source in this
+## family.
+##
+## Not standalone-executable: relies on being dot-sourced into
+## DistroAgentsTools's own function scope for $1/$@ and the $MDSC_CMD local.
+##
+## Owns a complete, self-contained `case "$1" in ... esac` -- the shape that
+## externalizes a whole multi-arm operation group without per-op functions
+## (see myx.distro-system/CLAUDE.md's "DistroAgentsTools -- gotchas"
+## section). Carries its own `*)` default arm, matching the outer
+## dispatcher's own catch-all error text.
+##
+## Op names carry a "-lock-" infix (--main-loop-lock-acquire, etc.) because
+## --main-loop-* is this file's whole reserved namespace, not just the lock
+## -- a future non-lock main-loop-mode op can land in this same file/prefix,
+## sub-prefixed the same way, with no name collision.
+##
+## Implements magic-coordinator's main-loop single-instance lock: mkdir-based
+## mutex, 900s stale threshold, stdout contract ACQUIRED /
+## RECLAIMED_STALE:... / ACTIVE:... / HEARTBEAT_OK / NO_LOCK_HELD / RELEASED
+## / NO_LOCK / raw meta-file dump. Lock directory:
+## $HOME/.claude/skills/magic-coordinator/.runtime/main-loop.lock.
+## routine-process-flow-step.routine.md's "Single-instance lock" section
+## documents the calling contract.
+##
+## "pid=" in the meta file is the calling shell's own $$ -- informational
+## only, never read back programmatically.
+##
+## Every closing `}` in the AWK below is preceded by a `;` even where a
+## single statement precedes it on the same line (magic-developer's
+## reference/shell.md axiom: some AWK implementations reject the
+## missing-semicolon form as a hard parse error).
+##
+## `|| true` guards `rm -rf`/`mkdir` in the stale-reclaim path and in
+## --main-loop-lock-release, since this file inherits the caller's `set -e`.
+##
+
+case "$1" in
+
+	## `mkdir` is the atomic primitive (creates the directory or fails if it
+	## already exists, nothing in between) backing this lock. <owner-label>
+	## should identify the actual running agent/process by a fixed,
+	## discoverable name (e.g. "main-loop"), not an ephemeral
+	## chat/conversation-session id.
+	--main-loop-lock-acquire)
+		shift
+		local ownerLabel="$1"
+		shift || true
+		if [ -z "$ownerLabel" ] ; then
+			echo "⛔ ERROR: $MDSC_CMD --main-loop-lock-acquire: <owner-label> required" >&2
+			set +e ; return 1
+		fi
+		local lockDir="$HOME/.claude/skills/magic-coordinator/.runtime/main-loop.lock"
+		local meta="$lockDir/meta"
+		local staleSeconds=900
+		if mkdir "$lockDir" 2>/dev/null ; then
+			printf 'owner=%s\npid=%s\nstart=%s\nheartbeat=%s\n' "$ownerLabel" "$$" "$( date +%s )" "$( date +%s )" > "$meta"
+			echo "ACQUIRED"
+			return 0
+		fi
+		if [ -f "$meta" ] ; then
+			local hb curOwner since age
+			hb="$( awk -F= '/^heartbeat=/{print $2;}' "$meta" )"
+			curOwner="$( awk -F= '/^owner=/{print $2;}' "$meta" )"
+			since="$( awk -F= '/^start=/{print $2;}' "$meta" )"
+			age=$(( $( date +%s ) - ${hb:-0} ))
+			if [ "$age" -gt "$staleSeconds" ] ; then
+				rm -rf "$lockDir" || true
+				mkdir "$lockDir" 2>/dev/null || true
+				printf 'owner=%s\npid=%s\nstart=%s\nheartbeat=%s\n' "$ownerLabel" "$$" "$( date +%s )" "$( date +%s )" > "$meta"
+				echo "RECLAIMED_STALE:prev_owner=$curOwner:age=${age}s"
+				return 0
+			else
+				echo "ACTIVE:owner=$curOwner:since=$since:heartbeat_age=${age}s"
+				set +e ; return 1
+			fi
+		else
+			echo "ACTIVE:owner=unknown:no_meta"
+			set +e ; return 1
+		fi
+	;;
+
+	## Refreshes the heartbeat timestamp so a long-running holder doesn't
+	## get mistaken for a stale/crashed one by a concurrent
+	## --main-loop-lock-acquire.
+	--main-loop-lock-heartbeat)
+		shift
+		local lockDir="$HOME/.claude/skills/magic-coordinator/.runtime/main-loop.lock"
+		local meta="$lockDir/meta"
+		if [ -d "$lockDir" ] && [ -f "$meta" ] ; then
+			local tmp="$meta.tmp.$$"
+			awk -v t="$( date +%s )" -F= 'BEGIN{OFS="=";} /^heartbeat=/{$2=t;} {print;}' "$meta" > "$tmp" && mv "$tmp" "$meta"
+			echo "HEARTBEAT_OK"
+			return 0
+		fi
+		echo "NO_LOCK_HELD"
+		set +e ; return 1
+	;;
+
+	## `rm -rf`, not `rmdir` -- this lock's directory holds a real `meta`
+	## file, not just an empty marker.
+	--main-loop-lock-release)
+		shift
+		local lockDir="$HOME/.claude/skills/magic-coordinator/.runtime/main-loop.lock"
+		rm -rf "$lockDir" || true
+		echo "RELEASED"
+		return 0
+	;;
+
+	## Read-only, always returns 0.
+	--main-loop-lock-status)
+		shift
+		local lockDir="$HOME/.claude/skills/magic-coordinator/.runtime/main-loop.lock"
+		local meta="$lockDir/meta"
+		if [ -f "$meta" ] ; then
+			cat "$meta"
+		else
+			echo "NO_LOCK"
+		fi
+		return 0
+	;;
+
+	*)
+		echo "⛔ ERROR: $MDSC_CMD: invalid option: $1" >&2
+		set +e ; return 1
+	;;
+esac
