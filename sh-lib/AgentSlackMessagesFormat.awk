@@ -4,9 +4,8 @@
 # JSON response (fed on stdin, run under LC_ALL=C for byte safety) and
 # prints one clean "ts | user | text" line per message to stdout, instead
 # of the caller needing to hand-roll a `python3 -c "import json..."`
-# one-liner every single time -- that pattern kept recurring across main,
-# main-loop, and every dispatched member tonight; this is the actual fix,
-# not another one-off script.
+# one-liner every single time -- this is the sanctioned fix, not another
+# one-off script.
 #
 # A message's `reactions` array and its `reply_count`/`latest_reply`/
 # `reply_users` thread-metadata fields are present directly on the message
@@ -239,9 +238,8 @@ function parseArray(path,   idx, c) {
 
 { s = $0; n = length(s); p = 1; parseValue(""); }
 
-## Slack returns messages newest-first; print oldest-first (chronological,
-## matching how every hand-rolled python reader tonight already reversed
-## it) since that's what's actually useful to read. Reaction/thread
+## Slack returns messages newest-first; print oldest-first (chronological)
+## since that's what's actually useful to read. Reaction/thread
 ## annotations are appended to the same line, never a separate output line,
 ## so a "ts | user | text" parser downstream keeps working unchanged.
 END {

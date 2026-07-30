@@ -97,8 +97,8 @@ fi
 ## channel instead of minting a new one; if the channel dir exists but its
 ## processes are dead, it's wiped and recreated. One channel is naturally
 ## shared by all concurrent callers against the same workspace+console — safe
-## since read/scan sessions are explicitly not ownership-gated (unchanged
-## from the original design). Default workspace is the tool's own ($MMDAPP);
+## since read/scan sessions are explicitly not ownership-gated. Default
+## workspace is the tool's own ($MMDAPP);
 ## `--override-workspace` (on --start-console and --list-consoles alike) is
 ## the only escape hatch to point at a different workspace.
 MDAT_CHANNEL_PREFIX="myx.distro-agent-console"
@@ -500,7 +500,7 @@ DistroAgentsTools(){
 
 		--agent-config-option)
 			. "$MDLT_ORIGIN/myx/myx.distro-.local/sh-lib/LocalTools.Config.include"
-			return 0
+			return $?
 		;;
 
 		## Posts to Slack via chat.postMessage. Secret handling: SLACK_BOT_TOKEN
@@ -671,19 +671,7 @@ DistroAgentsTools(){
 					## it here), so it deliberately does not recurse into each block's
 					## own nested fields (text objects, elements, accessory, ...).
 					local blocksBadTypes
-					blocksBadTypes="$( printf '%s' "$blocksJson" | python3 -c '
-import json, sys
-VALID = {"section","divider","header","context","image","actions","input","video","rich_text","file"}
-try:
-	blocks = json.load(sys.stdin)
-except Exception:
-	sys.exit(0)  # syntax already confirmed valid above; nothing to add here
-if not isinstance(blocks, list):
-	sys.exit(0)  # array shape already confirmed above
-bad = [str(i) for i, b in enumerate(blocks) if not isinstance(b, dict) or b.get("type") not in VALID]
-if bad:
-	print(",".join(bad))
-' 2>/dev/null )"
+					blocksBadTypes="$( printf '%s' "$blocksJson" | python3 "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/AgentBlockKitValidate.py" 2>/dev/null )"
 					if [ -n "$blocksBadTypes" ] ; then
 						echo "⛔ ERROR: $MDSC_CMD --send-message: --format blocks stdin has an invalid/missing top-level 'type' at block index(es) $blocksBadTypes -- mrkdwn/plain_text/etc. are TEXT-OBJECT types, valid only nested inside a block's own \"text\" field, never as a block's own \"type\" (valid top-level types: section, divider, header, context, image, actions, input, video, rich_text, file)" >&2
 						set +e ; return 1
@@ -1071,9 +1059,9 @@ $1"
 		## specific message by UID -- contrast with --check-email's
 		## STATUS-only unread count. Uses curl's URL-based
 		## ;UID=<uid> addressing (no ;SECTION= means the whole message, per
-		## curl's own IMAP URL support) -- the same working mechanism found
-		## live this session after --request "UID FETCH..." turned out not
-		## to return literal-string FETCH bodies through stdout at all.
+		## curl's own IMAP URL support) -- `--request "UID FETCH..."` does
+		## not return literal-string FETCH bodies through stdout at all, so
+		## this uses curl's URL-based addressing instead.
 		--read-email)
 			shift
 			local uid="$1"
@@ -1378,11 +1366,10 @@ $1"
 		;;
 
 		## Walks .local/.agents/* and flags anything not chmod 700 (dirs) /
-		## 600 (files) -- standing defensive layer against the exact class of
-		## bug found during today's secrets-migration session (file landed
-		## 644 after a real --upsert, because the old code chmod'd the
-		## touched file instead of the temp file that actually replaces it
-		## via mv). That root cause is already fixed in
+		## 600 (files) -- standing defensive layer against a chmod-on-wrong-file
+		## bug class (a real --upsert once landed a file at 644 because the old
+		## code chmod'd the touched file instead of the temp file that actually
+		## replaces it via mv). That root cause is already fixed in
 		## LocalTools.Config.include's --upsert; this is the regression
 		## guard, not a re-fix.
 		--verify-permissions)
@@ -1428,11 +1415,11 @@ $1"
 
 		## Exercises the --agent-config-option permission-hardening chain
 		## under a DELIBERATELY permissive `umask 022`, not whatever the
-		## caller's ambient umask happens to be. Real motivating bug (an
-		## earlier session): the chmod-600 regression escaped hand testing
-		## because that testing happened to run under a restrictive umask by
-		## coincidence, and only showed up against the real secrets migration
-		## under a different umask. Uses a disposable probe key (never
+		## caller's ambient umask happens to be -- testing only under the
+		## caller's ambient umask can miss a chmod regression when that umask
+		## happens to be restrictive by coincidence (confirmed: this escaped
+		## hand testing once, only surfacing under a different umask against
+		## the real secrets migration). Uses a disposable probe key (never
 		## touches any real credential key) so it's safe to run against the
 		## live settings file, and cleans the probe up unconditionally. Calls
 		## --verify-permissions via self-recursion, not a private helper.
@@ -1858,322 +1845,16 @@ $1"
 			return 0
 		;;
 
-		## Renamed from --write-inbox-note (kept below as a thin
-		## backward-compatible shim) -- first op under the --member-* prefix
-		## category (alongside the existing --owner-* prefix), preparation
-		## for a future general tooling-operation-prefix convention for clearer
-		## docs/instructions. Verb-suffixed name matches the existing
-		## --owner-workspace-upsert/-forget/-list/-current convention for the
-		## --owner-* prefix.
-		## Backs magic-team.armed.md's Process/dynamics rule formulation "note
-		## it for later" no-approval-available fallback. Behavior is unchanged
-		## from --write-inbox-note: writes a note into any member's own
-		## personal inbox (~/.claude/skills/<member>/inbox/, see
-		## routine-process-inbox) -- unlike the board, inbox write access is NOT
-		## exclusive to one member; any member may post a note into any other
-		## member's inbox (that's the whole cross-member handoff mechanism).
-		## <member> must already exist as a real skill directory; <item-filename>
-		## must be a bare filename. The inbox/ directory itself is created
-		## lazily if it doesn't exist yet (matches the established
-		## lazily-created-inbox convention, see BOARD.md/routine-process-inbox),
-		## not treated as an error the way a missing board-state directory is
-		## (board states are a fixed, known set; a member's inbox may simply not
-		## have been created yet).
-		--member-upsert-inbox-note)
-			shift
-			local memberName="$1"
-			shift || true
-			local itemName="$1"
-			shift || true
-			if [ -z "$memberName" ] || [ -z "$itemName" ] ; then
-				echo "⛔ ERROR: $MDSC_CMD --member-upsert-inbox-note: syntax is <member> <item-filename> -- content via stdin or --file <path>" >&2
-				set +e ; return 1
-			fi
-			case "$memberName" in
-				*/*|.|..)
-					echo "⛔ ERROR: $MDSC_CMD --member-upsert-inbox-note: member name must be a bare directory name, not a path: $memberName" >&2
-					set +e ; return 1
-				;;
-			esac
-			case "$itemName" in
-				*/*|.|..)
-					echo "⛔ ERROR: $MDSC_CMD --member-upsert-inbox-note: item filename must be a bare filename, not a path: $itemName" >&2
-					set +e ; return 1
-				;;
-			esac
-			local memberDir="$HOME/.claude/skills/$memberName"
-			if [ ! -d "$memberDir" ] ; then
-				echo "⛔ ERROR: $MDSC_CMD --member-upsert-inbox-note: no such member skill directory: $memberDir" >&2
-				set +e ; return 1
-			fi
-			local inboxDir="$memberDir/inbox"
-			mkdir -p "$inboxDir" || {
-				echo "⛔ ERROR: $MDSC_CMD --member-upsert-inbox-note: can't create inbox directory: $inboxDir" >&2
-				set +e ; return 1
-			}
-			local target="$inboxDir/$itemName"
-			local content contentFromFile="false"
-			while [ $# -gt 0 ] ; do
-				case "$1" in
-					--file)
-						if [ -z "$2" ] || [ ! -f "$2" ] ; then
-							echo "⛔ ERROR: $MDSC_CMD --member-upsert-inbox-note: --file: file not found: $2" >&2
-							set +e ; return 1
-						fi
-						content="$( cat "$2" )"
-						contentFromFile="true"
-						shift 2
-					;;
-					*)
-						echo "⛔ ERROR: $MDSC_CMD --member-upsert-inbox-note: unrecognized argument: $1" >&2
-						set +e ; return 1
-					;;
-				esac
-			done
-			[ "$contentFromFile" = "true" ] || content="$( cat )"
-			if [ -z "$content" ] ; then
-				echo "⛔ ERROR: $MDSC_CMD --member-upsert-inbox-note: empty content -- refusing to write an empty inbox note" >&2
-				set +e ; return 1
-			fi
-			printf '%s\n' "$content" > "$target"
-			echo "# $MDSC_CMD --member-upsert-inbox-note: wrote $target ($( printf '%s\n' "$content" | wc -l | tr -d '[:space:]' ) lines)" >&2
-			return 0
-		;;
-
-		## The real op backing magic-team.armed.md's Process/dynamics rule
-		## formulation's other no-approval-available fallback, "pass it to
-		## another member" (as distinct from that section's "note it for
-		## later," which --member-upsert-inbox-note backs). Verb-suffixed name
-		## matches the --owner-workspace-upsert/-forget/-list/-current
-		## convention. Same <member> <item-filename> argument shape and
-		## file-writing mechanics
-		## as --member-upsert-inbox-note -- this op self-recurses directly into
-		## it (same self-call idiom as --owner-workspace-current delegating to
-		## --owner-workspace-upsert, or --send-message's own exhausted-retry
-		## path calling --send-email-message) rather than duplicating the write
-		## logic a second time. Kept as its own distinctly-named op, not just
-		## an alias, because the two fallback cases are semantically distinct
-		## callsites in the routine text even though they currently resolve to
-		## the identical mechanism -- a future revision could give
-		## --member-upsert-member-inquiry its own real behavior (e.g. routing
-		## metadata, a required "from" field) without touching
-		## --member-upsert-inbox-note.
-		--member-upsert-member-inquiry)
-			shift
-			DistroAgentsTools --member-upsert-inbox-note "$@" || return 1
-			return 0
-		;;
-
-		## For reflection-type inbox items specifically. Same argument shape and
-		## file-writing mechanics as --member-upsert-inbox-note (self-recurses
-		## directly into it, same idiom as --member-upsert-member-inquiry) --
-		## kept as its own distinctly-named op because reflection notes are a
-		## real, already-established content family in this team's inboxes
-		## (see e.g. magic-coordinator/inbox/*-reflection-*.md: a frontmatter
-		## block -- source/type/from/posted_at/owner/approved_by/references --
-		## followed by a "# Reflection: <title>" heading and "## What
-		## happened"/"## Why this is worth keeping"-style sections), distinct
-		## from a plain free-form note or a passed inquiry. <item-filename> is
-		## conventionally expected to contain "reflection-" in its slug,
-		## matching every existing example, but this is a naming convention to
-		## follow, not something enforced here -- this op does not validate or
-		## impose the frontmatter/heading shape on content either; the caller
-		## supplies real, already-formed reflection content (via stdin or
-		## --file), same as every other content-carrying op in this file.
-		--member-upsert-inbox-reflection)
-			shift
-			DistroAgentsTools --member-upsert-inbox-note "$@" || return 1
-			return 0
-		;;
-
-		## Append one transcript entry into a per-member archived/ transcript
-		## file. Writes exactly one canonical entry block per call:
-		##
-		##   <speaker-name> (<timestamp>):
-		##
-		##   > <message line 1>
-		##   > <message line 2>
-		##
-		## Target path is fixed to:
-		##   $HOME/.claude/skills/<member-name>/archived/<transcript-file-name>
-		##
-		## Per magic-team.conversations.md rule 11 ("save transcript-<date>-
-		## <short-topic> in each participant archived/") -- not a board/*/ state
-		## folder. transcript-* is a named board-item type by filename/frontmatter
-		## convention (magic-team.armed.md), but unlike task-/project-/inquiry- it
-		## is not walked through the board's lifecycle states (magic-team.board.md)
-		## -- confirmed 2026-07-29, when a stray transcript misfiled into
-		## board/cleanup/ was explicitly left in place rather than forced into a
-		## lifecycle folder. Previously hardcoded to board/planned/ (workspace-
-		## root-relative), which this board's folder-state model retired this
-		## epic (folded into running/ + header fields) -- fixed onto the real
-		## per-member convention instead of another stale board-relative path.
-		## <member-name>'s own skill directory must already exist; its archived/
-		## subfolder is created on demand (lazily, same convention as
-		## --member-upsert-inbox-note's inbox/ handling) since not every member
-		## has one yet. --workspace-root stays required/validated (caller-
-		## environment sanity check) but no longer feeds the target path --
-		## flagged as a loose end, not resolved here.
-		##
-		## Missing target file is an error unless --create is passed.
-		--member-append-session-transcript)
-			shift
-			local memberName speakerName timestampUtc messageText transcriptName workspaceRoot
-			local messageFromStdin="false" messageFile messageArgProvided="false"
-			local allowCreate="false"
-			while [ $# -gt 0 ] ; do
-				case "$1" in
-					--member)
-						memberName="$2"
-						shift 2
-					;;
-					--speaker)
-						speakerName="$2"
-						shift 2
-					;;
-					--timestamp)
-						timestampUtc="$2"
-						shift 2
-					;;
-					--message)
-						messageText="$2"
-						messageArgProvided="true"
-						shift 2
-					;;
-					--message-from-stdin|--from-stdin)
-						messageFromStdin="true"
-						shift
-					;;
-					--message-file)
-						messageFile="$2"
-						shift 2
-					;;
-					--transcript-name)
-						transcriptName="$2"
-						shift 2
-					;;
-					--workspace-root)
-						workspaceRoot="$2"
-						shift 2
-					;;
-					--create)
-						allowCreate="true"
-						shift
-					;;
-					*)
-						echo "⛔ ERROR: $MDSC_CMD --member-append-session-transcript: unrecognized argument: $1" >&2
-						set +e ; return 1
-					;;
-				esac
-			done
-
-			if [ -z "$memberName" ] || [ -z "$speakerName" ] || [ -z "$timestampUtc" ] || [ -z "$transcriptName" ] || [ -z "$workspaceRoot" ] ; then
-				echo "⛔ ERROR: $MDSC_CMD --member-append-session-transcript: required args: --member --speaker --timestamp --transcript-name --workspace-root" >&2
-				set +e ; return 1
-			fi
-			local payloadSources=0
-			if [ "$messageArgProvided" = "true" ] ; then
-				payloadSources=$((payloadSources + 1))
-			fi
-			if [ "$messageFromStdin" = "true" ] ; then
-				payloadSources=$((payloadSources + 1))
-			fi
-			if [ -n "$messageFile" ] ; then
-				payloadSources=$((payloadSources + 1))
-			fi
-			if [ "$payloadSources" -ne 1 ] ; then
-				echo "⛔ ERROR: $MDSC_CMD --member-append-session-transcript: provide exactly one payload source: --message, --message-from-stdin/--from-stdin, or --message-file" >&2
-				set +e ; return 1
-			fi
-			if [ "$messageFromStdin" = "true" ] ; then
-				messageText="$(cat)"
-			elif [ -n "$messageFile" ] ; then
-				if [ ! -f "$messageFile" ] ; then
-					echo "⛔ ERROR: $MDSC_CMD --member-append-session-transcript: message file not found: $messageFile" >&2
-					set +e ; return 1
-				fi
-				messageText="$(cat -- "$messageFile")"
-			fi
-			case "$memberName" in
-				*/*|.|..)
-					echo "⛔ ERROR: $MDSC_CMD --member-append-session-transcript: member name must be a bare name, not a path: $memberName" >&2
-					set +e ; return 1
-				;;
-			esac
-			case "$transcriptName" in
-				*/*|.|..)
-					echo "⛔ ERROR: $MDSC_CMD --member-append-session-transcript: transcript name must be a bare filename, not a path: $transcriptName" >&2
-					set +e ; return 1
-				;;
-			esac
-			case "$workspaceRoot" in
-				/*)
-				;;
-				*)
-					echo "⛔ ERROR: $MDSC_CMD --member-append-session-transcript: --workspace-root must be absolute: $workspaceRoot" >&2
-					set +e ; return 1
-				;;
-			esac
-			if [ ! -d "$workspaceRoot" ] ; then
-				echo "⛔ ERROR: $MDSC_CMD --member-append-session-transcript: workspace root not found: $workspaceRoot" >&2
-				set +e ; return 1
-			fi
-			if ! printf '%s' "$timestampUtc" | grep -Eq '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?Z$' ; then
-				echo "⛔ ERROR: $MDSC_CMD --member-append-session-transcript: --timestamp must be ISO UTC date-time (suffix Z): $timestampUtc" >&2
-				set +e ; return 1
-			fi
-
-			local memberDir="$HOME/.claude/skills/$memberName"
-			if [ ! -d "$memberDir" ] ; then
-				echo "⛔ ERROR: $MDSC_CMD --member-append-session-transcript: no such member skill directory: $memberDir" >&2
-				set +e ; return 1
-			fi
-			local transcriptDir="$memberDir/archived"
-			mkdir -p "$transcriptDir" || {
-				echo "⛔ ERROR: $MDSC_CMD --member-append-session-transcript: can't create transcript directory: $transcriptDir" >&2
-				set +e ; return 1
-			}
-			local target="$transcriptDir/$transcriptName"
-			if [ ! -f "$target" ] && [ "$allowCreate" != "true" ] ; then
-				echo "⛔ ERROR: $MDSC_CMD --member-append-session-transcript: transcript does not exist (pass --create to allow creation): $target" >&2
-				set +e ; return 1
-			fi
-			if [ ! -f "$target" ] ; then
-				: > "$target" || {
-					echo "⛔ ERROR: $MDSC_CMD --member-append-session-transcript: failed to create transcript: $target" >&2
-					set +e ; return 1
-				}
-			fi
-
-			local tmpEntry
-			tmpEntry="$( mktemp "${TMPDIR:-/tmp}/mdat-session-transcript-entry.XXXXXX" )" || {
-				echo "⛔ ERROR: $MDSC_CMD --member-append-session-transcript: failed to create temp file" >&2
-				set +e ; return 1
-			}
-			trap 'rm -f -- "$tmpEntry"' EXIT
-
-			printf '%s (%s):\n\n' "$speakerName" "$timestampUtc" > "$tmpEntry"
-			printf '%s' "$messageText" | awk '{ print "> " $0 } END { if (NR == 0) print "> " }' >> "$tmpEntry"
-			printf '\n' >> "$tmpEntry"
-
-			local addedBytes addedLines
-			addedBytes="$( wc -c < "$tmpEntry" | tr -d '[:space:]' )"
-			addedLines="$( wc -l < "$tmpEntry" | tr -d '[:space:]' )"
-			cat "$tmpEntry" >> "$target" || {
-				echo "⛔ ERROR: $MDSC_CMD --member-append-session-transcript: failed to append to transcript: $target" >&2
-				set +e ; return 1
-			}
-			rm -f -- "$tmpEntry"
-			trap - EXIT
-
-			echo "# $MDSC_CMD --member-append-session-transcript: appended $target (+${addedLines} lines, +${addedBytes} bytes)" >&2
-			echo "$target"
-			return 0
+		--member-*)
+			. "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/AgentsTools.Member.include"
+			return $?
 		;;
 
 		## DEPRECATED -- superseded by --member-upsert-inbox-note
-		## (identical behavior, --member-* prefix; see that op's own
-		## comment above for the full rationale). Removed from --help/--help.md
+		## (identical behavior, --member-* prefix; see
+		## --member-upsert-inbox-note's own comment in
+		## sh-lib/AgentsTools.Member.include for the full rationale).
+		## Removed from --help/--help.md
 		## output; kept here, working, as a thin
 		## backward-compatible shim (not a breaking removal) -- any existing
 		## caller still using this name keeps working unchanged, indefinitely,
@@ -2185,129 +1866,9 @@ $1"
 		;;
 
 
-		## Manages human-owner.workspaces.md, the bare one-absolute-path-per-line
-		## file at
-		## $HOME/.claude/skills/human-owner/human-owner.workspaces.md that is the
-		## ONLY authoritative source of truth for the workspace paths the team
-		## tracks (see magic-team.armed.md's "Workspace" entry -- that file never
-		## states a literal path itself). Every line in the target file IS data
-		## (no header/prose, unlike --write-inbox-note's free-form note body), so
-		## matching is always exact-whole-line (`grep -Fx`), never a regex/glob --
-		## this also makes a path containing spaces or shell metacharacters safe
-		## as long as the caller passes it as one argument. <path> must be
-		## absolute; a single trailing slash is stripped before comparing/storing
-		## so `/foo/bar` and `/foo/bar/` collapse to one entry (`/` itself is
-		## special-cased so stripping never reduces it to an empty/blank line).
-		## Existence of <path> on disk is deliberately NOT checked -- a tracked
-		## workspace may legitimately live on a currently-unmounted volume (e.g.
-		## /Volumes/ws-2017). Same temp-file+trap+mv idiom as
-		## LocalTools.Config.include's own --upsert/--delete.
-		--owner-workspace-upsert)
-			shift
-			local wsPath="$1"
-			shift || true
-			if [ -z "$wsPath" ] ; then
-				echo "⛔ ERROR: $MDSC_CMD --owner-workspace-upsert: <path> required" >&2
-				set +e ; return 1
-			fi
-			case "$wsPath" in
-				/*)
-				;;
-				*)
-					echo "⛔ ERROR: $MDSC_CMD --owner-workspace-upsert: path must be absolute: $wsPath" >&2
-					set +e ; return 1
-				;;
-			esac
-			[ "$wsPath" = "/" ] || wsPath="${wsPath%/}"
-			local ownerDir="$HOME/.claude/skills/human-owner"
-			if [ ! -d "$ownerDir" ] ; then
-				echo "⛔ ERROR: $MDSC_CMD --owner-workspace-upsert: no such skill directory: $ownerDir" >&2
-				set +e ; return 1
-			fi
-			local ownerFile="$ownerDir/human-owner.workspaces.md"
-			touch "$ownerFile"
-			if grep -Fxq -- "$wsPath" "$ownerFile" ; then
-				echo "# $MDSC_CMD --owner-workspace-upsert: already tracked: $wsPath" >&2
-				return 0
-			fi
-			## Guard against a missing trailing newline on the existing file --
-			## a bare `>>` append onto a file whose last byte isn't already a
-			## newline silently merges the new path
-			## onto the end of the previous last line instead of starting a new
-			## one (`grep '^/'` in --owner-workspace-list then reads both as one
-			## bogus concatenated path). `-s`/non-empty-tail-byte check, not
-			## `wc -l`-based, since a single-line file with no trailing newline
-			## has "1 line" by most line-counting tools despite lacking the
-			## newline this op actually depends on.
-			if [ -s "$ownerFile" ] && [ -n "$( tail -c1 -- "$ownerFile" )" ] ; then
-				printf '\n' >> "$ownerFile"
-			fi
-			printf '%s\n' "$wsPath" >> "$ownerFile"
-			echo "# $MDSC_CMD --owner-workspace-upsert: added: $wsPath" >&2
-			return 0
-		;;
-
-		--owner-workspace-forget)
-			shift
-			local wsPath="$1"
-			shift || true
-			if [ -z "$wsPath" ] ; then
-				echo "⛔ ERROR: $MDSC_CMD --owner-workspace-forget: <path> required" >&2
-				set +e ; return 1
-			fi
-			[ "$wsPath" = "/" ] || wsPath="${wsPath%/}"
-			local ownerFile="$HOME/.claude/skills/human-owner/human-owner.workspaces.md"
-			if [ ! -f "$ownerFile" ] ; then
-				echo "# $MDSC_CMD --owner-workspace-forget: $ownerFile does not exist -- nothing to forget" >&2
-				return 0
-			fi
-			if ! grep -Fxq -- "$wsPath" "$ownerFile" ; then
-				echo "# $MDSC_CMD --owner-workspace-forget: not tracked, nothing to do: $wsPath" >&2
-				return 0
-			fi
-			(
-				tmp="$ownerFile.$$"
-				trap 'rm -f -- "$tmp"' EXIT
-				: > "$tmp"
-				grep -Fxv -- "$wsPath" "$ownerFile" >>"$tmp" 2>/dev/null || :
-				mv "$tmp" "$ownerFile"
-			)
-			echo "# $MDSC_CMD --owner-workspace-forget: removed: $wsPath" >&2
-			return 0
-		;;
-
-		--owner-workspace-list)
-			shift
-			if [ $# -gt 0 ] ; then
-				echo "⛔ ERROR: $MDSC_CMD --owner-workspace-list: takes no arguments" >&2
-				set +e ; return 1
-			fi
-			local ownerFile="$HOME/.claude/skills/human-owner/human-owner.workspaces.md"
-			if [ ! -f "$ownerFile" ] ; then
-				echo "# $MDSC_CMD --owner-workspace-list: $ownerFile does not exist -- no workspaces tracked yet" >&2
-				return 0
-			fi
-			grep '^/' "$ownerFile" || :
-			return 0
-		;;
-
-		## Registers this tool's own workspace root ($MMDAPP) into the same
-		## tracked-workspace registry --owner-workspace-upsert maintains, then
-		## prints it to stdout -- a one-shot "track + tell me where I am"
-		## convenience op for a caller that already knows it wants the
-		## current workspace tracked and doesn't want to spell out $MMDAPP
-		## itself. Delegates to --owner-workspace-upsert internally (same
-		## self-call idiom as --agent-config-option's own internal callers
-		## above) rather than duplicating its file-write logic.
-		--owner-workspace-current)
-			shift
-			if [ $# -gt 0 ] ; then
-				echo "⛔ ERROR: $MDSC_CMD --owner-workspace-current: takes no arguments" >&2
-				set +e ; return 1
-			fi
-			DistroAgentsTools --owner-workspace-upsert "$MMDAPP" || return 1
-			echo "$MMDAPP"
-			return 0
+		--owner-*)
+			. "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/AgentsTools.Owner.include"
+			return $?
 		;;
 
 		## Marks a message read after it's been processed -- otherwise every
@@ -2342,7 +1903,7 @@ $1"
 
 		--help|--help-syntax|'')
 			. "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/help/Help.DistroAgentsTools.include"
-			return 0
+			return $?
 		;;
 
 		*)

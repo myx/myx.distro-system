@@ -449,16 +449,20 @@
 
 		--member-append-session-transcript --member <member-name> --speaker <speaker-name> --timestamp <ISO-UTC-date-time> (--message <verbatim-text>|--message-from-stdin|--from-stdin|--message-file <path>) --transcript-name <transcript-file-name> --workspace-root <path> [--create]
 			Appends exactly one canonical transcript-entry block into
-			$HOME/.claude/skills/<member-name>/archived/<transcript-file-name>:
+			$HOME/.claude/audit/<YYYY-MM>/<transcript-file-name>:
 			<speaker-name> (<timestamp>): followed by quoted message lines.
-			Per magic-team.conversations.md rule 11, transcripts save to each
-			participant's own archived/ -- not a board/<state>/ folder; see
-			--write-board-item above for the real board state-folder names.
-			<member-name>'s skill directory must already exist; its archived/
-			subfolder is created on demand if missing (same as
+			Per magic-team.shared.md's transcript-* location predicate,
+			transcripts save under the shared audit tree -- not a
+			board/<state>/ folder; see --write-board-item above for the real
+			board state-folder names. <YYYY-MM> is derived from the date
+			embedded in <transcript-file-name> (transcript-YYYY-MM-DD-*),
+			falling back to the current UTC year-month otherwise.
+			<member-name>'s skill directory must already exist (sanity check
+			that the member is real); audit/ and its <YYYY-MM>/ subfolder are
+			created on demand if missing (same laziness as
 			--member-upsert-inbox-note's inbox/ handling). --workspace-root is
-			still required and validated (absolute, existing directory) but no
-			longer determines the target path. Does not rewrite prior content.
+			still required and validated (absolute, existing directory) but
+			does not determine the target path. Does not rewrite prior content.
 			Missing target transcript is an error unless --create is passed.
 			Payload must be provided by exactly one source: --message,
 			--message-from-stdin/--from-stdin, or --message-file <path>.
