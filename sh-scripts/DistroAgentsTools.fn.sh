@@ -1876,6 +1876,30 @@ $1"
 			return $?
 		;;
 
+		## Internal plumbing, no --help entry -- see
+		## AgentsTools.InternOpBoardUpsertMoveEdit.include's own header.
+		## One primitive per file (not a wildcard): --intern-op-board-rename
+		## below is a separate, unrelated op, not a sibling verb of this one.
+		--intern-op-board-upsert-move-edit)
+			. "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/AgentsTools.InternOpBoardUpsertMoveEdit.include"
+			return $?
+		;;
+
+		## Internal plumbing, no --help entry -- see
+		## AgentsTools.InternOpBoardRename.include's own header.
+		--intern-op-board-rename)
+			. "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/AgentsTools.InternOpBoardRename.include"
+			return $?
+		;;
+
+		## routine-grooming's own operation group (--magic-grooming-to-*,
+		## --magic-grooming-input-scan) -- see
+		## AgentsTools.MagicGrooming.include's own header.
+		--magic-grooming-*)
+			. "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/AgentsTools.MagicGrooming.include"
+			return $?
+		;;
+
 		## Marks a message read after it's been processed -- otherwise every
 		## comms-sweep pass keeps re-seeing the same UIDs as unseen. IMAP UID
 		## STORE with the \Seen flag, same curl --request pattern

@@ -38,6 +38,10 @@ echo "📘 syntax: DistroAgentsTools.fn.sh --main-loop-lock-acquire <owner-label
 echo "📘 syntax: DistroAgentsTools.fn.sh --main-loop-lock-heartbeat" >&2
 echo "📘 syntax: DistroAgentsTools.fn.sh --main-loop-lock-release" >&2
 echo "📘 syntax: DistroAgentsTools.fn.sh --main-loop-lock-status" >&2
+echo "📘 syntax: DistroAgentsTools.fn.sh --magic-grooming-to-backlog <item-filename> --from-state:<state> --owner <value> [--header:<upsert|append|remove>:name[:value]]... [--upsert-from-stdin|--edit-script-from-stdin:<py|awk>]" >&2
+echo "📘 syntax: DistroAgentsTools.fn.sh --magic-grooming-to-pending <item-filename> --from-state:<state> --owner <value> [--header:<upsert|append|remove>:name[:value]]... [--upsert-from-stdin|--edit-script-from-stdin:<py|awk>]" >&2
+echo "📘 syntax: DistroAgentsTools.fn.sh --magic-grooming-to-processed <item-filename> --from-state:<state> --owner <value> [--header:<upsert|append|remove>:name[:value]]... [--upsert-from-stdin|--edit-script-from-stdin:<py|awk>]" >&2
+echo "📘 syntax: DistroAgentsTools.fn.sh --magic-grooming-input-scan [--state <state>]... [--header <name>]..." >&2
 echo "📘 syntax: DistroAgentsTools.fn.sh --purge-cleanup" >&2
 echo "📘 syntax: DistroAgentsTools.fn.sh [--help]" >&2
 if [ "$1" = "--help" ]; then

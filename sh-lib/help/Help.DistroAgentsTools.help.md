@@ -33,6 +33,10 @@
 📘 syntax: DistroAgentsTools.fn.sh --main-loop-lock-heartbeat
 📘 syntax: DistroAgentsTools.fn.sh --main-loop-lock-release
 📘 syntax: DistroAgentsTools.fn.sh --main-loop-lock-status
+📘 syntax: DistroAgentsTools.fn.sh --magic-grooming-to-backlog <item-filename> --from-state:<state> --owner <value> [--header:<upsert|append|remove>:name[:value]]... [--upsert-from-stdin|--edit-script-from-stdin:<py|awk>]
+📘 syntax: DistroAgentsTools.fn.sh --magic-grooming-to-pending <item-filename> --from-state:<state> --owner <value> [--header:<upsert|append|remove>:name[:value]]... [--upsert-from-stdin|--edit-script-from-stdin:<py|awk>]
+📘 syntax: DistroAgentsTools.fn.sh --magic-grooming-to-processed <item-filename> --from-state:<state> --owner <value> [--header:<upsert|append|remove>:name[:value]]... [--upsert-from-stdin|--edit-script-from-stdin:<py|awk>]
+📘 syntax: DistroAgentsTools.fn.sh --magic-grooming-input-scan [--state <state>]... [--header <name>]...
 📘 syntax: DistroAgentsTools.fn.sh --purge-cleanup
 📘 syntax: DistroAgentsTools.fn.sh [--help]
 
@@ -512,6 +516,35 @@
 			arguments. Convenience op for a caller that wants "track my
 			current workspace and tell me its path" in one call instead of
 			spelling out $MMDAPP itself for --owner-workspace-upsert.
+
+		--magic-grooming-to-backlog <item-filename> --from-state:<state> --owner <value> [--header:<upsert|append|remove>:name[:value]]... [--upsert-from-stdin|--edit-script-from-stdin:<py|awk>]
+			Moves a board item to board/backlog/ and/or patches its
+			frontmatter, one call -- no full-content rewrite required
+			(--upsert-from-stdin/--edit-script-from-stdin remain available
+			for one). --from-state:<state> and --owner are both required;
+			groomed-at/groomed-from/track are always auto-stamped, never
+			caller-supplied. --header:*/--upsert-from-stdin/
+			--edit-script-from-stdin pass straight through for whatever else
+			the move also needs. Own dedicated case arm, not shared with
+			--magic-grooming-to-pending/-processed (room for its own future
+			backlog-specific validation).
+
+		--magic-grooming-to-pending <item-filename> --from-state:<state> --owner <value> [--header:<upsert|append|remove>:name[:value]]... [--upsert-from-stdin|--edit-script-from-stdin:<py|awk>]
+			Same shape as --magic-grooming-to-backlog, target fixed to
+			board/pending/ -- the Advancement-review case (backlog->pending,
+			e.g. --header:upsert:approved-by:<name>
+			--header:upsert:approved-at:<date>). Own dedicated case arm.
+
+		--magic-grooming-to-processed <item-filename> --from-state:<state> --owner <value> [--header:<upsert|append|remove>:name[:value]]... [--upsert-from-stdin|--edit-script-from-stdin:<py|awk>]
+			Same shape as --magic-grooming-to-backlog, target fixed to
+			board/processed/. Own dedicated case arm.
+
+		--magic-grooming-input-scan [--state <state>]... [--header <name>]...
+			Read-only: lists board items as <state>/<item-filename>, one per
+			line, optionally with named frontmatter values appended
+			(tab-separated <name>=<value>, empty if absent). No --state
+			means every real board state. Use this to find an item's actual
+			current state before calling --magic-grooming-to-*.
 
 		--purge-cleanup
 			Empties $MMDAPP/.local/.cleanup/ (the folder itself stays) --

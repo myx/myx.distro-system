@@ -1,0 +1,277 @@
+#!/usr/bin/env bash
+# ^^^ for syntax checking in the editor only
+
+##
+## AgentsTools.InternOpBoardUpsertMoveEdit.include -- the
+## --intern-op-board-upsert-move-edit op for DistroAgentsTools.fn.sh's
+## dispatcher. Sourced lazily from that exact op's own dispatcher arm (not a
+## wildcard -- this file holds one op only) via the standard
+## $MDLT_ORIGIN-based path. Not standalone: relies on being dot-sourced for
+## $1/$@/$MDSC_CMD.
+##
+## No --help entry: this is internal plumbing. Real board-write policy
+## (validation, mandatory fields, audit stamps) lives in the caller (e.g.
+## AgentsTools.MagicGrooming.include's --magic-grooming-* ops), not here.
+## This is the one generic, reusable move/edit/upsert mechanism every such
+## caller shares -- "Make all similar use it."
+##
+## Every closing `}` in the AWK below is preceded by a `;` (magic-developer's
+## reference/shell.md axiom: some AWK builds reject the missing-semicolon
+## form as a hard parse error). Inline per this file's own established
+## size-based externalization threshold (~35 lines here, well under the
+## 171-268-line bar the two real externalized .awk files in this package
+## actually clear).
+##
+
+case "$1" in
+
+	## <to-state> <item-filename> (--from-state:<state>|--create)
+	##   [--header:<upsert|append|remove>:name[:value]]...
+	##   [--upsert-from-stdin|--edit-script-from-stdin:<py|awk>]
+	##
+	## Body resolution (in order): --edit-script-from-stdin runs the given
+	## py/awk script (read from this op's own stdin) against the existing
+	## content (empty on --create) and takes its stdout as the new body;
+	## --upsert-from-stdin takes this op's stdin verbatim as the new body;
+	## neither given means the body is the existing content unchanged
+	## (--create with neither starts from an empty `---`/`---` frontmatter
+	## skeleton, so --header:upsert has somewhere to land). --header:*
+	## ops apply on top of the resolved body, in the order given (repeat
+	## upserts/removes on the same field: last wins; repeat appends on the
+	## same field: cumulative, in order) -- then the result is written to a
+	## temp file and `mv`'d into place atomically. On an actual move
+	## (--from-state != <to-state>), the OLD file is `mv`'d to
+	## board/cleanup/ rather than removed -- not destroyed, just
+	## relocated, for now.
+	--intern-op-board-upsert-move-edit)
+		shift
+		local toState="$1"
+		shift || true
+		local itemName="$1"
+		shift || true
+		if [ -z "$toState" ] || [ -z "$itemName" ] ; then
+			echo "⛔ ERROR: $MDSC_CMD --intern-op-board-upsert-move-edit: syntax is <to-state> <item-filename> (--from-state:<state>|--create) [--header:<upsert|append|remove>:name[:value]]... [--upsert-from-stdin|--edit-script-from-stdin:<py|awk>]" >&2
+			set +e ; return 1
+		fi
+		case "$toState" in
+			backlog|pending|running|blocked|parked|processed|archived|retained|cleanup)
+			;;
+			*)
+				echo "⛔ ERROR: $MDSC_CMD --intern-op-board-upsert-move-edit: invalid to-state: $toState" >&2
+				set +e ; return 1
+			;;
+		esac
+		case "$itemName" in
+			*/*|.|..)
+				echo "⛔ ERROR: $MDSC_CMD --intern-op-board-upsert-move-edit: item filename must be a bare filename: $itemName" >&2
+				set +e ; return 1
+			;;
+		esac
+
+		local boardRoot="$HOME/.claude/skills/magic-team/board"
+		local fromState="" isCreate="false" sourcePath="" bodyMode="" scriptLang=""
+		local headerOpsFile
+		headerOpsFile="$( mktemp "${TMPDIR:-/tmp}/mdat-intern-op-headers.XXXXXX" )" || { set +e ; return 1 ; }
+		trap 'rm -f "$headerOpsFile"' EXIT
+
+		while [ $# -gt 0 ] ; do
+			case "$1" in
+				--from-state:*)
+					fromState="${1#--from-state:}"
+					case "$fromState" in
+						backlog|pending|running|blocked|parked|processed|archived|retained|cleanup)
+						;;
+						*)
+							echo "⛔ ERROR: $MDSC_CMD --intern-op-board-upsert-move-edit: --from-state: invalid state: $fromState" >&2
+							set +e ; return 1
+						;;
+					esac
+					sourcePath="$boardRoot/$fromState/$itemName"
+					if [ ! -f "$sourcePath" ] ; then
+						echo "⛔ ERROR: $MDSC_CMD --intern-op-board-upsert-move-edit: item not found: $sourcePath" >&2
+						set +e ; return 1
+					fi
+					shift
+				;;
+				--create)
+					isCreate="true"
+					shift
+				;;
+				--header:*)
+					local headerSpec="${1#--header:}"
+					local headerOp="${headerSpec%%:*}"
+					local headerRest="${headerSpec#*:}"
+					local headerName headerValue
+					case "$headerRest" in
+						*:*) headerName="${headerRest%%:*}" ; headerValue="${headerRest#*:}" ;;
+						*)   headerName="$headerRest" ; headerValue="" ;;
+					esac
+					if [ -z "$headerName" ] ; then
+						echo "⛔ ERROR: $MDSC_CMD --intern-op-board-upsert-move-edit: --header:$headerOp: field name required" >&2
+						set +e ; return 1
+					fi
+					case "$headerOp" in
+						upsert|append)
+							if [ -z "$headerValue" ] ; then
+								echo "⛔ ERROR: $MDSC_CMD --intern-op-board-upsert-move-edit: --header:$headerOp:$headerName requires a value" >&2
+								set +e ; return 1
+							fi
+						;;
+						remove) : ;;
+						*)
+							echo "⛔ ERROR: $MDSC_CMD --intern-op-board-upsert-move-edit: --header: unrecognized operation: $headerOp (upsert/append/remove)" >&2
+							set +e ; return 1
+						;;
+					esac
+					printf '%s\t%s\t%s\n' "$headerOp" "$headerName" "$headerValue" >> "$headerOpsFile"
+					shift
+				;;
+				--upsert-from-stdin)
+					bodyMode="stdin"
+					shift
+				;;
+				--edit-script-from-stdin:*)
+					scriptLang="${1#--edit-script-from-stdin:}"
+					case "$scriptLang" in
+						py|awk) ;;
+						*)
+							echo "⛔ ERROR: $MDSC_CMD --intern-op-board-upsert-move-edit: --edit-script-from-stdin must be :py or :awk: $scriptLang" >&2
+							set +e ; return 1
+						;;
+					esac
+					bodyMode="script"
+					shift
+				;;
+				*)
+					echo "⛔ ERROR: $MDSC_CMD --intern-op-board-upsert-move-edit: invalid option: $1" >&2
+					set +e ; return 1
+				;;
+			esac
+		done
+
+		if [ -z "$fromState" ] && [ "$isCreate" = "false" ] ; then
+			echo "⛔ ERROR: $MDSC_CMD --intern-op-board-upsert-move-edit: exactly one of --from-state:<state> or --create is required" >&2
+			set +e ; return 1
+		fi
+		if [ -n "$fromState" ] && [ "$isCreate" = "true" ] ; then
+			echo "⛔ ERROR: $MDSC_CMD --intern-op-board-upsert-move-edit: --from-state and --create are mutually exclusive" >&2
+			set +e ; return 1
+		fi
+		if [ -n "$scriptLang" ] && [ "$bodyMode" = "stdin" ] ; then
+			echo "⛔ ERROR: $MDSC_CMD --intern-op-board-upsert-move-edit: --upsert-from-stdin and --edit-script-from-stdin are mutually exclusive" >&2
+			set +e ; return 1
+		fi
+
+		local targetDir="$boardRoot/$toState"
+		if [ ! -d "$targetDir" ] ; then
+			echo "⛔ ERROR: $MDSC_CMD --intern-op-board-upsert-move-edit: no such board state directory: $targetDir" >&2
+			set +e ; return 1
+		fi
+		local targetPath="$targetDir/$itemName"
+
+		local body
+		if [ "$bodyMode" = "script" ] ; then
+			local scriptContent existingContent scriptFile
+			scriptContent="$( cat )"
+			if [ "$isCreate" = "true" ] ; then existingContent="" ; else existingContent="$( cat "$sourcePath" )" ; fi
+			scriptFile="$( mktemp "${TMPDIR:-/tmp}/mdat-intern-op-script.XXXXXX" )" || { set +e ; return 1 ; }
+			printf '%s' "$scriptContent" > "$scriptFile"
+			case "$scriptLang" in
+				py)  body="$( printf '%s\n' "$existingContent" | python3 "$scriptFile" )" ;;
+				awk) body="$( printf '%s\n' "$existingContent" | LC_ALL=C awk -f "$scriptFile" )" ;;
+			esac
+			rm -f "$scriptFile"
+		elif [ "$bodyMode" = "stdin" ] ; then
+			body="$( cat )"
+		else
+			if [ "$isCreate" = "true" ] ; then
+				body='---
+---'
+			else
+				body="$( cat "$sourcePath" )"
+			fi
+		fi
+
+		if [ -s "$headerOpsFile" ] ; then
+			local bodyTmp
+			bodyTmp="$( mktemp "${TMPDIR:-/tmp}/mdat-intern-op-body.XXXXXX" )" || { set +e ; return 1 ; }
+			printf '%s\n' "$body" > "$bodyTmp"
+			body="$( LC_ALL=C awk -v opsFile="$headerOpsFile" '
+				BEGIN {
+					n = 0 ;
+					while ( (getline line < opsFile) > 0 ) {
+						split(line, parts, "\t") ;
+						n++ ;
+						opType[n] = parts[1] ; opName[n] = parts[2] ; opValue[n] = parts[3] ;
+					} ;
+					close(opsFile) ;
+					for (i = 1 ; i <= n ; i++) {
+						nm = opName[i] ;
+						if (opType[i] == "remove") {
+							finalAction[nm] = "remove" ; listCount[nm] = 0 ;
+						} else if (opType[i] == "upsert") {
+							finalAction[nm] = "set" ; finalValue[nm] = opValue[i] ; listCount[nm] = 0 ;
+						} else if (opType[i] == "append") {
+							finalAction[nm] = "set" ;
+							listCount[nm]++ ;
+							pendingList[nm SUBSEP listCount[nm]] = opValue[i] ;
+						} ;
+					} ;
+					for (nm in finalAction) {
+						if (finalAction[nm] == "set" && listCount[nm] > 0) {
+							v = "" ;
+							for (k = 1 ; k <= listCount[nm] ; k++) { v = (v == "" ? pendingList[nm SUBSEP k] : v ", " pendingList[nm SUBSEP k]) ; } ;
+							finalValue[nm] = "[" v "]" ;
+						} ;
+					} ;
+					infm = 0 ; closed = 0 ;
+				} ;
+				$0 == "---" && closed == 0 {
+					if (infm == 0) { infm = 1 ; print ; next ; } ;
+					for (nm in finalAction) {
+						if (!seen[nm] && finalAction[nm] == "set") { print nm ": " finalValue[nm] ; seen[nm] = 1 ; } ;
+					} ;
+					infm = 0 ; closed = 1 ; print ; next ;
+				} ;
+				infm == 1 {
+					for (nm in finalAction) {
+						if ($0 ~ "^" nm ": ") {
+							seen[nm] = 1 ;
+							if (finalAction[nm] == "set") { print nm ": " finalValue[nm] ; } ;
+							next ;
+						} ;
+					} ;
+					print ; next ;
+				} ;
+				{ print ; }
+			' "$bodyTmp" )"
+			rm -f "$bodyTmp"
+		fi
+
+		if [ -z "$body" ] ; then
+			echo "⛔ ERROR: $MDSC_CMD --intern-op-board-upsert-move-edit: empty result -- refusing to write an empty board item" >&2
+			set +e ; return 1
+		fi
+
+		local tmpFile
+		tmpFile="$( mktemp "${TMPDIR:-/tmp}/mdat-intern-op-result.XXXXXX" )" || { set +e ; return 1 ; }
+		printf '%s\n' "$body" > "$tmpFile"
+		mv "$tmpFile" "$targetPath"
+
+		if [ "$isCreate" = "false" ] && [ "$sourcePath" != "$targetPath" ] ; then
+			mv "$sourcePath" "$boardRoot/cleanup/$itemName"
+			echo "# $MDSC_CMD --intern-op-board-upsert-move-edit: wrote $targetPath, previous $sourcePath moved to $boardRoot/cleanup/$itemName" >&2
+		else
+			echo "# $MDSC_CMD --intern-op-board-upsert-move-edit: wrote $targetPath" >&2
+		fi
+
+		rm -f "$headerOpsFile"
+		trap - EXIT
+		return 0
+	;;
+
+	*)
+		echo "⛔ ERROR: $MDSC_CMD: invalid option: $1" >&2
+		set +e ; return 1
+	;;
+esac
