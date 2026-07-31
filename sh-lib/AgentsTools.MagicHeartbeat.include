@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+# ^^^ for syntax checking in the editor only
+
+##
+## AgentsTools.MagicHeartbeat.include -- routine-process-flow-step's own
+## --magic-heartbeat-* operation group for DistroAgentsTools.fn.sh's
+## dispatcher. Sourced lazily from the `--magic-heartbeat-*)` wildcard arm
+## via the standard $MDLT_ORIGIN-based path. Not standalone: relies on being
+## dot-sourced for $1/$@/$MDSC_CMD. Name deliberately does NOT echo the
+## owning routine's own name (routine-process-flow-step) -- confirmed
+## intentional, not a defect, same as --main-loop-lock-* living under that
+## same routine's existing (different-prefix) --main-loop-* group.
+##
+## State-list/header-list, investigated directly against
+## routine-process-flow-step.routine.md's own real text (its full "One
+## process-flow iteration" step list, read end to end) rather than guessed:
+## unlike --magic-sweep-input-scan/--member-work-session-input-scan/
+## --routine-coworking-session-input-scan, that routine's own text has NO
+## step that names a board-scan-shaped need the way routine-communication-
+## sweep's "Enumeration mechanism" text or routine-daily's "Roll call" step
+## do -- every place that routine touches board content today already
+## delegates to a sub-routine with its own scan (Comms -> sweep's own
+## --magic-sweep-input-scan; First-today-only grooming ->
+## --magic-grooming-input-scan; Later-today -> routine-daily's
+## --member-work-session-input-scan per member) or uses a different, simpler
+## mechanism entirely (the Test-email-report step's own live find/wc
+## board-statistics counts, not a document-shaped scan). This is a real
+## finding to report, not a resolved spec: this op's own fixed state-list
+## below (the same "active work" backlog/pending/running/blocked/parked
+## five-state list already established for --magic-grooming-input-scan/
+## --member-work-session-input-scan, all-headers) is this file's own
+## best-effort interim choice -- a broad "pulse of the whole active board"
+## reading, consistent with this op's own "heartbeat" name -- pending
+## confirmation/reshaping once a concrete consuming step actually needs
+## something narrower. Always --all-types (no board-item-type restriction
+## has any textual basis here either).
+##
+## Fixed, hardcoded state-list/header-list -- no caller-facing --state/
+## --header override flags: dedicated wrappers are fixed, not flexible; a
+## caller wanting a different scan shape calls --intern-op-board-scan
+## directly instead.
+##
+
+case "$1" in
+
+	## Takes no arguments -- read-only discovery, same document shape as
+	## --magic-grooming-input-scan (thin wrapper over
+	## --intern-op-board-scan). See this file's own header comment for the
+	## state-list/header-list's actual status (interim, not a verified
+	## routine-text requirement the way sibling ops' defaults are).
+	--magic-heartbeat-input-scan)
+		shift
+		## <team-member> captured for future logging/validation, unused today --
+		## tooling operation discipline convention, this session's own new
+		## ops.
+		local callingMember="$1"
+		shift || true
+		if [ -z "$callingMember" ] ; then
+			echo "⛔ ERROR: $MDSC_CMD --magic-heartbeat-input-scan: syntax is <team-member>" >&2
+			set +e ; return 1
+		fi
+		if [ $# -gt 0 ] ; then
+			echo "⛔ ERROR: $MDSC_CMD --magic-heartbeat-input-scan: takes no arguments" >&2
+			set +e ; return 1
+		fi
+		DistroAgentsTools --intern-op-board-scan \
+			--state backlog --state pending --state running --state blocked --state parked \
+			--all-types
+		return $?
+	;;
+
+	*)
+		echo "⛔ ERROR: $MDSC_CMD: invalid option: $1" >&2
+		set +e ; return 1
+	;;
+esac

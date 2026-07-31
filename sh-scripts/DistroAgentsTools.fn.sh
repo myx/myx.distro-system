@@ -1892,11 +1892,43 @@ $1"
 			return $?
 		;;
 
+		## Internal plumbing, no --help entry -- the shared generic
+		## primitive underlying every --*-input-scan wrapper below. See
+		## AgentsTools.InternOpBoardScan.include's own header.
+		--intern-op-board-scan)
+			. "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/AgentsTools.InternOpBoardScan.include"
+			return $?
+		;;
+
 		## routine-grooming's own operation group (--magic-grooming-to-*,
 		## --magic-grooming-input-scan) -- see
 		## AgentsTools.MagicGrooming.include's own header.
 		--magic-grooming-*)
 			. "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/AgentsTools.MagicGrooming.include"
+			return $?
+		;;
+
+		## routine-communication-sweep's own operation group
+		## (--magic-sweep-input-scan) -- see
+		## AgentsTools.MagicSweep.include's own header.
+		--magic-sweep-*)
+			. "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/AgentsTools.MagicSweep.include"
+			return $?
+		;;
+
+		## routine-coworking's own operation group
+		## (--routine-coworking-session-input-scan) -- see
+		## AgentsTools.RoutineCoworking.include's own header.
+		--routine-coworking-*)
+			. "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/AgentsTools.RoutineCoworking.include"
+			return $?
+		;;
+
+		## routine-process-flow-step's own operation group
+		## (--magic-heartbeat-input-scan) -- see
+		## AgentsTools.MagicHeartbeat.include's own header.
+		--magic-heartbeat-*)
+			. "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/AgentsTools.MagicHeartbeat.include"
 			return $?
 		;;
 

@@ -51,10 +51,18 @@ case "$1" in
 	## chat/conversation-session id.
 	--main-loop-lock-acquire)
 		shift
+		## <team-member> captured for future logging/validation, unused today --
+		## tooling operation discipline convention. Distinct from
+		## <owner-label> below: <team-member> is the calling team-member's own
+		## identity, <owner-label> is this specific process/instance's own
+		## label (e.g. "main-loop", "next-iteration-cycle3") -- not the same
+		## concept, both kept.
+		local callingMember="$1"
+		shift || true
 		local ownerLabel="$1"
 		shift || true
-		if [ -z "$ownerLabel" ] ; then
-			echo "⛔ ERROR: $MDSC_CMD --main-loop-lock-acquire: <owner-label> required" >&2
+		if [ -z "$callingMember" ] || [ -z "$ownerLabel" ] ; then
+			echo "⛔ ERROR: $MDSC_CMD --main-loop-lock-acquire: <team-member> <owner-label> required" >&2
 			set +e ; return 1
 		fi
 		local lockDir="$HOME/.claude/skills/magic-coordinator/.runtime/main-loop.lock"
@@ -92,6 +100,14 @@ case "$1" in
 	## --main-loop-lock-acquire.
 	--main-loop-lock-heartbeat)
 		shift
+		## <team-member> captured for future logging/validation, unused today --
+		## tooling operation discipline convention.
+		local callingMember="$1"
+		shift || true
+		if [ -z "$callingMember" ] ; then
+			echo "⛔ ERROR: $MDSC_CMD --main-loop-lock-heartbeat: <team-member> required" >&2
+			set +e ; return 1
+		fi
 		local lockDir="$HOME/.claude/skills/magic-coordinator/.runtime/main-loop.lock"
 		local meta="$lockDir/meta"
 		if [ -d "$lockDir" ] && [ -f "$meta" ] ; then
@@ -108,6 +124,14 @@ case "$1" in
 	## file, not just an empty marker.
 	--main-loop-lock-release)
 		shift
+		## <team-member> captured for future logging/validation, unused today --
+		## tooling operation discipline convention.
+		local callingMember="$1"
+		shift || true
+		if [ -z "$callingMember" ] ; then
+			echo "⛔ ERROR: $MDSC_CMD --main-loop-lock-release: <team-member> required" >&2
+			set +e ; return 1
+		fi
 		local lockDir="$HOME/.claude/skills/magic-coordinator/.runtime/main-loop.lock"
 		rm -rf "$lockDir" || true
 		echo "RELEASED"
@@ -117,6 +141,14 @@ case "$1" in
 	## Read-only, always returns 0.
 	--main-loop-lock-status)
 		shift
+		## <team-member> captured for future logging/validation, unused today --
+		## tooling operation discipline convention.
+		local callingMember="$1"
+		shift || true
+		if [ -z "$callingMember" ] ; then
+			echo "⛔ ERROR: $MDSC_CMD --main-loop-lock-status: <team-member> required" >&2
+			set +e ; return 1
+		fi
 		local lockDir="$HOME/.claude/skills/magic-coordinator/.runtime/main-loop.lock"
 		local meta="$lockDir/meta"
 		if [ -f "$meta" ] ; then

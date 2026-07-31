@@ -29,14 +29,18 @@
 📘 syntax: DistroAgentsTools.fn.sh --member-upsert-member-inquiry <member> <item-filename> [--file <path>]
 📘 syntax: DistroAgentsTools.fn.sh --member-upsert-inbox-reflection <member> <item-filename> [--file <path>]
 📘 syntax: DistroAgentsTools.fn.sh --member-append-session-transcript --member <member-name> --speaker <speaker-name> --timestamp <ISO-UTC-date-time> (--message <verbatim-text>|--message-from-stdin|--from-stdin|--message-file <path>) --transcript-name <transcript-file-name> --workspace-root <path> [--create]
-📘 syntax: DistroAgentsTools.fn.sh --main-loop-lock-acquire <owner-label>
-📘 syntax: DistroAgentsTools.fn.sh --main-loop-lock-heartbeat
-📘 syntax: DistroAgentsTools.fn.sh --main-loop-lock-release
-📘 syntax: DistroAgentsTools.fn.sh --main-loop-lock-status
-📘 syntax: DistroAgentsTools.fn.sh --magic-grooming-to-backlog <item-filename> --from-state:<state> --owner <value> [--header:<upsert|append|remove>:name[:value]]... [--upsert-from-stdin|--edit-script-from-stdin:<py|awk>]
-📘 syntax: DistroAgentsTools.fn.sh --magic-grooming-to-pending <item-filename> --from-state:<state> --owner <value> [--header:<upsert|append|remove>:name[:value]]... [--upsert-from-stdin|--edit-script-from-stdin:<py|awk>]
-📘 syntax: DistroAgentsTools.fn.sh --magic-grooming-to-processed <item-filename> --from-state:<state> --owner <value> [--header:<upsert|append|remove>:name[:value]]... [--upsert-from-stdin|--edit-script-from-stdin:<py|awk>]
-📘 syntax: DistroAgentsTools.fn.sh --magic-grooming-input-scan [--state <state>]... [--header <name>]...
+📘 syntax: DistroAgentsTools.fn.sh --main-loop-lock-acquire <team-member> <owner-label>
+📘 syntax: DistroAgentsTools.fn.sh --main-loop-lock-heartbeat <team-member>
+📘 syntax: DistroAgentsTools.fn.sh --main-loop-lock-release <team-member>
+📘 syntax: DistroAgentsTools.fn.sh --main-loop-lock-status <team-member>
+📘 syntax: DistroAgentsTools.fn.sh --magic-grooming-to-backlog <team-member> <item-filename> --from-state:<state> --owner <value> [--header:<upsert|append|remove>:name[:value]]... [--upsert-from-stdin|--edit-script-from-stdin:<py|awk>]
+📘 syntax: DistroAgentsTools.fn.sh --magic-grooming-to-pending <team-member> <item-filename> --from-state:<state> --owner <value> [--header:<upsert|append|remove>:name[:value]]... [--upsert-from-stdin|--edit-script-from-stdin:<py|awk>]
+📘 syntax: DistroAgentsTools.fn.sh --magic-grooming-to-processed <team-member> <item-filename> --from-state:<state> --owner <value> [--header:<upsert|append|remove>:name[:value]]... [--upsert-from-stdin|--edit-script-from-stdin:<py|awk>]
+📘 syntax: DistroAgentsTools.fn.sh --magic-grooming-input-scan <team-member>
+📘 syntax: DistroAgentsTools.fn.sh --magic-sweep-input-scan <team-member>
+📘 syntax: DistroAgentsTools.fn.sh --member-work-session-input-scan <team-member>
+📘 syntax: DistroAgentsTools.fn.sh --routine-coworking-session-input-scan <team-member> <item-name>...
+📘 syntax: DistroAgentsTools.fn.sh --magic-heartbeat-input-scan <team-member>
 📘 syntax: DistroAgentsTools.fn.sh --purge-cleanup
 📘 syntax: DistroAgentsTools.fn.sh [--help]
 
@@ -517,7 +521,7 @@
 			current workspace and tell me its path" in one call instead of
 			spelling out $MMDAPP itself for --owner-workspace-upsert.
 
-		--magic-grooming-to-backlog <item-filename> --from-state:<state> --owner <value> [--header:<upsert|append|remove>:name[:value]]... [--upsert-from-stdin|--edit-script-from-stdin:<py|awk>]
+		--magic-grooming-to-backlog <team-member> <item-filename> --from-state:<state> --owner <value> [--header:<upsert|append|remove>:name[:value]]... [--upsert-from-stdin|--edit-script-from-stdin:<py|awk>]
 			Moves a board item to board/backlog/ and/or patches its
 			frontmatter, one call -- no full-content rewrite required
 			(--upsert-from-stdin/--edit-script-from-stdin remain available
@@ -529,22 +533,83 @@
 			--magic-grooming-to-pending/-processed (room for its own future
 			backlog-specific validation).
 
-		--magic-grooming-to-pending <item-filename> --from-state:<state> --owner <value> [--header:<upsert|append|remove>:name[:value]]... [--upsert-from-stdin|--edit-script-from-stdin:<py|awk>]
+		--magic-grooming-to-pending <team-member> <item-filename> --from-state:<state> --owner <value> [--header:<upsert|append|remove>:name[:value]]... [--upsert-from-stdin|--edit-script-from-stdin:<py|awk>]
 			Same shape as --magic-grooming-to-backlog, target fixed to
 			board/pending/ -- the Advancement-review case (backlog->pending,
 			e.g. --header:upsert:approved-by:<name>
 			--header:upsert:approved-at:<date>). Own dedicated case arm.
 
-		--magic-grooming-to-processed <item-filename> --from-state:<state> --owner <value> [--header:<upsert|append|remove>:name[:value]]... [--upsert-from-stdin|--edit-script-from-stdin:<py|awk>]
+		--magic-grooming-to-processed <team-member> <item-filename> --from-state:<state> --owner <value> [--header:<upsert|append|remove>:name[:value]]... [--upsert-from-stdin|--edit-script-from-stdin:<py|awk>]
 			Same shape as --magic-grooming-to-backlog, target fixed to
 			board/processed/. Own dedicated case arm.
 
-		--magic-grooming-input-scan [--state <state>]... [--header <name>]...
+		--magic-grooming-input-scan <team-member>
 			Read-only: lists board items as <state>/<item-filename>, one per
-			line, optionally with named frontmatter values appended
-			(tab-separated <name>=<value>, empty if absent). No --state
-			means every real board state. Use this to find an item's actual
-			current state before calling --magic-grooming-to-*.
+			line, with every frontmatter field. Always scans backlog/
+			pending/running/blocked/parked, --all-types. Use this to find an
+			item's actual current state before calling --magic-grooming-to-*.
+			Thin wrapper over the internal --intern-op-board-scan primitive
+			(no --help entry of its own) -- fixed, hardcoded state-list/
+			header-list, no caller-facing --state/--header override
+			(dedicated wrappers are fixed, not flexible; call
+			--intern-op-board-scan directly for a different scan shape).
+			Default scan output unchanged from this op's own pre-primitive
+			implementation; the override-flag capability that
+			implementation had is not.
+
+		--magic-sweep-input-scan <team-member>
+			Read-only: routine-communication-sweep's own first-stage board
+			scan. Thin wrapper over --intern-op-board-scan. Always scans
+			backlog/pending/running/blocked -- deliberately not parked, per
+			that routine's own "Enumeration mechanism for every open
+			thread" text (the tracked set is board-items "currently open").
+			Always --all-types, always full frontmatter -- no caller-facing
+			--state override. Two-call pattern internally: discovers which
+			items have both source_slack_channel/source_slack_ts set (only
+			those track a live, reply-pending Slack thread), then re-scans
+			restricted to exactly those survivors for the real display
+			output. Empty result (no live-tracked thread) is a normal,
+			clean outcome, not an error.
+
+		--member-work-session-input-scan <team-member>
+			Read-only: one member's own current work-session input --
+			personal, not routine-dictated (every armed member runs this
+			against its own name as it becomes armed, regardless of which
+			routine triggered the arming). Thin wrapper over
+			--intern-op-board-scan, fixed --owner <member> and --all-types.
+			Always scans backlog/pending/running/blocked/parked, always
+			every frontmatter field -- <member> is this op's only argument,
+			no --state/--header override. Appends that same member's own
+			inbox/ contents as a second, identically shaped section
+			(`## inbox/<item-filename>` + frontmatter) -- a not-yet-created
+			inbox/ prints an empty section, not an error.
+
+		--routine-coworking-session-input-scan <team-member> <item-name>...
+			Read-only: routine-coworking's own step-1 board scan once the
+			session's shared goal names specific board-item(s). Thin
+			wrapper over --intern-op-board-scan. At least one <item-name>
+			required -- this is the op's real defining input, no --state/
+			--header override alongside it. Always scans every real board
+			state (a named item may live in any of them) and is never
+			--owner-filtered (contrast with --member-work-session-input-scan:
+			this is about specific named items regardless of who owns
+			them). Two-call pattern internally: discovers every item named
+			in the given items' own references/blocks/blocked-by fields,
+			then re-scans restricted to the union of the originally-given
+			names plus every discovered related name, for the real display
+			output (always every frontmatter field).
+
+		--magic-heartbeat-input-scan <team-member>
+			Read-only: routine-process-flow-step's own board scan (name
+			deliberately does not echo that routine's own name -- confirmed
+			intentional). Thin wrapper over --intern-op-board-scan, always
+			--all-types. Always scans backlog/pending/running/blocked/
+			parked, always every frontmatter field -- no caller-facing
+			--state/--header override -- an interim default (a broad
+			"pulse of the whole active board" reading), not yet tied to one
+			specific consuming step's own verified text the way sibling
+			ops' defaults are; see AgentsTools.MagicHeartbeat.include's own
+			header for the full finding.
 
 		--purge-cleanup
 			Empties $MMDAPP/.local/.cleanup/ (the folder itself stays) --

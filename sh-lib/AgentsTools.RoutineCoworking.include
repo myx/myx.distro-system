@@ -1,0 +1,127 @@
+#!/usr/bin/env bash
+# ^^^ for syntax checking in the editor only
+
+##
+## AgentsTools.RoutineCoworking.include -- routine-coworking's own
+## --routine-coworking-* operation group for DistroAgentsTools.fn.sh's
+## dispatcher. Sourced lazily from the `--routine-coworking-*)` wildcard arm
+## via the standard $MDLT_ORIGIN-based path. Not standalone: relies on being
+## dot-sourced for $1/$@/$MDSC_CMD. Same "own dedicated namespace/.include
+## per routine" convention as AgentsTools.MagicGrooming.include -- one op
+## today, room for more of this routine's own ops later. Named
+## --routine-coworking-* (not --magic-coworking-*) -- deliberate, this
+## routine's own established naming already uses its full "routine-
+## coworking" name elsewhere (session_transcript_name, this folder's own
+## typed files), unlike the shortened-nickname pattern (grooming/sweep/
+## heartbeat) other routines' own op-group prefixes use.
+##
+
+case "$1" in
+
+	## <item-name>... -- read-only discovery, same document shape as
+	## --magic-grooming-input-scan (thin wrapper over
+	## --intern-op-board-scan). Verified directly against
+	## routine-coworking.routine.md: no existing step loaded board-state at
+	## all before this op existed -- step 1 ("Frame the shared goal") now
+	## cites this op explicitly once the goal names specific board-item(s)
+	## (see that file's own step 1 text). At least one <item-name> is
+	## required -- this positional list IS this op's real defining input,
+	## not an override of some other fixed default, so it stays (unlike
+	## --state/--header on the sibling wrappers, which were caller-facing
+	## overrides of an already-fixed default and have been removed
+	## everywhere: dedicated wrappers are fixed, not flexible). No --header
+	## flag either, not just no --state: always every frontmatter field on
+	## the final display. Not --state-configurable (always every real board
+	## state -- a named item can live in any of them, and this op doesn't
+	## know which in advance) and not --owner-filtered (deliberate contrast
+	## with --member-work-session-input-scan: this scan is about specific
+	## named items regardless of who owns them, not "my own work").
+	##
+	## Two-call pattern, same shape --magic-sweep-input-scan uses (see
+	## AgentsTools.MagicSweep.include): phase 1 asks the primitive for
+	## references/blocks/blocked-by only, across every real state,
+	## --all-types, --item restricted to exactly the given names (a
+	## targeted lookup, not a whole-folder scan) -- this op's own real
+	## purpose per the routine text: "the given item(s) plus anything
+	## references/blocks/blocked-by them". AgentRoutineCoworkingReferenceNames
+	## .awk (external, per this package's own externalize-awk/py convention)
+	## reads that document and prints every name mentioned in any of those
+	## three fields, across every given item, handling both plain scalar
+	## values and the bracketed-list encoding
+	## AgentsTools.InternOpBoardUpsertMoveEdit.include's own --header:append
+	## produces. Phase 2 re-calls the primitive restricted via --item to the
+	## union of the originally-given names plus every discovered related
+	## name (deduped), still every real state, --all-types, every
+	## frontmatter field -- the real, final display output.
+	--routine-coworking-session-input-scan)
+		shift
+		## <team-member> captured for future logging/validation, unused today --
+		## tooling operation discipline convention, this session's own new
+		## ops.
+		local callingMember="$1"
+		shift || true
+		if [ -z "$callingMember" ] ; then
+			echo "⛔ ERROR: $MDSC_CMD --routine-coworking-session-input-scan: syntax is <team-member> <item-name>... -- <team-member> required" >&2
+			set +e ; return 1
+		fi
+		local names=()
+		while [ $# -gt 0 ] ; do
+			case "$1" in
+				--*)
+					echo "⛔ ERROR: $MDSC_CMD --routine-coworking-session-input-scan: invalid option: $1" >&2
+					set +e ; return 1
+				;;
+				*)
+					names+=( "$1" )
+					shift
+				;;
+			esac
+		done
+		if [ ${#names[@]} -eq 0 ] ; then
+			echo "⛔ ERROR: $MDSC_CMD --routine-coworking-session-input-scan: syntax is <team-member> <item-name>... -- at least one item-name required" >&2
+			set +e ; return 1
+		fi
+
+		local allStates=( backlog pending running blocked parked processed archived retained cleanup )
+		local phaseAArgs=() s n
+
+		for s in "${allStates[@]}" ; do phaseAArgs+=( --state "$s" ) ; done
+		for n in "${names[@]}" ; do phaseAArgs+=( --item "$n" ) ; done
+
+		local phaseAOutput
+		phaseAOutput="$( DistroAgentsTools --intern-op-board-scan "${phaseAArgs[@]}" \
+			--header references --header blocks --header blocked-by --all-types )" || return 1
+
+		local relatedFile
+		relatedFile="$( mktemp "${TMPDIR:-/tmp}/mdat-routine-coworking-related.XXXXXX" )" || { set +e ; return 1 ; }
+		trap 'rm -f "$relatedFile"' EXIT
+		printf '%s\n' "$phaseAOutput" | LC_ALL=C awk -f "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/AgentRoutineCoworkingReferenceNames.awk" | sort -u > "$relatedFile"
+
+		## Union: originally-given names, in order, then every discovered
+		## related name not already present.
+		local unionNames=() already seen
+		for n in "${names[@]}" ; do unionNames+=( "$n" ) ; done
+		while IFS= read -r n ; do
+			[ -z "$n" ] && continue
+			already="false"
+			for seen in "${unionNames[@]}" ; do
+				if [ "$seen" = "$n" ] ; then already="true" ; break ; fi
+			done
+			[ "$already" = "true" ] || unionNames+=( "$n" )
+		done < "$relatedFile"
+		rm -f "$relatedFile"
+		trap - EXIT
+
+		local phaseBArgs=()
+		for s in "${allStates[@]}" ; do phaseBArgs+=( --state "$s" ) ; done
+		for n in "${unionNames[@]}" ; do phaseBArgs+=( --item "$n" ) ; done
+
+		DistroAgentsTools --intern-op-board-scan "${phaseBArgs[@]}" --all-types
+		return $?
+	;;
+
+	*)
+		echo "⛔ ERROR: $MDSC_CMD: invalid option: $1" >&2
+		set +e ; return 1
+	;;
+esac

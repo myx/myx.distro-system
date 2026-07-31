@@ -34,14 +34,18 @@ echo "📘 syntax: DistroAgentsTools.fn.sh --owner-workspace-upsert <path>" >&2
 echo "📘 syntax: DistroAgentsTools.fn.sh --owner-workspace-forget <path>" >&2
 echo "📘 syntax: DistroAgentsTools.fn.sh --owner-workspace-list" >&2
 echo "📘 syntax: DistroAgentsTools.fn.sh --owner-workspace-current" >&2
-echo "📘 syntax: DistroAgentsTools.fn.sh --main-loop-lock-acquire <owner-label>" >&2
-echo "📘 syntax: DistroAgentsTools.fn.sh --main-loop-lock-heartbeat" >&2
-echo "📘 syntax: DistroAgentsTools.fn.sh --main-loop-lock-release" >&2
-echo "📘 syntax: DistroAgentsTools.fn.sh --main-loop-lock-status" >&2
-echo "📘 syntax: DistroAgentsTools.fn.sh --magic-grooming-to-backlog <item-filename> --from-state:<state> --owner <value> [--header:<upsert|append|remove>:name[:value]]... [--upsert-from-stdin|--edit-script-from-stdin:<py|awk>]" >&2
-echo "📘 syntax: DistroAgentsTools.fn.sh --magic-grooming-to-pending <item-filename> --from-state:<state> --owner <value> [--header:<upsert|append|remove>:name[:value]]... [--upsert-from-stdin|--edit-script-from-stdin:<py|awk>]" >&2
-echo "📘 syntax: DistroAgentsTools.fn.sh --magic-grooming-to-processed <item-filename> --from-state:<state> --owner <value> [--header:<upsert|append|remove>:name[:value]]... [--upsert-from-stdin|--edit-script-from-stdin:<py|awk>]" >&2
-echo "📘 syntax: DistroAgentsTools.fn.sh --magic-grooming-input-scan [--state <state>]... [--header <name>]..." >&2
+echo "📘 syntax: DistroAgentsTools.fn.sh --main-loop-lock-acquire <team-member> <owner-label>" >&2
+echo "📘 syntax: DistroAgentsTools.fn.sh --main-loop-lock-heartbeat <team-member>" >&2
+echo "📘 syntax: DistroAgentsTools.fn.sh --main-loop-lock-release <team-member>" >&2
+echo "📘 syntax: DistroAgentsTools.fn.sh --main-loop-lock-status <team-member>" >&2
+echo "📘 syntax: DistroAgentsTools.fn.sh --magic-grooming-to-backlog <team-member> <item-filename> --from-state:<state> --owner <value> [--header:<upsert|append|remove>:name[:value]]... [--upsert-from-stdin|--edit-script-from-stdin:<py|awk>]" >&2
+echo "📘 syntax: DistroAgentsTools.fn.sh --magic-grooming-to-pending <team-member> <item-filename> --from-state:<state> --owner <value> [--header:<upsert|append|remove>:name[:value]]... [--upsert-from-stdin|--edit-script-from-stdin:<py|awk>]" >&2
+echo "📘 syntax: DistroAgentsTools.fn.sh --magic-grooming-to-processed <team-member> <item-filename> --from-state:<state> --owner <value> [--header:<upsert|append|remove>:name[:value]]... [--upsert-from-stdin|--edit-script-from-stdin:<py|awk>]" >&2
+echo "📘 syntax: DistroAgentsTools.fn.sh --magic-grooming-input-scan <team-member>" >&2
+echo "📘 syntax: DistroAgentsTools.fn.sh --magic-sweep-input-scan <team-member>" >&2
+echo "📘 syntax: DistroAgentsTools.fn.sh --member-work-session-input-scan <team-member>" >&2
+echo "📘 syntax: DistroAgentsTools.fn.sh --routine-coworking-session-input-scan <team-member> <item-name>..." >&2
+echo "📘 syntax: DistroAgentsTools.fn.sh --magic-heartbeat-input-scan <team-member>" >&2
 echo "📘 syntax: DistroAgentsTools.fn.sh --purge-cleanup" >&2
 echo "📘 syntax: DistroAgentsTools.fn.sh [--help]" >&2
 if [ "$1" = "--help" ]; then

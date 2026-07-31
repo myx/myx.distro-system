@@ -33,10 +33,15 @@ case "$1" in
 	## --edit-script-from-stdin:* pass straight through to the intern-op.
 	--magic-grooming-to-backlog)
 		shift
+		## <team-member> is every calling routine's own name/identity, captured
+		## even though unused here today -- reserved for logging/validation
+		## (tooling operation discipline convention), not this op's own logic.
+		local callingMember="$1"
+		shift || true
 		local itemName="$1"
 		shift || true
-		if [ -z "$itemName" ] ; then
-			echo "⛔ ERROR: $MDSC_CMD --magic-grooming-to-backlog: syntax is <item-filename> --from-state:<state> --owner <value> [--header:<upsert|append|remove>:name[:value]]... [--upsert-from-stdin|--edit-script-from-stdin:<py|awk>]" >&2
+		if [ -z "$callingMember" ] || [ -z "$itemName" ] ; then
+			echo "⛔ ERROR: $MDSC_CMD --magic-grooming-to-backlog: syntax is <team-member> <item-filename> --from-state:<state> --owner <value> [--header:<upsert|append|remove>:name[:value]]... [--upsert-from-stdin|--edit-script-from-stdin:<py|awk>]" >&2
 			set +e ; return 1
 		fi
 		local fromStateArg="" owner=""
@@ -85,10 +90,14 @@ case "$1" in
 	## this file's own header note.
 	--magic-grooming-to-pending)
 		shift
+		## <team-member> captured for future logging/validation, unused today --
+		## see --magic-grooming-to-backlog's own comment above.
+		local callingMember="$1"
+		shift || true
 		local itemName="$1"
 		shift || true
-		if [ -z "$itemName" ] ; then
-			echo "⛔ ERROR: $MDSC_CMD --magic-grooming-to-pending: syntax is <item-filename> --from-state:<state> --owner <value> [--header:<upsert|append|remove>:name[:value]]... [--upsert-from-stdin|--edit-script-from-stdin:<py|awk>]" >&2
+		if [ -z "$callingMember" ] || [ -z "$itemName" ] ; then
+			echo "⛔ ERROR: $MDSC_CMD --magic-grooming-to-pending: syntax is <team-member> <item-filename> --from-state:<state> --owner <value> [--header:<upsert|append|remove>:name[:value]]... [--upsert-from-stdin|--edit-script-from-stdin:<py|awk>]" >&2
 			set +e ; return 1
 		fi
 		local fromStateArg="" owner=""
@@ -137,10 +146,14 @@ case "$1" in
 	## this file's own header note.
 	--magic-grooming-to-processed)
 		shift
+		## <team-member> captured for future logging/validation, unused today --
+		## see --magic-grooming-to-backlog's own comment above.
+		local callingMember="$1"
+		shift || true
 		local itemName="$1"
 		shift || true
-		if [ -z "$itemName" ] ; then
-			echo "⛔ ERROR: $MDSC_CMD --magic-grooming-to-processed: syntax is <item-filename> --from-state:<state> --owner <value> [--header:<upsert|append|remove>:name[:value]]... [--upsert-from-stdin|--edit-script-from-stdin:<py|awk>]" >&2
+		if [ -z "$callingMember" ] || [ -z "$itemName" ] ; then
+			echo "⛔ ERROR: $MDSC_CMD --magic-grooming-to-processed: syntax is <team-member> <item-filename> --from-state:<state> --owner <value> [--header:<upsert|append|remove>:name[:value]]... [--upsert-from-stdin|--edit-script-from-stdin:<py|awk>]" >&2
 			set +e ; return 1
 		fi
 		local fromStateArg="" owner=""
@@ -184,68 +197,39 @@ case "$1" in
 		return $?
 	;;
 
-	## [--state <state>]... [--header <name>]... -- read-only discovery:
-	## which board items exist at which relative path, optionally with
-	## specific frontmatter header values pulled alongside each one. Answers
-	## "where does this item actually sit right now" so a caller doesn't
-	## have to guess --from-state for --magic-grooming-to-*. No --state
-	## means every real board state. One line per item:
-	## "<state>/<item-filename>" then, for each requested header, a tab and
-	## "<name>=<value>" (empty value if the field is absent).
+	## Takes no arguments -- read-only discovery, shaped as a real
+	## structured text document meant to be one of routine-grooming's own
+	## actual inputs (not a diagnostic dump). Thin wrapper over
+	## --intern-op-board-scan with a fixed, hardcoded state-list/header-list
+	## -- no caller-facing --state/--header override flags: dedicated
+	## wrappers are fixed, not flexible; a caller wanting a different scan
+	## shape calls --intern-op-board-scan directly instead. Always
+	## backlog/pending (not yet dispatched) plus running/blocked/parked
+	## (routine-grooming.routine.md's own step 1 "Gather the backlog"
+	## wording) -- processed/archived/retained/cleanup are settled/
+	## terminal, never scanned here. Always every frontmatter field -- safe
+	## interim choice until a separate investigation narrows it to just
+	## what grooming Stage 1 actually needs. Always --all-types -- grooming
+	## has never filtered by board-item type prefix. Default scan output
+	## unchanged from this op's own pre-primitive implementation; the
+	## override-flag capability that implementation had is not (removed
+	## once this fixed-wrapper convention was established, applied here
+	## retroactively).
 	--magic-grooming-input-scan)
 		shift
-		local boardRoot="$HOME/.claude/skills/magic-team/board"
-		local states=() headers=()
-		while [ $# -gt 0 ] ; do
-			case "$1" in
-				--state)
-					if [ -z "$2" ] ; then
-						echo "⛔ ERROR: $MDSC_CMD --magic-grooming-input-scan: --state: value required" >&2
-						set +e ; return 1
-					fi
-					case "$2" in
-						backlog|pending|running|blocked|parked|processed|archived|retained|cleanup)
-						;;
-						*)
-							echo "⛔ ERROR: $MDSC_CMD --magic-grooming-input-scan: --state: invalid state: $2" >&2
-							set +e ; return 1
-						;;
-					esac
-					states+=( "$2" )
-					shift 2
-				;;
-				--header)
-					if [ -z "$2" ] ; then
-						echo "⛔ ERROR: $MDSC_CMD --magic-grooming-input-scan: --header: value required" >&2
-						set +e ; return 1
-					fi
-					headers+=( "$2" )
-					shift 2
-				;;
-				*)
-					echo "⛔ ERROR: $MDSC_CMD --magic-grooming-input-scan: invalid option: $1" >&2
-					set +e ; return 1
-				;;
-			esac
-		done
-		if [ ${#states[@]} -eq 0 ] ; then
-			states=( backlog pending running blocked parked processed archived retained cleanup )
+		## <team-member> captured for future logging/validation, unused today --
+		## see --magic-grooming-to-backlog's own comment above. The op's own
+		## "no arguments" nature now means exactly one: the calling member.
+		local callingMember="$1"
+		shift || true
+		if [ -z "$callingMember" ] || [ $# -gt 0 ] ; then
+			echo "⛔ ERROR: $MDSC_CMD --magic-grooming-input-scan: syntax is <team-member>, no other arguments" >&2
+			set +e ; return 1
 		fi
-
-		local state f base line h val
-		for state in "${states[@]}" ; do
-			for f in "$boardRoot/$state"/*.md ; do
-				[ -f "$f" ] || continue
-				base="$( basename "$f" )"
-				line="$state/$base"
-				for h in "${headers[@]}" ; do
-					val="$( LC_ALL=C sed -n "s/^$h: //p" "$f" | head -n 1 )"
-					line="$line	$h=$val"
-				done
-				printf '%s\n' "$line"
-			done
-		done
-		return 0
+		DistroAgentsTools --intern-op-board-scan \
+			--state backlog --state pending --state running --state blocked --state parked \
+			--all-types
+		return $?
 	;;
 
 	*)

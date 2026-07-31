@@ -348,6 +348,72 @@ case "$1" in
 		return 0
 	;;
 
+	## <member> -- read-only discovery, same document shape as
+	## --magic-grooming-input-scan (thin wrapper over
+	## --intern-op-board-scan; see that file for the actual scan/filter/
+	## format mechanics). Personal, not routine-dictated -- see
+	## magic-team.armed.md's Engineering & operating discipline section:
+	## every member runs this against its own name as it becomes armed,
+	## regardless of which routine triggered the arming. <member> is this
+	## op's real defining input (not an override of some other fixed
+	## default) and stays; no --state/--header flags alongside it --
+	## dedicated wrappers are fixed, not flexible, a caller wanting a
+	## different scan shape calls --intern-op-board-scan directly instead.
+	## Fixed filters: --owner <member> (this op's whole point -- "what's
+	## currently assigned to me") and --all-types (no board-item-type
+	## restriction; a member's own work spans every type). Always
+	## backlog/pending/running/blocked/parked -- same "active work" list as
+	## --magic-grooming-input-scan, this op's own closest analog (no
+	## textual basis yet for a narrower one; an implementation choice to
+	## flag for review, not independently re-derived from a routine's own
+	## text the way grooming's/sweep's lists were). Always every
+	## frontmatter field. Appends this same member's own inbox/ contents as
+	## a second section, identical `## inbox/<item-filename>` + frontmatter
+	## shape (the shared AgentBoardItemFrontmatterPrint.awk, reused rather
+	## than duplicated) -- a lazily-created, possibly-absent inbox/ is a
+	## silent empty section, not an error (same laziness as
+	## --member-upsert-inbox-note's own inbox/ handling).
+	--member-work-session-input-scan)
+		shift
+		local memberName="$1"
+		shift || true
+		if [ -z "$memberName" ] ; then
+			echo "⛔ ERROR: $MDSC_CMD --member-work-session-input-scan: syntax is <member>" >&2
+			set +e ; return 1
+		fi
+		if [ $# -gt 0 ] ; then
+			echo "⛔ ERROR: $MDSC_CMD --member-work-session-input-scan: unrecognized argument: $1" >&2
+			set +e ; return 1
+		fi
+		case "$memberName" in
+			*/*|.|..)
+				echo "⛔ ERROR: $MDSC_CMD --member-work-session-input-scan: member name must be a bare directory name, not a path: $memberName" >&2
+				set +e ; return 1
+			;;
+		esac
+		local memberDir="$HOME/.claude/skills/$memberName"
+		if [ ! -d "$memberDir" ] ; then
+			echo "⛔ ERROR: $MDSC_CMD --member-work-session-input-scan: no such member skill directory: $memberDir" >&2
+			set +e ; return 1
+		fi
+
+		DistroAgentsTools --intern-op-board-scan \
+			--state backlog --state pending --state running --state blocked --state parked \
+			--all-types --owner "$memberName" || return 1
+
+		local inboxDir="$memberDir/inbox" f base
+		if [ -d "$inboxDir" ] ; then
+			for f in "$inboxDir"/*.md ; do
+				[ -f "$f" ] || continue
+				base="$( basename "$f" )"
+				printf '## inbox/%s\n' "$base"
+				LC_ALL=C awk -f "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/AgentBoardItemFrontmatterPrint.awk" "$f"
+				printf '\n'
+			done
+		fi
+		return 0
+	;;
+
 	*)
 		echo "⛔ ERROR: $MDSC_CMD: invalid option: $1" >&2
 		set +e ; return 1
