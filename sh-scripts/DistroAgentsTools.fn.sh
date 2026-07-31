@@ -1871,11 +1871,6 @@ $1"
 			return $?
 		;;
 
-		--main-loop-*)
-			. "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/AgentsTools.MainLoop.include"
-			return $?
-		;;
-
 		## Internal plumbing, no --help entry -- see
 		## AgentsTools.InternOpBoardUpsertMoveEdit.include's own header.
 		## One primitive per file (not a wildcard): --intern-op-board-rename

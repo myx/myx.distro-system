@@ -14,12 +14,9 @@
 ## scan (board-scan, documented right below) and --magic-heartbeat-lock-*
 ## (the single-instance lock, documented near its own case arms further
 ## down). Op names carry a "-lock-" infix precisely so --magic-heartbeat-*
-## stays available as the bare namespace for non-lock ops too -- same
-## reservation --main-loop-* used to document for its own now-consolidated
-## --main-loop-lock-* group. `--main-loop-lock-acquire`/`-heartbeat`/
-## `-release`/`-status` (AgentsTools.MainLoop.include) are thin stubs
-## forwarding straight through to these --magic-heartbeat-lock-* ops --
-## same mechanics, unchanged behavior, new canonical home.
+## stays available as the bare namespace for non-lock ops too. This is the
+## only namespace these lock ops exist under -- no --main-loop-lock-*
+## compatibility names remain (AgentsTools.MainLoop.include is gone).
 ##
 ## State-list/header-list, investigated directly against
 ## routine-heartbeat.routine.md's own real text (its full "One
