@@ -41,6 +41,10 @@
 📘 syntax: DistroAgentsTools.fn.sh --member-work-session-input-scan <team-member>
 📘 syntax: DistroAgentsTools.fn.sh --routine-coworking-session-input-scan <team-member> <item-name>...
 📘 syntax: DistroAgentsTools.fn.sh --magic-heartbeat-input-scan <team-member>
+📘 syntax: DistroAgentsTools.fn.sh --magic-heartbeat-lock-acquire <team-member> <owner-label>
+📘 syntax: DistroAgentsTools.fn.sh --magic-heartbeat-lock-heartbeat <team-member>
+📘 syntax: DistroAgentsTools.fn.sh --magic-heartbeat-lock-release <team-member>
+📘 syntax: DistroAgentsTools.fn.sh --magic-heartbeat-lock-status <team-member>
 📘 syntax: DistroAgentsTools.fn.sh --purge-cleanup
 📘 syntax: DistroAgentsTools.fn.sh [--help]
 
@@ -600,7 +604,7 @@
 			output (always every frontmatter field).
 
 		--magic-heartbeat-input-scan <team-member>
-			Read-only: routine-process-flow-step's own board scan (name
+			Read-only: routine-heartbeat's own board scan (name
 			deliberately does not echo that routine's own name -- confirmed
 			intentional). Thin wrapper over --intern-op-board-scan, always
 			--all-types. Always scans backlog/pending/running/blocked/

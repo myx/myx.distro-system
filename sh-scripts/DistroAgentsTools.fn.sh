@@ -1924,7 +1924,7 @@ $1"
 			return $?
 		;;
 
-		## routine-process-flow-step's own operation group
+		## routine-heartbeat's own operation group
 		## (--magic-heartbeat-input-scan) -- see
 		## AgentsTools.MagicHeartbeat.include's own header.
 		--magic-heartbeat-*)

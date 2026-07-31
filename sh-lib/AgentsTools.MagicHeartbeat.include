@@ -2,17 +2,27 @@
 # ^^^ for syntax checking in the editor only
 
 ##
-## AgentsTools.MagicHeartbeat.include -- routine-process-flow-step's own
+## AgentsTools.MagicHeartbeat.include -- routine-heartbeat's own
 ## --magic-heartbeat-* operation group for DistroAgentsTools.fn.sh's
 ## dispatcher. Sourced lazily from the `--magic-heartbeat-*)` wildcard arm
 ## via the standard $MDLT_ORIGIN-based path. Not standalone: relies on being
 ## dot-sourced for $1/$@/$MDSC_CMD. Name deliberately does NOT echo the
-## owning routine's own name (routine-process-flow-step) -- confirmed
-## intentional, not a defect, same as --main-loop-lock-* living under that
-## same routine's existing (different-prefix) --main-loop-* group.
+## owning routine's own name (routine-heartbeat) -- confirmed
+## intentional, not a defect.
+##
+## Two op families share this one file/namespace: --magic-heartbeat-input-
+## scan (board-scan, documented right below) and --magic-heartbeat-lock-*
+## (the single-instance lock, documented near its own case arms further
+## down). Op names carry a "-lock-" infix precisely so --magic-heartbeat-*
+## stays available as the bare namespace for non-lock ops too -- same
+## reservation --main-loop-* used to document for its own now-consolidated
+## --main-loop-lock-* group. `--main-loop-lock-acquire`/`-heartbeat`/
+## `-release`/`-status` (AgentsTools.MainLoop.include) are thin stubs
+## forwarding straight through to these --magic-heartbeat-lock-* ops --
+## same mechanics, unchanged behavior, new canonical home.
 ##
 ## State-list/header-list, investigated directly against
-## routine-process-flow-step.routine.md's own real text (its full "One
+## routine-heartbeat.routine.md's own real text (its full "One
 ## process-flow iteration" step list, read end to end) rather than guessed:
 ## unlike --magic-sweep-input-scan/--member-work-session-input-scan/
 ## --routine-coworking-session-input-scan, that routine's own text has NO
@@ -67,6 +77,143 @@ case "$1" in
 			--state backlog --state pending --state running --state blocked --state parked \
 			--all-types
 		return $?
+	;;
+
+	##
+	## --magic-heartbeat-lock-* -- magic-coordinator's main-loop-mode
+	## single-instance lock: mkdir-based mutex, 900s stale threshold, stdout
+	## contract ACQUIRED / RECLAIMED_STALE:... / ACTIVE:... / HEARTBEAT_OK /
+	## NO_LOCK_HELD / RELEASED / NO_LOCK / raw meta-file dump. Lock
+	## directory: $HOME/.claude/skills/magic-coordinator/.runtime/
+	## main-loop.lock. routine-heartbeat.routine.md's "Single-
+	## instance lock" section documents the calling contract.
+	##
+	## "pid=" in the meta file is the calling shell's own $$ -- informational
+	## only, never read back programmatically.
+	##
+	## Every closing `}` in the AWK below is preceded by a `;` even where a
+	## single statement precedes it on the same line (magic-developer's
+	## reference/shell.md axiom: some AWK implementations reject the
+	## missing-semicolon form as a hard parse error).
+	##
+	## `|| true` guards `rm -rf`/`mkdir` in the stale-reclaim path and in
+	## --magic-heartbeat-lock-release, since this file inherits the caller's
+	## `set -e`.
+	##
+
+	## `mkdir` is the atomic primitive (creates the directory or fails if it
+	## already exists, nothing in between) backing this lock. <owner-label>
+	## should identify the actual running agent/process by a fixed,
+	## discoverable name (e.g. "main-loop"), not an ephemeral
+	## chat/conversation-session id.
+	--magic-heartbeat-lock-acquire)
+		shift
+		## <team-member> captured for future logging/validation, unused today --
+		## tooling operation discipline convention. Distinct from
+		## <owner-label> below: <team-member> is the calling team-member's own
+		## identity, <owner-label> is this specific process/instance's own
+		## label (e.g. "main-loop", "next-iteration-cycle3") -- not the same
+		## concept, both kept.
+		local callingMember="$1"
+		shift || true
+		local ownerLabel="$1"
+		shift || true
+		if [ -z "$callingMember" ] || [ -z "$ownerLabel" ] ; then
+			echo "⛔ ERROR: $MDSC_CMD --magic-heartbeat-lock-acquire: <team-member> <owner-label> required" >&2
+			set +e ; return 1
+		fi
+		local lockDir="$HOME/.claude/skills/magic-coordinator/.runtime/main-loop.lock"
+		local meta="$lockDir/meta"
+		local staleSeconds=900
+		if mkdir "$lockDir" 2>/dev/null ; then
+			printf 'owner=%s\npid=%s\nstart=%s\nheartbeat=%s\n' "$ownerLabel" "$$" "$( date +%s )" "$( date +%s )" > "$meta"
+			echo "ACQUIRED"
+			return 0
+		fi
+		if [ -f "$meta" ] ; then
+			local hb curOwner since age
+			hb="$( awk -F= '/^heartbeat=/{print $2;}' "$meta" )"
+			curOwner="$( awk -F= '/^owner=/{print $2;}' "$meta" )"
+			since="$( awk -F= '/^start=/{print $2;}' "$meta" )"
+			age=$(( $( date +%s ) - ${hb:-0} ))
+			if [ "$age" -gt "$staleSeconds" ] ; then
+				rm -rf "$lockDir" || true
+				mkdir "$lockDir" 2>/dev/null || true
+				printf 'owner=%s\npid=%s\nstart=%s\nheartbeat=%s\n' "$ownerLabel" "$$" "$( date +%s )" "$( date +%s )" > "$meta"
+				echo "RECLAIMED_STALE:prev_owner=$curOwner:age=${age}s"
+				return 0
+			else
+				echo "ACTIVE:owner=$curOwner:since=$since:heartbeat_age=${age}s"
+				set +e ; return 1
+			fi
+		else
+			echo "ACTIVE:owner=unknown:no_meta"
+			set +e ; return 1
+		fi
+	;;
+
+	## Refreshes the heartbeat timestamp so a long-running holder doesn't
+	## get mistaken for a stale/crashed one by a concurrent
+	## --magic-heartbeat-lock-acquire.
+	--magic-heartbeat-lock-heartbeat)
+		shift
+		## <team-member> captured for future logging/validation, unused today --
+		## tooling operation discipline convention.
+		local callingMember="$1"
+		shift || true
+		if [ -z "$callingMember" ] ; then
+			echo "⛔ ERROR: $MDSC_CMD --magic-heartbeat-lock-heartbeat: <team-member> required" >&2
+			set +e ; return 1
+		fi
+		local lockDir="$HOME/.claude/skills/magic-coordinator/.runtime/main-loop.lock"
+		local meta="$lockDir/meta"
+		if [ -d "$lockDir" ] && [ -f "$meta" ] ; then
+			local tmp="$meta.tmp.$$"
+			awk -v t="$( date +%s )" -F= 'BEGIN{OFS="=";} /^heartbeat=/{$2=t;} {print;}' "$meta" > "$tmp" && mv "$tmp" "$meta"
+			echo "HEARTBEAT_OK"
+			return 0
+		fi
+		echo "NO_LOCK_HELD"
+		set +e ; return 1
+	;;
+
+	## `rm -rf`, not `rmdir` -- this lock's directory holds a real `meta`
+	## file, not just an empty marker.
+	--magic-heartbeat-lock-release)
+		shift
+		## <team-member> captured for future logging/validation, unused today --
+		## tooling operation discipline convention.
+		local callingMember="$1"
+		shift || true
+		if [ -z "$callingMember" ] ; then
+			echo "⛔ ERROR: $MDSC_CMD --magic-heartbeat-lock-release: <team-member> required" >&2
+			set +e ; return 1
+		fi
+		local lockDir="$HOME/.claude/skills/magic-coordinator/.runtime/main-loop.lock"
+		rm -rf "$lockDir" || true
+		echo "RELEASED"
+		return 0
+	;;
+
+	## Read-only, always returns 0.
+	--magic-heartbeat-lock-status)
+		shift
+		## <team-member> captured for future logging/validation, unused today --
+		## tooling operation discipline convention.
+		local callingMember="$1"
+		shift || true
+		if [ -z "$callingMember" ] ; then
+			echo "⛔ ERROR: $MDSC_CMD --magic-heartbeat-lock-status: <team-member> required" >&2
+			set +e ; return 1
+		fi
+		local lockDir="$HOME/.claude/skills/magic-coordinator/.runtime/main-loop.lock"
+		local meta="$lockDir/meta"
+		if [ -f "$meta" ] ; then
+			cat "$meta"
+		else
+			echo "NO_LOCK"
+		fi
+		return 0
 	;;
 
 	*)
