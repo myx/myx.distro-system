@@ -176,7 +176,7 @@ case "$1" in
 	## states (magic-team.board.md). <YYYY-MM> is derived from the date
 	## embedded in <transcript-file-name> (transcript-YYYY-MM-DD-*), falling
 	## back to the current UTC year-month if the name doesn't carry one.
-	## <member-name>'s own skill directory must still exist (sanity check that
+	## <team-member>'s own skill directory must still exist (sanity check that
 	## the member is real) even though the transcript itself no longer lives
 	## under it. audit/ and its <YYYY-MM>/ subfolder are created on demand
 	## (lazily, same convention as --member-upsert-inbox-note's inbox/
@@ -184,17 +184,33 @@ case "$1" in
 	## environment sanity check) but does not feed the target path.
 	##
 	## Missing target file is an error unless --create is passed.
+	##
+	## <team-member> is an enforced first positional argument -- same
+	## convention every other --magic-*/--routine-*/--member-* op in this
+	## family already uses (e.g. --member-upsert-inbox-note's <member>
+	## <item-filename>, --magic-grooming-to-backlog's <team-member>
+	## <item-filename>): consumed immediately after shift, validated before
+	## any flag parsing, never an order-independent --member <name> flag
+	## sitting alongside the rest.
 	--member-append-session-transcript)
 		shift
-		local memberName speakerName timestampUtc messageText transcriptName workspaceRoot
+		local memberName="$1"
+		shift || true
+		if [ -z "$memberName" ] ; then
+			echo "⛔ ERROR: $MDSC_CMD --member-append-session-transcript: syntax is <team-member> --speaker <speaker-name> --timestamp <ISO-UTC-date-time> (--message <verbatim-text>|--message-from-stdin|--from-stdin|--message-file <path>) --transcript-name <transcript-file-name> --workspace-root <path> [--create]" >&2
+			set +e ; return 1
+		fi
+		case "$memberName" in
+			*/*|.|..)
+				echo "⛔ ERROR: $MDSC_CMD --member-append-session-transcript: member name must be a bare name, not a path: $memberName" >&2
+				set +e ; return 1
+			;;
+		esac
+		local speakerName timestampUtc messageText transcriptName workspaceRoot
 		local messageFromStdin="false" messageFile messageArgProvided="false"
 		local allowCreate="false"
 		while [ $# -gt 0 ] ; do
 			case "$1" in
-				--member)
-					memberName="$2"
-					shift 2
-				;;
 				--speaker)
 					speakerName="$2"
 					shift 2
@@ -235,8 +251,8 @@ case "$1" in
 			esac
 		done
 
-		if [ -z "$memberName" ] || [ -z "$speakerName" ] || [ -z "$timestampUtc" ] || [ -z "$transcriptName" ] || [ -z "$workspaceRoot" ] ; then
-			echo "⛔ ERROR: $MDSC_CMD --member-append-session-transcript: required args: --member --speaker --timestamp --transcript-name --workspace-root" >&2
+		if [ -z "$speakerName" ] || [ -z "$timestampUtc" ] || [ -z "$transcriptName" ] || [ -z "$workspaceRoot" ] ; then
+			echo "⛔ ERROR: $MDSC_CMD --member-append-session-transcript: required args: --speaker --timestamp --transcript-name --workspace-root" >&2
 			set +e ; return 1
 		fi
 		local payloadSources=0
@@ -262,12 +278,6 @@ case "$1" in
 			fi
 			messageText="$(cat -- "$messageFile")"
 		fi
-		case "$memberName" in
-			*/*|.|..)
-				echo "⛔ ERROR: $MDSC_CMD --member-append-session-transcript: member name must be a bare name, not a path: $memberName" >&2
-				set +e ; return 1
-			;;
-		esac
 		case "$transcriptName" in
 			*/*|.|..)
 				echo "⛔ ERROR: $MDSC_CMD --member-append-session-transcript: transcript name must be a bare filename, not a path: $transcriptName" >&2

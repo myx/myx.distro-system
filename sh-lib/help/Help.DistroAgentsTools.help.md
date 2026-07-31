@@ -28,7 +28,7 @@
 📘 syntax: DistroAgentsTools.fn.sh --member-upsert-inbox-note <member> <item-filename> [--file <path>]
 📘 syntax: DistroAgentsTools.fn.sh --member-upsert-member-inquiry <member> <item-filename> [--file <path>]
 📘 syntax: DistroAgentsTools.fn.sh --member-upsert-inbox-reflection <member> <item-filename> [--file <path>]
-📘 syntax: DistroAgentsTools.fn.sh --member-append-session-transcript --member <member-name> --speaker <speaker-name> --timestamp <ISO-UTC-date-time> (--message <verbatim-text>|--message-from-stdin|--from-stdin|--message-file <path>) --transcript-name <transcript-file-name> --workspace-root <path> [--create]
+📘 syntax: DistroAgentsTools.fn.sh --member-append-session-transcript <team-member> --speaker <speaker-name> --timestamp <ISO-UTC-date-time> (--message <verbatim-text>|--message-from-stdin|--from-stdin|--message-file <path>) --transcript-name <transcript-file-name> --workspace-root <path> [--create]
 📘 syntax: DistroAgentsTools.fn.sh --magic-grooming-to-backlog <team-member> <item-filename> --from-state:<state> --owner <value> [--header:<upsert|append|remove>:name[:value]]... [--upsert-from-stdin|--edit-script-from-stdin:<py|awk>]
 📘 syntax: DistroAgentsTools.fn.sh --magic-grooming-to-pending <team-member> <item-filename> --from-state:<state> --owner <value> [--header:<upsert|append|remove>:name[:value]]... [--upsert-from-stdin|--edit-script-from-stdin:<py|awk>]
 📘 syntax: DistroAgentsTools.fn.sh --magic-grooming-to-processed <team-member> <item-filename> --from-state:<state> --owner <value> [--header:<upsert|append|remove>:name[:value]]... [--upsert-from-stdin|--edit-script-from-stdin:<py|awk>]
@@ -459,7 +459,7 @@
 			magic-team.armed.md's Process/dynamics rule formulation) even
 			though they currently resolve to the identical mechanism.
 
-		--member-append-session-transcript --member <member-name> --speaker <speaker-name> --timestamp <ISO-UTC-date-time> (--message <verbatim-text>|--message-from-stdin|--from-stdin|--message-file <path>) --transcript-name <transcript-file-name> --workspace-root <path> [--create]
+		--member-append-session-transcript <team-member> --speaker <speaker-name> --timestamp <ISO-UTC-date-time> (--message <verbatim-text>|--message-from-stdin|--from-stdin|--message-file <path>) --transcript-name <transcript-file-name> --workspace-root <path> [--create]
 			Appends exactly one canonical transcript-entry block into
 			$HOME/.claude/audit/<YYYY-MM>/<transcript-file-name>:
 			<speaker-name> (<timestamp>): followed by quoted message lines.
@@ -469,7 +469,8 @@
 			board state-folder names. <YYYY-MM> is derived from the date
 			embedded in <transcript-file-name> (transcript-YYYY-MM-DD-*),
 			falling back to the current UTC year-month otherwise.
-			<member-name>'s skill directory must already exist (sanity check
+			<team-member> is an enforced first positional argument, not a
+			--member flag. Its skill directory must already exist (sanity check
 			that the member is real); audit/ and its <YYYY-MM>/ subfolder are
 			created on demand if missing (same laziness as
 			--member-upsert-inbox-note's inbox/ handling). --workspace-root is
@@ -536,8 +537,11 @@
 		--magic-grooming-to-pending <team-member> <item-filename> --from-state:<state> --owner <value> [--header:<upsert|append|remove>:name[:value]]... [--upsert-from-stdin|--edit-script-from-stdin:<py|awk>]
 			Same shape as --magic-grooming-to-backlog, target fixed to
 			board/pending/ -- the Advancement-review case (backlog->pending,
-			e.g. --header:upsert:approved-by:<name>
-			--header:upsert:approved-at:<date>). Own dedicated case arm.
+			e.g. --header:upsert:approved-by:"<team-member> (<session-id>,
+			<date-time>)" --header:upsert:approved-at:<date>). approved-by's
+			value is validated: must match <team-member> (<session-id>,
+			<date-time>) with an ISO UTC date-time (suffix Z). Own dedicated
+			case arm.
 
 		--magic-grooming-to-processed <team-member> <item-filename> --from-state:<state> --owner <value> [--header:<upsert|append|remove>:name[:value]]... [--upsert-from-stdin|--edit-script-from-stdin:<py|awk>]
 			Same shape as --magic-grooming-to-backlog, target fixed to
@@ -747,7 +751,7 @@
 		```
 
 		# Append one session transcript entry (one call = one entry block)
-		`DistroAgentsTools.fn.sh --member-append-session-transcript --member magic-coordinator --speaker human-owner --timestamp 2026-07-26T12:34:56Z --message "Approved. Proceed." --transcript-name transcript-2026-07-26-example.md --workspace-root /Users/myx/.claude/skills/magic-team --create`
+		`DistroAgentsTools.fn.sh --member-append-session-transcript magic-coordinator --speaker human-owner --timestamp 2026-07-26T12:34:56Z --message "Approved. Proceed." --transcript-name transcript-2026-07-26-example.md --workspace-root /Users/myx/.claude/skills/magic-team --create`
 
 		# Track a workspace path for the human-owner
 		`DistroAgentsTools.fn.sh --owner-workspace-upsert /Volumes/ws-2017/myx-work`

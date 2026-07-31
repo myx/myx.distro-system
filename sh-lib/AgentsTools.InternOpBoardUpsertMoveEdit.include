@@ -10,10 +10,16 @@
 ## $1/$@/$MDSC_CMD.
 ##
 ## No --help entry: this is internal plumbing. Real board-write policy
-## (validation, mandatory fields, audit stamps) lives in the caller (e.g.
-## AgentsTools.MagicGrooming.include's --magic-grooming-* ops), not here.
-## This is the one generic, reusable move/edit/upsert mechanism every such
-## caller shares -- "Make all similar use it."
+## (mandatory fields per state transition, audit stamps like groomed-at)
+## lives in the caller (e.g. AgentsTools.MagicGrooming.include's
+## --magic-grooming-* ops), not here. This is the one generic, reusable
+## move/edit/upsert mechanism every such caller shares -- "Make all similar
+## use it." One deliberate exception: `approved-by`'s own value SHAPE
+## (`<team-member> (<session-id>, <date-time>)`) is validated right here,
+## in the shared --header:* parsing below, not duplicated per caller --
+## it's a fact about the field itself (magic-team.armed.md's own field
+## definition), not one caller's transition-specific policy, so every
+## current/future header-writing caller gets the same check for free.
 ##
 ## Every closing `}` in the AWK below is preceded by a `;` (magic-developer's
 ## reference/shell.md axiom: some AWK builds reject the missing-semicolon
@@ -115,6 +121,31 @@ case "$1" in
 							if [ -z "$headerValue" ] ; then
 								echo "⛔ ERROR: $MDSC_CMD --intern-op-board-upsert-move-edit: --header:$headerOp:$headerName requires a value" >&2
 								set +e ; return 1
+							fi
+							## approved-by's required shape: `<team-member>
+							## (<session-id>, <date-time>)`. <team-member> is a
+							## bare name (letters/digits/hyphen, same bare-name
+							## family as <item-filename>'s own convention
+							## elsewhere in this file). <session-id> is
+							## deliberately unconstrained beyond "no comma/
+							## parens inside it" -- both a
+							## $CLAUDE_CODE_SESSION_ID (interactive harness/IDE
+							## chat session) and a --start-console
+							## console-channel-id
+							## (myx.distro-agent-console.<slug>.<console>, see
+							## DistroAgentsTools.fn.sh's own
+							## MDAT_CHANNEL_PREFIX) are valid shapes, and
+							## hardcoding either one specifically would reject
+							## the other. <date-time> reuses the exact
+							## ISO-UTC-with-Z-suffix regex already established
+							## for --member-append-session-transcript's
+							## --timestamp (AgentsTools.Member.include), not a
+							## new format invented here.
+							if [ "$headerName" = "approved-by" ] ; then
+								if ! printf '%s' "$headerValue" | grep -Eq '^[A-Za-z][A-Za-z0-9_-]* \([^,()]+, [0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?Z\)$' ; then
+									echo "⛔ ERROR: $MDSC_CMD --intern-op-board-upsert-move-edit: --header:$headerOp:approved-by: value must match '<team-member> (<session-id>, <date-time>)' (ISO UTC date-time, suffix Z): $headerValue" >&2
+									set +e ; return 1
+								fi
 							fi
 						;;
 						remove) : ;;
