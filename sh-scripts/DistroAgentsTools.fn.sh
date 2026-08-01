@@ -72,7 +72,7 @@ export MDLT_ORIGIN
 
 ## Copied verbatim from DistroLocalTools.fn.sh's own bootstrap -- needed here
 ## for --agent-config-option (sources myx.distro-.local's shared
-## LocalTools.Config.include) and --send-message (reuses myx.common's
+## LocalTools.Config.include) and --member-slack-send-message (reuses myx.common's
 ## agentMcpJsonEscape.awk rather than inventing another JSON escaper).
 if   [ -d "$MYXROOT" ] && [ -f "$MYXROOT/share/myx.common/bin/lib/catMarkdown.Common" ]; then
 	export MYXROOT
@@ -157,7 +157,7 @@ DistroAgentsToolsResolveConsoleShortName(){
 	esac
 }
 
-## Resolves a --send-message/--sweep-read-incoming-comms/--send-email-message
+## Resolves a --member-slack-send-message/--sweep-read-incoming-comms/--send-email-message
 ## style target (magic-team|human-owner|event-track|event-alert|<channel>:<ts>)
 ## to a channel id + optional thread ts. Shared resolution grammar across
 ## three ops -- kept as a utility helper (like the ones above) rather than
@@ -503,280 +503,12 @@ DistroAgentsTools(){
 			return $?
 		;;
 
-		## Posts to Slack via chat.postMessage. Secret handling: SLACK_BOT_TOKEN
-		## is resolved on demand (one --agent-config-option --select call, right
-		## before use), then written to a private (chmod 600) mktemp header
-		## file and passed to curl via `-H @file` (trap-cleaned on exit) rather
-		## than as an inline argv string -- keeps the token out of
-		## `ps`/`/proc/<pid>/cmdline` for the curl invocation's lifetime. Never
-		## echoed/printed anywhere in this branch. The visible-command line
-		## printed before sending mirrors DistroLocalTools.fn.sh:316's
-		## convention, with the token redacted.
-		##
-		## Resilience: retries a handful of times with increasing backoff before
-		## treating the send as failed -- covers the transient-network-hiccup
-		## class already handled for imap.gmail.com/smtp.gmail.com in this same
-		## environment, not a persistent block. Falls back to email only once
-		## genuinely exhausted, never on the first blip. Success is
-		## detected by grepping for `"ok":true` in the raw response body --
-		## this shell layer has no real JSON parser, and a literal `"ok":true`
-		## substring match is reliable enough for Slack's actual response
-		## shape without inventing one. The fallback itself is a real,
-		## separately-callable op (--send-email-message) invoked here via
-		## self-recursion, not a private-only helper.
-		--send-message)
-			shift
-			local target="$1"
-			shift || true
-
-			if [ -z "$target" ] ; then
-				echo "⛔ ERROR: $MDSC_CMD --send-message: target required (magic-team|human-owner|event-track|event-alert|<channel>:<ts>)" >&2
-				set +e ; return 1
-			fi
-
-			local resolved rc channel="" threadTs=""
-			resolved="$( DistroAgentsToolsResolveTarget "$target" )" && rc=0 || rc=$?
-			case "$rc" in
-				0)
-					channel="$( printf '%s\n' "$resolved" | sed -n 's/^CHANNEL=//p' )"
-					threadTs="$( printf '%s\n' "$resolved" | sed -n 's/^THREAD_TS=//p' )"
-				;;
-				2)
-					echo "⛔ ERROR: $MDSC_CMD --send-message: unrecognized target: $target" >&2
-					set +e ; return 1
-				;;
-				*)
-					echo "⛔ ERROR: $MDSC_CMD --send-message: could not resolve a channel for target '$target' -- check SLACK_CHANNEL_MAGIC_TEAM/SLACK_CHANNEL_HUMAN_OWNER in .local/.agents" >&2
-					set +e ; return 1
-				;;
-			esac
-
-			local format="text" fromStdin="false"
-			local textArgs stdinContent
-			while [ $# -gt 0 ] ; do
-				case "$1" in
-					--message-from-stdin|--from-stdin)
-						## `--from-stdin` is the standardized, uniform name for "read
-						## content from stdin instead of argv" across every
-						## DistroAgentsTools op that accepts free-text content (see
-						## also --send-email-message's body below, --validate-json's
-						## bare-stdin mode). `--message-from-stdin` stays recognized
-						## too, unchanged, since it's already documented/used across
-						## several skill files -- this is an additive alias, not a
-						## rename.
-						fromStdin="true" ; shift
-					;;
-					--file)
-						## Lets a caller write content to a plain temp file first (an
-						## ordinary Write tool call, no Bash prompt) and still invoke
-						## --send-message as one single-line command, since a heredoc
-						## body makes the invoked command span multiple lines and no
-						## longer match a single-line settings.json allowlist glob.
-						## Validated and consumed directly here, at point of use, into
-						## the SAME stdinContent variable --from-stdin's own downstream
-						## handling already reads -- no separate fromFile="" sentinel
-						## held across branches.
-						if [ -z "$2" ] || [ ! -f "$2" ] ; then
-							echo "⛔ ERROR: $MDSC_CMD --send-message: --file: file not found: $2" >&2
-							set +e ; return 1
-						fi
-						stdinContent="$( cat "$2" )"
-						fromStdin="true"
-						shift 2
-					;;
-					--format)
-						format="$2" ; shift 2
-					;;
-					--*)
-						## Guards against an unrecognized flag-shaped token silently
-						## falling through to the catch-all below and getting posted
-						## as literal message text -- a stray "--from-stdin" would
-						## otherwise end up as the entire "text" field, with ok:true
-						## coming back, so it wouldn't even be a visible failure. Any
-						## token starting
-						## with "--" that didn't match a known option above is
-						## almost always a typo/wrong-order/mis-recognized flag,
-						## not intended literal content -- fail loud here instead
-						## of silently absorbing it as text. Genuine literal text
-						## starting with "--" should go through --from-stdin/--file
-						## instead.
-						echo "⛔ ERROR: $MDSC_CMD --send-message: unrecognized option: $1 (if you need literal text starting with '--', use --from-stdin/--file instead of trailing argv)" >&2
-						set +e ; return 1
-					;;
-					*)
-						textArgs="$textArgs $1" ; shift
-					;;
-				esac
-			done
-
-			local rawText blocksJson
-			if [ "$fromStdin" = "true" ] ; then
-				## stdinContent may already be populated by --file above; only
-				## read real stdin here if it wasn't (--from-stdin, not --file,
-				## is what set fromStdin=true in that case).
-				[ -n "$stdinContent" ] || stdinContent="$( cat )"
-				if [ "$format" = "blocks" ] ; then
-					blocksJson="$stdinContent"
-
-					## `blocksJson` gets spliced straight into the payload below
-					## (`"blocks":$blocksJson`) with no escaping, unlike `rawText`
-					## (which goes through agentMcpJsonEscape.awk) -- this command's
-					## own contract for --format blocks always expects a bare JSON
-					## array here, so validate that before it ever reaches curl.
-					## Guards against a caller's stdin content carrying a stray
-					## leading ":" (leftover from a "blocks: [...]" -style paste,
-					## i.e. not actually a bare array), which would splice
-					## into a literal `"blocks"::[...]` in the payload -- Slack's
-					## chat.postMessage would bounce that as invalid_json on all 5
-					## retries, with nothing in the error pointing at the actual
-					## cause. Reuses this same file's own --validate-json op via
-					## self-recursion (same convention as --send-email-message's
-					## fallback call below) for full JSON-syntax validation,
-					## rather than hand-rolling a second, weaker JSON check here.
-					## --validate-json accepts any syntactically
-					## valid top-level JSON value though (object, string, number,
-					## ...), so a cheap bare `[` ... `]` shape check is layered on
-					## top of it to enforce the array-specifically requirement
-					## Slack's `blocks` field actually has.
-					if ! printf '%s' "$blocksJson" | DistroAgentsTools --validate-json ; then
-						echo "⛔ ERROR: $MDSC_CMD --send-message: --format blocks stdin failed --validate-json (see above)" >&2
-						set +e ; return 1
-					fi
-					local blocksTrimmed
-					blocksTrimmed="$( printf '%s' "$blocksJson" | LC_ALL=C awk 'BEGIN{RS="\0"} { gsub(/^[ \t\r\n]+/, ""); gsub(/[ \t\r\n]+$/, ""); printf "%s", $0 }' )"
-					case "$blocksTrimmed" in
-						'['*']')
-						;;
-						*)
-							echo "⛔ ERROR: $MDSC_CMD --send-message: --format blocks stdin is valid JSON but not a bare array (must start with '[' and end with ']')" >&2
-							set +e ; return 1
-						;;
-					esac
-
-					## Guards against a chat.postMessage rejection shaped like
-					## `invalid_blocks: unsupported type "mrkdwn" [json-pointer:/blocks/3/type]`
-					## -- a caller nesting a text-object type (`mrkdwn`, only valid
-					## inside a block's own `text` field) directly as a top-level
-					## block's own `type`, which Slack's Block Kit does not accept as
-					## a block type. Neither the
-					## --validate-json check above (syntax only) nor the bare-array
-					## check above (shape only) catches this -- both are satisfied by
-					## a syntactically-valid array of objects regardless of what each
-					## object's own "type" value actually is. This is a cheap,
-					## non-recursive structural check (does every top-level element
-					## have a "type" key whose value is one of Slack's known top-level
-					## block types) layered on top of the syntax/shape checks, same
-					## spirit as those -- NOT a full Block Kit schema validator (this
-					## shell layer has no real JSON parser beyond what python3/awk give
-					## it here), so it deliberately does not recurse into each block's
-					## own nested fields (text objects, elements, accessory, ...).
-					local blocksBadTypes
-					blocksBadTypes="$( printf '%s' "$blocksJson" | python3 "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/AgentBlockKitValidate.py" 2>/dev/null )"
-					if [ -n "$blocksBadTypes" ] ; then
-						echo "⛔ ERROR: $MDSC_CMD --send-message: --format blocks stdin has an invalid/missing top-level 'type' at block index(es) $blocksBadTypes -- mrkdwn/plain_text/etc. are TEXT-OBJECT types, valid only nested inside a block's own \"text\" field, never as a block's own \"type\" (valid top-level types: section, divider, header, context, image, actions, input, video, rich_text, file)" >&2
-						set +e ; return 1
-					fi
-
-					## NOTE: not auto-deriving a text fallback from the blocks' own
-					## text.text fields yet (that needs real JSON parsing this shell
-					## layer doesn't have) -- using a static fallback instead. Revisit
-					## with a real parser (e.g. agentMcpJsonParseRequest.awk's
-					## approach) if Slack's own notification quality demands better.
-					rawText="(formatted message -- see blocks)"
-				else
-					rawText="$stdinContent"
-				fi
-			else
-				rawText="${textArgs# }"
-			fi
-
-			if [ -z "$rawText" ] && [ -z "$blocksJson" ] ; then
-				echo "⛔ ERROR: $MDSC_CMD --send-message: no text/blocks content given" >&2
-				set +e ; return 1
-			fi
-
-			## Reuse myx.common's existing JSON-string escaper (agentMcpJsonEscape.awk,
-			## already shipped for agentMcpServer.sh) rather than inventing another one.
-			local escapedText
-			escapedText="$( printf '%s' "$rawText" | LC_ALL=C awk -f "$MYXROOT/include/data/agentMcpJsonEscape.awk" )"
-
-			local payload="{\"channel\":\"$channel\",\"text\":\"$escapedText\""
-			[ -z "$threadTs" ] || payload="$payload,\"thread_ts\":\"$threadTs\""
-			[ -z "$blocksJson" ] || payload="$payload,\"blocks\":$blocksJson"
-			payload="$payload}"
-
-			echo "# $MDSC_CMD --send-message: POST https://slack.com/api/chat.postMessage -H 'Authorization: Bearer \$SLACK_BOT_TOKEN' -H 'Content-type: application/json' -d '$payload'" >&2
-
-			local token
-			token="$( DistroAgentsTools --agent-config-option --select SLACK_BOT_TOKEN )"
-			if [ -z "$token" ] ; then
-				echo "⛔ ERROR: $MDSC_CMD --send-message: SLACK_BOT_TOKEN not set in .local/.agents (see --agent-config-option --upsert)" >&2
-				set +e ; return 1
-			fi
-
-			## Token goes into a private (chmod 600) temp file, read by curl via
-			## `-H @file` (curl >= 7.55.0) rather than as an inline argv string --
-			## avoids the token being visible in `ps`/`/proc/<pid>/cmdline` for
-			## the curl invocation's lifetime.
-			local headerFile
-			headerFile="$( mktemp )" || { set +e ; return 1 ; }
-			chmod 600 "$headerFile"
-			trap 'rm -f "$headerFile"' EXIT
-			printf 'Authorization: Bearer %s\n' "$token" > "$headerFile"
-
-			local response attempt=1 maxAttempts=5 backoff=2 sent="false"
-			while [ "$attempt" -le "$maxAttempts" ] ; do
-				response="$( curl -sS -X POST "https://slack.com/api/chat.postMessage" \
-					-H @"$headerFile" \
-					-H "Content-type: application/json" \
-					-d "$payload" 2>&1 )"
-				if printf '%s' "$response" | grep -q '"ok":true' ; then
-					sent="true"
-					break
-				fi
-				echo "# $MDSC_CMD --send-message: attempt $attempt/$maxAttempts did not confirm ok:true, retrying in ${backoff}s -- $response" >&2
-				sleep "$backoff"
-				attempt=$(( attempt + 1 ))
-				backoff=$(( backoff * 2 ))
-			done
-
-			rm -f "$headerFile"
-			trap - EXIT
-
-			if [ "$sent" = "true" ] ; then
-				printf '%s\n' "$response"
-				return 0
-			fi
-
-			## NOT a channel switch -- email here is a notification that Slack
-			## itself is stuck, not a substitute delivery path for the message.
-			## The message stays queued for Slack; the email's job is only to
-			## say so and describe what's waiting.
-			echo "⛔ $MDSC_CMD --send-message: Slack did not confirm after $maxAttempts attempts -- notifying by email that Slack comms are stuck" >&2
-			local fallbackUser
-			fallbackUser="$( DistroAgentsTools --agent-config-option --select EMAIL_USER )"
-			if [ -z "$fallbackUser" ] ; then
-				echo "⛔ ERROR: $MDSC_CMD --send-message: no EMAIL_USER configured, cannot notify" >&2
-				set +e ; return 1
-			fi
-			DistroAgentsTools --send-email-message "$fallbackUser" -- \
-				"Slack comms stuck -- message queued for target $target" -- \
-				"Slack did not confirm this send after $maxAttempts retries -- comms to Slack appear stuck." "" \
-				"Nothing was rerouted to email -- this is a notification only. The" \
-				"message below stays queued for Slack and should go out once it" \
-				"recovers; retry --send-message manually if it doesn't." "" \
-				"Target: $target" "" \
-				"Queued message:" "$rawText" "" \
-				"Last Slack error response:" "$response"
-			return $?
-		;;
-
 		## Real, standalone op -- not just an internal-only fallback. Direct
 		## curl SMTP send (matches the curl --url smtp://... --ssl-reqd pattern
 		## already verified working in this environment for outbound mail, not
 		## a new untested mechanism), reusing the same EMAIL_* keys the comms
-		## sweep already reads for IMAP. --send-message's exhausted-retry
-		## fallback calls this same branch via self-recursion.
+		## sweep already reads for IMAP. --member-slack-send-message's
+		## exhausted-retry fallback calls this same branch via self-recursion.
 		--send-email-message)
 			shift
 			local recipients subject bodyLines state="recipients" bodyFromStdin="false" bodyFromFile="false"
@@ -790,7 +522,7 @@ DistroAgentsTools(){
 					;;
 					--from-stdin)
 						## Standardized stdin-content flag (same name as
-						## --send-message's), only meaningful in the body state --
+						## --member-slack-send-message's), only meaningful in the body state --
 						## reads the whole body from stdin instead of trailing argv
 						## lines, avoiding shell-escaping/quoting fragility from
 						## multi-line free text as separate argv words. Outside the
@@ -813,7 +545,7 @@ DistroAgentsTools(){
 						fi
 					;;
 					--file)
-						## Same motivation as --send-message's own --file (lets a
+						## Same motivation as --member-slack-send-message's own --file (lets a
 						## caller write the body to a plain temp file first, a normal
 						## Write tool call, and still invoke this op as one
 						## single-line command). Validated and consumed
@@ -1118,7 +850,7 @@ $1"
 		## is a real design bug). Deliberately
 		## does NOT parse the Slack JSON response internally -- see the
 		## --pretty/--raw handling near the bottom of this branch. Target
-		## grammar mirrors --send-message's
+		## grammar mirrors --member-slack-send-message's
 		## (magic-team|human-owner|event-track|event-alert|<channel>:<ts>) so a
 		## bare channel name means "history" and a <channel>:<ts> pair means
 		## "replies in that thread" -- no new addressing scheme invented.
@@ -1187,7 +919,7 @@ $1"
 				set +e ; return 1
 			fi
 
-			## Same private-header-file mechanism as --send-message -- token never
+			## Same private-header-file mechanism as --member-slack-send-message -- token never
 			## touches argv/ps, header file is chmod 600 and trap-cleaned on exit.
 			local headerFile
 			headerFile="$( mktemp )" || { set +e ; return 1 ; }
@@ -1700,7 +1432,7 @@ $1"
 		## $HOME/.claude/skills/, so this op can only ever touch that one directory's own
 		## <name>.SLIB.md, never an arbitrary path. Content comes from stdin by
 		## default, or from a plain file via --file <path>, same motivation/shape as
-		## --send-message/--send-email-message's own --file: lets a caller write the
+		## --member-slack-send-message/--send-email-message's own --file: lets a caller write the
 		## regenerated content to a plain temp file first, an ordinary Write tool call,
 		## and still invoke this op as one single-line command, since a heredoc body
 		## spans multiple lines and stops matching a single-line settings.json allowlist
