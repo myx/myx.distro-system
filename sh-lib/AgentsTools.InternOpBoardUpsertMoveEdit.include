@@ -33,22 +33,35 @@ case "$1" in
 
 	## <to-state> <item-filename> (--from-state:<state>|--create)
 	##   [--header:<upsert|append|remove>:name[:value]]...
-	##   [--upsert-from-stdin|--edit-script-from-stdin:<py|awk>]
+	##   [--upsert-from-stdin|--edit-script-from-stdin:<py|awk>|--edit-patch-from-stdin]
 	##
 	## Body resolution (in order): --edit-script-from-stdin runs the given
 	## py/awk script (read from this op's own stdin) against the existing
 	## content (empty on --create) and takes its stdout as the new body;
 	## --upsert-from-stdin takes this op's stdin verbatim as the new body;
-	## neither given means the body is the existing content unchanged
+	## --edit-patch-from-stdin reads a JSON array of
+	## `{"old": <text>, "new": <text>, "replace_all": <bool, default false>}`
+	## patch objects from this op's own stdin and applies each, in order,
+	## against the existing content (empty on --create) as an exact literal
+	## (non-regex) substring match-and-replace -- each patch's `old` must
+	## match exactly once unless `replace_all` is true, in which case every
+	## occurrence is replaced; a patch whose `old` is not found, or matches
+	## more than once without `replace_all`, fails the whole op loud (no
+	## partial write, original file untouched) before anything reaches
+	## disk; patch N+1 matches against the result of patch N, same as
+	## several `Edit`-tool calls run in sequence. Externalized as
+	## AgentBoardItemPatchApply.py per this package's own externalize-awk/py
+	## convention (see AgentBoardItemFrontmatterPrint.awk). None of the
+	## three given means the body is the existing content unchanged
 	## (--create with neither starts from an empty `---`/`---` frontmatter
-	## skeleton, so --header:upsert has somewhere to land). --header:*
-	## ops apply on top of the resolved body, in the order given (repeat
-	## upserts/removes on the same field: last wins; repeat appends on the
-	## same field: cumulative, in order) -- then the result is written to a
-	## temp file and `mv`'d into place atomically. On an actual move
-	## (--from-state != <to-state>), the OLD file is `mv`'d to
-	## board/cleanup/ rather than removed -- not destroyed, just
-	## relocated, for now.
+	## skeleton, so --header:upsert has somewhere to land). The three
+	## body-input modes are mutually exclusive. --header:* ops apply on top
+	## of the resolved body, in the order given (repeat upserts/removes on
+	## the same field: last wins; repeat appends on the same field:
+	## cumulative, in order) -- then the result is written to a temp file
+	## and `mv`'d into place atomically. On an actual move (--from-state !=
+	## <to-state>), the OLD file is `mv`'d to board/cleanup/ rather than
+	## removed -- not destroyed, just relocated, for now.
 	--intern-op-board-upsert-move-edit)
 		shift
 		local toState="$1"
@@ -56,7 +69,7 @@ case "$1" in
 		local itemName="$1"
 		shift || true
 		if [ -z "$toState" ] || [ -z "$itemName" ] ; then
-			echo "⛔ ERROR: $MDSC_CMD --intern-op-board-upsert-move-edit: syntax is <to-state> <item-filename> (--from-state:<state>|--create) [--header:<upsert|append|remove>:name[:value]]... [--upsert-from-stdin|--edit-script-from-stdin:<py|awk>]" >&2
+			echo "⛔ ERROR: $MDSC_CMD --intern-op-board-upsert-move-edit: syntax is <to-state> <item-filename> (--from-state:<state>|--create) [--header:<upsert|append|remove>:name[:value]]... [--upsert-from-stdin|--edit-script-from-stdin:<py|awk>|--edit-patch-from-stdin]" >&2
 			set +e ; return 1
 		fi
 		case "$toState" in
@@ -75,7 +88,7 @@ case "$1" in
 		esac
 
 		local boardRoot="$HOME/.claude/skills/magic-team/board"
-		local fromState="" isCreate="false" sourcePath="" bodyMode="" scriptLang=""
+		local fromState="" isCreate="false" sourcePath="" bodyMode="" scriptLang="" bodyModeCount=0
 		local headerOpsFile
 		headerOpsFile="$( mktemp "${TMPDIR:-/tmp}/mdat-intern-op-headers.XXXXXX" )" || { set +e ; return 1 ; }
 		trap 'rm -f "$headerOpsFile"' EXIT
@@ -159,6 +172,7 @@ case "$1" in
 				;;
 				--upsert-from-stdin)
 					bodyMode="stdin"
+					bodyModeCount=$(( bodyModeCount + 1 ))
 					shift
 				;;
 				--edit-script-from-stdin:*)
@@ -171,6 +185,12 @@ case "$1" in
 						;;
 					esac
 					bodyMode="script"
+					bodyModeCount=$(( bodyModeCount + 1 ))
+					shift
+				;;
+				--edit-patch-from-stdin)
+					bodyMode="patch"
+					bodyModeCount=$(( bodyModeCount + 1 ))
 					shift
 				;;
 				*)
@@ -188,8 +208,12 @@ case "$1" in
 			echo "⛔ ERROR: $MDSC_CMD --intern-op-board-upsert-move-edit: --from-state and --create are mutually exclusive" >&2
 			set +e ; return 1
 		fi
-		if [ -n "$scriptLang" ] && [ "$bodyMode" = "stdin" ] ; then
-			echo "⛔ ERROR: $MDSC_CMD --intern-op-board-upsert-move-edit: --upsert-from-stdin and --edit-script-from-stdin are mutually exclusive" >&2
+		## Three-way check via a counter, not a pairwise scriptLang/bodyMode
+		## comparison -- a pairwise check only catches one of the six
+		## possible orderings across three flags, an asymmetric gap that
+		## widens (not narrows) once --edit-patch-from-stdin joins the set.
+		if [ "$bodyModeCount" -gt 1 ] ; then
+			echo "⛔ ERROR: $MDSC_CMD --intern-op-board-upsert-move-edit: --upsert-from-stdin, --edit-script-from-stdin, and --edit-patch-from-stdin are mutually exclusive" >&2
 			set +e ; return 1
 		fi
 
@@ -214,6 +238,16 @@ case "$1" in
 			rm -f "$scriptFile"
 		elif [ "$bodyMode" = "stdin" ] ; then
 			body="$( cat )"
+		elif [ "$bodyMode" = "patch" ] ; then
+			local patchJson existingContent contentFile patchFile
+			patchJson="$( cat )"
+			if [ "$isCreate" = "true" ] ; then existingContent="" ; else existingContent="$( cat "$sourcePath" )" ; fi
+			contentFile="$( mktemp "${TMPDIR:-/tmp}/mdat-intern-op-patch-content.XXXXXX" )" || { set +e ; return 1 ; }
+			patchFile="$( mktemp "${TMPDIR:-/tmp}/mdat-intern-op-patch-spec.XXXXXX" )" || { set +e ; return 1 ; }
+			printf '%s' "$existingContent" > "$contentFile"
+			printf '%s' "$patchJson" > "$patchFile"
+			body="$( python3 "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/AgentBoardItemPatchApply.py" "$contentFile" "$patchFile" )"
+			rm -f "$contentFile" "$patchFile"
 		else
 			if [ "$isCreate" = "true" ] ; then
 				body='---

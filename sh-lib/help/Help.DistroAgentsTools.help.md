@@ -29,9 +29,9 @@
 📘 syntax: DistroAgentsTools.fn.sh --member-upsert-member-inquiry <member> <item-filename> [--file <path>]
 📘 syntax: DistroAgentsTools.fn.sh --member-upsert-inbox-reflection <member> <item-filename> [--file <path>]
 📘 syntax: DistroAgentsTools.fn.sh --member-append-session-transcript <team-member> --speaker <speaker-name> --timestamp <ISO-UTC-date-time> (--message <verbatim-text>|--message-from-stdin|--from-stdin|--message-file <path>) --transcript-name <transcript-file-name> --workspace-root <path> [--create]
-📘 syntax: DistroAgentsTools.fn.sh --magic-grooming-to-backlog <team-member> <item-filename> --from-state:<state> --owner <value> [--header:<upsert|append|remove>:name[:value]]... [--upsert-from-stdin|--edit-script-from-stdin:<py|awk>]
-📘 syntax: DistroAgentsTools.fn.sh --magic-grooming-to-pending <team-member> <item-filename> --from-state:<state> --owner <value> [--header:<upsert|append|remove>:name[:value]]... [--upsert-from-stdin|--edit-script-from-stdin:<py|awk>]
-📘 syntax: DistroAgentsTools.fn.sh --magic-grooming-to-processed <team-member> <item-filename> --from-state:<state> --owner <value> [--header:<upsert|append|remove>:name[:value]]... [--upsert-from-stdin|--edit-script-from-stdin:<py|awk>]
+📘 syntax: DistroAgentsTools.fn.sh --magic-grooming-to-backlog <team-member> <item-filename> --from-state:<state> --owner <value> [--header:<upsert|append|remove>:name[:value]]... [--upsert-from-stdin|--edit-script-from-stdin:<py|awk>|--edit-patch-from-stdin]
+📘 syntax: DistroAgentsTools.fn.sh --magic-grooming-to-pending <team-member> <item-filename> --from-state:<state> --owner <value> [--header:<upsert|append|remove>:name[:value]]... [--upsert-from-stdin|--edit-script-from-stdin:<py|awk>|--edit-patch-from-stdin]
+📘 syntax: DistroAgentsTools.fn.sh --magic-grooming-to-processed <team-member> <item-filename> --from-state:<state> --owner <value> [--header:<upsert|append|remove>:name[:value]]... [--upsert-from-stdin|--edit-script-from-stdin:<py|awk>|--edit-patch-from-stdin]
 📘 syntax: DistroAgentsTools.fn.sh --magic-grooming-input-scan <team-member>
 📘 syntax: DistroAgentsTools.fn.sh --magic-sweep-input-scan <team-member>
 📘 syntax: DistroAgentsTools.fn.sh --member-work-session-input-scan <team-member>
@@ -530,30 +530,43 @@
 			spelling out $MMDAPP itself for --owner-workspace-upsert.
 
 		--owner-install-vscode-integrations [--workspace <path>]
-			Installs/updates baseline VS Code integrations (GitHub.copilot,
-			GitHub.copilot-chat), verifies they are listed by
-			`code --list-extensions`, and upserts workspace
-			`.vscode/mcp.json` with a `servers.myx` stdio entry pointing to
-			the resolved myx.common `agentMcpServer.sh` path.
+			Installs/updates baseline VS Code + Claude Code integrations
+			(GitHub.copilot, GitHub.copilot-chat, anthropic.claude-code),
+			verifies they are listed by `code --list-extensions`, and
+			upserts MCP wiring for both clients: workspace `.vscode/mcp.json`
+			with a `servers.myx` stdio entry (VS Code/Copilot-Chat's own
+			schema) and workspace-root `.mcp.json` with a `mcpServers.myx`
+			stdio entry (Claude Code's own project-scope schema -- Claude
+			Code does not read `.vscode/mcp.json`), both pointing at the
+			resolved myx.common `agentMcpServer.sh` path.
 			Default target workspace is the current shell directory; optional
-			`--workspace <path>` overrides it. Fails fast if VS Code CLI
-			(`code`) is not present in PATH. Prints a compact
+			`--workspace <path>` overrides it. Fails fast if the target isn't
+			already a set-up myx workspace (checks for
+			`.local/myx/myx.distro-.local/sh-lib/LocalContext.include`) or if
+			VS Code CLI (`code`) is not present in PATH. Prints a compact
 			OK/FAIL checklist, plus Command Palette trust/restart guidance
 			for MCP visibility.
 
-		--magic-grooming-to-backlog <team-member> <item-filename> --from-state:<state> --owner <value> [--header:<upsert|append|remove>:name[:value]]... [--upsert-from-stdin|--edit-script-from-stdin:<py|awk>]
+		--magic-grooming-to-backlog <team-member> <item-filename> --from-state:<state> --owner <value> [--header:<upsert|append|remove>:name[:value]]... [--upsert-from-stdin|--edit-script-from-stdin:<py|awk>|--edit-patch-from-stdin]
 			Moves a board item to board/backlog/ and/or patches its
 			frontmatter, one call -- no full-content rewrite required
-			(--upsert-from-stdin/--edit-script-from-stdin remain available
-			for one). --from-state:<state> and --owner are both required;
-			groomed-at/groomed-from/track are always auto-stamped, never
-			caller-supplied. --header:*/--upsert-from-stdin/
-			--edit-script-from-stdin pass straight through for whatever else
+			(--upsert-from-stdin/--edit-script-from-stdin/
+			--edit-patch-from-stdin remain available for one).
+			--edit-patch-from-stdin takes a JSON array of
+			`{"old": <text>, "new": <text>, "replace_all": <bool, default
+			false>}` patch objects on stdin and applies each, in order, as an
+			exact literal (non-regex) substring match-and-replace against the
+			body -- a small localized body edit without supplying the whole
+			new body verbatim or writing a full script. --from-state:<state>
+			and --owner are both required; groomed-at/groomed-from/track are
+			always auto-stamped, never caller-supplied. --header:*/
+			--upsert-from-stdin/--edit-script-from-stdin/
+			--edit-patch-from-stdin pass straight through for whatever else
 			the move also needs. Own dedicated case arm, not shared with
 			--magic-grooming-to-pending/-processed (room for its own future
 			backlog-specific validation).
 
-		--magic-grooming-to-pending <team-member> <item-filename> --from-state:<state> --owner <value> [--header:<upsert|append|remove>:name[:value]]... [--upsert-from-stdin|--edit-script-from-stdin:<py|awk>]
+		--magic-grooming-to-pending <team-member> <item-filename> --from-state:<state> --owner <value> [--header:<upsert|append|remove>:name[:value]]... [--upsert-from-stdin|--edit-script-from-stdin:<py|awk>|--edit-patch-from-stdin]
 			Same shape as --magic-grooming-to-backlog, target fixed to
 			board/pending/ -- the Advancement-review case (backlog->pending,
 			e.g. --header:upsert:approved-by:"<team-member> (<session-id>,
@@ -562,7 +575,7 @@
 			<date-time>) with an ISO UTC date-time (suffix Z). Own dedicated
 			case arm.
 
-		--magic-grooming-to-processed <team-member> <item-filename> --from-state:<state> --owner <value> [--header:<upsert|append|remove>:name[:value]]... [--upsert-from-stdin|--edit-script-from-stdin:<py|awk>]
+		--magic-grooming-to-processed <team-member> <item-filename> --from-state:<state> --owner <value> [--header:<upsert|append|remove>:name[:value]]... [--upsert-from-stdin|--edit-script-from-stdin:<py|awk>|--edit-patch-from-stdin]
 			Same shape as --magic-grooming-to-backlog, target fixed to
 			board/processed/. Own dedicated case arm.
 

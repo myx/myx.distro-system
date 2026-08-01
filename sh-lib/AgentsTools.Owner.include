@@ -159,10 +159,19 @@ case "$1" in
 		return 0
 	;;
 
-	## Installs/updates the baseline VS Code integrations for this workspace,
-	## then ensures workspace-local MCP wiring exists in .vscode/mcp.json for
-	## myx.common (stdio command path to agentMcpServer.sh). Non-destructive to
-	## unrelated MCP servers: only upserts/overwrites the one "myx" server key.
+	## Installs/updates the baseline VS Code + Claude Code integrations for
+	## this workspace: VS Code extensions (GitHub.copilot, GitHub.copilot-chat,
+	## anthropic.claude-code), then ensures workspace-local MCP wiring exists
+	## for both clients -- .vscode/mcp.json ("servers" key, VS Code/
+	## Copilot-Chat's own schema) and .mcp.json ("mcpServers" key, Claude
+	## Code's own project-scope schema; Claude Code does not read
+	## .vscode/mcp.json) -- both pointing at the same resolved myx.common
+	## agentMcpServer.sh. Non-destructive to unrelated MCP servers in either
+	## file: only upserts/overwrites the one "myx" server key. Requires the
+	## target workspace to already be a set-up myx workspace -- checks for
+	## .local/myx/myx.distro-.local/sh-lib/LocalContext.include, the same
+	## marker file SystemContext.SetInputSpec.include uses elsewhere in this
+	## codebase to detect a real origin -- before doing anything else.
 	--owner-install-vscode-integrations)
 		shift
 		local workspaceArg
@@ -186,6 +195,12 @@ case "$1" in
 		fi
 		workspace="$( cd "$workspace" && pwd )"
 
+		local localContextMarker="$workspace/.local/myx/myx.distro-.local/sh-lib/LocalContext.include"
+		if [ ! -f "$localContextMarker" ] ; then
+			echo "⛔ ERROR: $MDSC_CMD --owner-install-vscode-integrations: not a set-up myx workspace (missing $localContextMarker)" >&2
+			set +e ; return 1
+		fi
+
 		if ! command -v code >/dev/null 2>&1 ; then
 			echo "⛔ ERROR: $MDSC_CMD --owner-install-vscode-integrations: VS Code CLI 'code' is not available in PATH" >&2
 			echo "   On macOS: run Command Palette -> Shell Command: Install 'code' command in PATH" >&2
@@ -194,7 +209,7 @@ case "$1" in
 
 		local failed=0
 		local extensions
-		extensions="GitHub.copilot GitHub.copilot-chat"
+		extensions="GitHub.copilot GitHub.copilot-chat anthropic.claude-code"
 
 		echo "# $MDSC_CMD --owner-install-vscode-integrations: workspace=$workspace" >&2
 		echo "# Installing VS Code extensions..." >&2
@@ -239,22 +254,36 @@ case "$1" in
 			fi
 		fi
 
-		local mcpDir="$workspace/.vscode"
-		local mcpFile="$mcpDir/mcp.json"
-		mkdir -p "$mcpDir"
+		local vscodeMcpDir="$workspace/.vscode"
+		mkdir -p "$vscodeMcpDir"
 
 		if [ -z "$serverScript" ] ; then
 			echo "FAIL mcp-server-path unresolved (agentMcpServer.sh not found under workspace/.local, workspace source, or MYXROOT)" >&2
 			failed=1
 		else
-			echo "# Upserting MCP server entry in $mcpFile" >&2
-			if ! python3 - "$mcpFile" "$serverScript" <<'PY'
+			## Two MCP config targets, same "myx" stdio entry, different
+			## client schema: VS Code/Copilot-Chat reads .vscode/mcp.json
+			## (top-level key "servers"); Claude Code's own project scope
+			## reads .mcp.json at the workspace root (top-level key
+			## "mcpServers") -- Claude Code does not read .vscode/mcp.json.
+			## Same upsert script for both, parameterized by target path +
+			## key name via argv rather than duplicated verbatim.
+			local mcpTarget
+			for mcpTarget in \
+				"$vscodeMcpDir/mcp.json:servers" \
+				"$workspace/.mcp.json:mcpServers" \
+			; do
+				local mcpFile="${mcpTarget%%:*}"
+				local mcpKey="${mcpTarget#*:}"
+				echo "# Upserting MCP server entry in $mcpFile" >&2
+				if ! python3 - "$mcpFile" "$serverScript" "$mcpKey" <<'PY'
 import json
 import os
 import sys
 
 path = sys.argv[1]
 server_script = sys.argv[2]
+key = sys.argv[3]
 
 data = {}
 if os.path.exists(path):
@@ -264,19 +293,19 @@ if os.path.exists(path):
         data = json.loads(raw)
 
 if not isinstance(data, dict):
-    raise SystemExit("mcp.json top-level must be an object")
+    raise SystemExit("%s top-level must be an object" % path)
 
-servers = data.get("servers")
+servers = data.get(key)
 if servers is None:
     servers = {}
 if not isinstance(servers, dict):
-    raise SystemExit("mcp.json 'servers' must be an object")
+    raise SystemExit("%s '%s' must be an object" % (path, key))
 
 servers["myx"] = {
     "type": "stdio",
     "command": server_script,
 }
-data["servers"] = servers
+data[key] = servers
 
 tmp = path + ".tmp"
 with open(tmp, "w", encoding="utf-8") as f:
@@ -285,25 +314,27 @@ with open(tmp, "w", encoding="utf-8") as f:
 os.replace(tmp, path)
 print("OK")
 PY
-			then
-				echo "FAIL mcp-upsert $mcpFile" >&2
-				failed=1
-			else
-				echo "OK mcp-upsert $mcpFile" >&2
-				if grep -q '"myx"' "$mcpFile" ; then
-					echo "OK mcp-check myx server key present" >&2
-				else
-					echo "FAIL mcp-check myx server key missing" >&2
+				then
+					echo "FAIL mcp-upsert $mcpFile" >&2
 					failed=1
+				else
+					echo "OK mcp-upsert $mcpFile" >&2
+					if grep -q '"myx"' "$mcpFile" ; then
+						echo "OK mcp-check myx server key present ($mcpFile)" >&2
+					else
+						echo "FAIL mcp-check myx server key missing ($mcpFile)" >&2
+						failed=1
+					fi
 				fi
-			fi
+			done
 		fi
 
 		echo "# Command Palette checklist:" >&2
-		echo "# 1) MCP: List Servers -> expect 'myx' visible" >&2
-		echo "# 2) Chat: Open Chat -> tools list includes myx tools once trusted/started" >&2
-		echo "# 3) Extensions: Show Installed Extensions -> confirm GitHub.copilot + GitHub.copilot-chat" >&2
-		echo "# Trust/Restart note: after mcp.json changes, trust/start the server if prompted; reload VS Code window if tools are not visible." >&2
+		echo "# 1) MCP (VS Code/Copilot-Chat): MCP: List Servers -> expect 'myx' visible" >&2
+		echo "# 2) MCP (Claude Code): run 'claude mcp list' in $workspace -> expect 'myx' visible" >&2
+		echo "# 3) Chat: Open Chat -> tools list includes myx tools once trusted/started" >&2
+		echo "# 4) Extensions: Show Installed Extensions -> confirm GitHub.copilot + GitHub.copilot-chat + Claude Code" >&2
+		echo "# Trust/Restart note: after mcp.json/.mcp.json changes, trust/start the server if prompted; reload VS Code window if tools are not visible." >&2
 
 		if [ "$failed" -eq 0 ] ; then
 			echo "OK --owner-install-vscode-integrations" >&2

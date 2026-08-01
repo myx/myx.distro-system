@@ -25,12 +25,13 @@ case "$1" in
 
 	## <item-filename> --from-state:<state> --owner <value>
 	##   [--header:<upsert|append|remove>:name[:value]]...
-	##   [--upsert-from-stdin|--edit-script-from-stdin:<py|awk>]
+	##   [--upsert-from-stdin|--edit-script-from-stdin:<py|awk>|--edit-patch-from-stdin]
 	## Target state is backlog (fixed by this op's own name). --owner and
 	## --from-state:<state> are both required; groomed-at (today, UTC),
 	## groomed-from (the --from-state value), and track (true) are always
 	## auto-stamped, never caller-supplied. --header:*/--upsert-from-stdin/
-	## --edit-script-from-stdin:* pass straight through to the intern-op.
+	## --edit-script-from-stdin:*/--edit-patch-from-stdin pass straight
+	## through to the intern-op.
 	--magic-grooming-to-backlog)
 		shift
 		## <team-member> is every calling routine's own name/identity, captured
@@ -41,7 +42,7 @@ case "$1" in
 		local itemName="$1"
 		shift || true
 		if [ -z "$callingMember" ] || [ -z "$itemName" ] ; then
-			echo "⛔ ERROR: $MDSC_CMD --magic-grooming-to-backlog: syntax is <team-member> <item-filename> --from-state:<state> --owner <value> [--header:<upsert|append|remove>:name[:value]]... [--upsert-from-stdin|--edit-script-from-stdin:<py|awk>]" >&2
+			echo "⛔ ERROR: $MDSC_CMD --magic-grooming-to-backlog: syntax is <team-member> <item-filename> --from-state:<state> --owner <value> [--header:<upsert|append|remove>:name[:value]]... [--upsert-from-stdin|--edit-script-from-stdin:<py|awk>|--edit-patch-from-stdin]" >&2
 			set +e ; return 1
 		fi
 		local fromStateArg="" owner=""
@@ -56,7 +57,7 @@ case "$1" in
 					fi
 					owner="$2" ; shift 2
 				;;
-				--header:*|--upsert-from-stdin|--edit-script-from-stdin:*)
+				--header:*|--upsert-from-stdin|--edit-script-from-stdin:*|--edit-patch-from-stdin)
 					passthrough+=( "$1" ) ; shift
 				;;
 				*)
@@ -97,7 +98,7 @@ case "$1" in
 		local itemName="$1"
 		shift || true
 		if [ -z "$callingMember" ] || [ -z "$itemName" ] ; then
-			echo "⛔ ERROR: $MDSC_CMD --magic-grooming-to-pending: syntax is <team-member> <item-filename> --from-state:<state> --owner <value> [--header:<upsert|append|remove>:name[:value]]... [--upsert-from-stdin|--edit-script-from-stdin:<py|awk>]" >&2
+			echo "⛔ ERROR: $MDSC_CMD --magic-grooming-to-pending: syntax is <team-member> <item-filename> --from-state:<state> --owner <value> [--header:<upsert|append|remove>:name[:value]]... [--upsert-from-stdin|--edit-script-from-stdin:<py|awk>|--edit-patch-from-stdin]" >&2
 			set +e ; return 1
 		fi
 		local fromStateArg="" owner=""
@@ -112,7 +113,7 @@ case "$1" in
 					fi
 					owner="$2" ; shift 2
 				;;
-				--header:*|--upsert-from-stdin|--edit-script-from-stdin:*)
+				--header:*|--upsert-from-stdin|--edit-script-from-stdin:*|--edit-patch-from-stdin)
 					passthrough+=( "$1" ) ; shift
 				;;
 				*)
@@ -153,7 +154,7 @@ case "$1" in
 		local itemName="$1"
 		shift || true
 		if [ -z "$callingMember" ] || [ -z "$itemName" ] ; then
-			echo "⛔ ERROR: $MDSC_CMD --magic-grooming-to-processed: syntax is <team-member> <item-filename> --from-state:<state> --owner <value> [--header:<upsert|append|remove>:name[:value]]... [--upsert-from-stdin|--edit-script-from-stdin:<py|awk>]" >&2
+			echo "⛔ ERROR: $MDSC_CMD --magic-grooming-to-processed: syntax is <team-member> <item-filename> --from-state:<state> --owner <value> [--header:<upsert|append|remove>:name[:value]]... [--upsert-from-stdin|--edit-script-from-stdin:<py|awk>|--edit-patch-from-stdin]" >&2
 			set +e ; return 1
 		fi
 		local fromStateArg="" owner=""
@@ -168,7 +169,7 @@ case "$1" in
 					fi
 					owner="$2" ; shift 2
 				;;
-				--header:*|--upsert-from-stdin|--edit-script-from-stdin:*)
+				--header:*|--upsert-from-stdin|--edit-script-from-stdin:*|--edit-patch-from-stdin)
 					passthrough+=( "$1" ) ; shift
 				;;
 				*)
