@@ -159,6 +159,161 @@ case "$1" in
 		return 0
 	;;
 
+	## Installs/updates the baseline VS Code integrations for this workspace,
+	## then ensures workspace-local MCP wiring exists in .vscode/mcp.json for
+	## myx.common (stdio command path to agentMcpServer.sh). Non-destructive to
+	## unrelated MCP servers: only upserts/overwrites the one "myx" server key.
+	--owner-install-vscode-integrations)
+		shift
+		local workspaceArg
+		while [ $# -gt 0 ] ; do
+			case "$1" in
+				--workspace)
+					workspaceArg="$2" ; shift 2
+				;;
+				*)
+					echo "⛔ ERROR: $MDSC_CMD --owner-install-vscode-integrations: invalid option: $1" >&2
+					set +e ; return 1
+				;;
+			esac
+		done
+
+		local workspace
+		workspace="${workspaceArg:-$PWD}"
+		if [ ! -d "$workspace" ] ; then
+			echo "⛔ ERROR: $MDSC_CMD --owner-install-vscode-integrations: workspace not found: $workspace" >&2
+			set +e ; return 1
+		fi
+		workspace="$( cd "$workspace" && pwd )"
+
+		if ! command -v code >/dev/null 2>&1 ; then
+			echo "⛔ ERROR: $MDSC_CMD --owner-install-vscode-integrations: VS Code CLI 'code' is not available in PATH" >&2
+			echo "   On macOS: run Command Palette -> Shell Command: Install 'code' command in PATH" >&2
+			set +e ; return 1
+		fi
+
+		local failed=0
+		local extensions
+		extensions="GitHub.copilot GitHub.copilot-chat"
+
+		echo "# $MDSC_CMD --owner-install-vscode-integrations: workspace=$workspace" >&2
+		echo "# Installing VS Code extensions..." >&2
+		local ext
+		for ext in $extensions ; do
+			if code --install-extension "$ext" --force >/dev/null 2>&1 ; then
+				echo "OK extension $ext" >&2
+			else
+				echo "FAIL extension $ext" >&2
+				failed=1
+			fi
+		done
+
+		local installed
+		installed="$( code --list-extensions 2>/dev/null || true )"
+		for ext in $extensions ; do
+			if printf '%s\n' "$installed" | grep -Fxq "$ext" ; then
+				echo "OK installed-check $ext" >&2
+			else
+				echo "FAIL installed-check $ext" >&2
+				failed=1
+			fi
+		done
+
+		local serverScript=""
+		local c
+		for c in \
+			"$workspace/.local/myx/myx.common/os-myx.common/host/tarball/share/myx.common/include/data/agentMcpServer.sh" \
+			"$workspace/myx.common/os-myx.common/host/tarball/share/myx.common/include/data/agentMcpServer.sh" \
+			"$workspace/source/myx/myx.common/os-myx.common/host/tarball/share/myx.common/include/data/agentMcpServer.sh" \
+		; do
+			if [ -x "$c" ] ; then
+				serverScript="$c"
+				break
+			fi
+		done
+		if [ -z "$serverScript" ] && command -v myx.common >/dev/null 2>&1 ; then
+			local root
+			root="$( myx.common which lib/catMarkdown 2>/dev/null | sed -e 's|/bin/lib/catMarkdown.*$||' )"
+			if [ -n "$root" ] && [ -x "$root/include/data/agentMcpServer.sh" ] ; then
+				serverScript="$root/include/data/agentMcpServer.sh"
+			fi
+		fi
+
+		local mcpDir="$workspace/.vscode"
+		local mcpFile="$mcpDir/mcp.json"
+		mkdir -p "$mcpDir"
+
+		if [ -z "$serverScript" ] ; then
+			echo "FAIL mcp-server-path unresolved (agentMcpServer.sh not found under workspace/.local, workspace source, or MYXROOT)" >&2
+			failed=1
+		else
+			echo "# Upserting MCP server entry in $mcpFile" >&2
+			if ! python3 - "$mcpFile" "$serverScript" <<'PY'
+import json
+import os
+import sys
+
+path = sys.argv[1]
+server_script = sys.argv[2]
+
+data = {}
+if os.path.exists(path):
+    with open(path, "r", encoding="utf-8") as f:
+        raw = f.read().strip()
+    if raw:
+        data = json.loads(raw)
+
+if not isinstance(data, dict):
+    raise SystemExit("mcp.json top-level must be an object")
+
+servers = data.get("servers")
+if servers is None:
+    servers = {}
+if not isinstance(servers, dict):
+    raise SystemExit("mcp.json 'servers' must be an object")
+
+servers["myx"] = {
+    "type": "stdio",
+    "command": server_script,
+}
+data["servers"] = servers
+
+tmp = path + ".tmp"
+with open(tmp, "w", encoding="utf-8") as f:
+    json.dump(data, f, indent=2, ensure_ascii=True)
+    f.write("\n")
+os.replace(tmp, path)
+print("OK")
+PY
+			then
+				echo "FAIL mcp-upsert $mcpFile" >&2
+				failed=1
+			else
+				echo "OK mcp-upsert $mcpFile" >&2
+				if grep -q '"myx"' "$mcpFile" ; then
+					echo "OK mcp-check myx server key present" >&2
+				else
+					echo "FAIL mcp-check myx server key missing" >&2
+					failed=1
+				fi
+			fi
+		fi
+
+		echo "# Command Palette checklist:" >&2
+		echo "# 1) MCP: List Servers -> expect 'myx' visible" >&2
+		echo "# 2) Chat: Open Chat -> tools list includes myx tools once trusted/started" >&2
+		echo "# 3) Extensions: Show Installed Extensions -> confirm GitHub.copilot + GitHub.copilot-chat" >&2
+		echo "# Trust/Restart note: after mcp.json changes, trust/start the server if prompted; reload VS Code window if tools are not visible." >&2
+
+		if [ "$failed" -eq 0 ] ; then
+			echo "OK --owner-install-vscode-integrations" >&2
+			return 0
+		fi
+
+		echo "PARTIAL --owner-install-vscode-integrations (see FAIL lines above)" >&2
+		set +e ; return 1
+	;;
+
 	*)
 		echo "⛔ ERROR: $MDSC_CMD: invalid option: $1" >&2
 		set +e ; return 1

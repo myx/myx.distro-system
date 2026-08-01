@@ -522,6 +522,18 @@
 			current workspace and tell me its path" in one call instead of
 			spelling out $MMDAPP itself for --owner-workspace-upsert.
 
+		--owner-install-vscode-integrations [--workspace <path>]
+			Installs/updates baseline VS Code integrations (GitHub.copilot,
+			GitHub.copilot-chat), verifies they are listed by
+			`code --list-extensions`, and upserts workspace
+			`.vscode/mcp.json` with a `servers.myx` stdio entry pointing to
+			the resolved myx.common `agentMcpServer.sh` path.
+			Default target workspace is the current shell directory; optional
+			`--workspace <path>` overrides it. Fails fast if VS Code CLI
+			(`code`) is not present in PATH. Prints a compact
+			OK/FAIL checklist, plus Command Palette trust/restart guidance
+			for MCP visibility.
+
 		--magic-grooming-to-backlog <team-member> <item-filename> --from-state:<state> --owner <value> [--header:<upsert|append|remove>:name[:value]]... [--upsert-from-stdin|--edit-script-from-stdin:<py|awk>]
 			Moves a board item to board/backlog/ and/or patches its
 			frontmatter, one call -- no full-content rewrite required
