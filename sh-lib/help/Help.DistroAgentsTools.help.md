@@ -3,9 +3,9 @@
 📘 syntax: DistroAgentsTools.fn.sh --stop-console <channel>
 📘 syntax: DistroAgentsTools.fn.sh --list-consoles [--override-workspace <path>]
 📘 syntax: DistroAgentsTools.fn.sh --agent-config-option <operation>
-📘 syntax: DistroAgentsTools.fn.sh --send-message <magic-team|human-owner|event-track|event-alert|<channel>:<ts>> [text...]
-📘 syntax: DistroAgentsTools.fn.sh --send-message <target> --from-stdin [--format text|blocks]
-📘 syntax: DistroAgentsTools.fn.sh --send-message <target> --file <path> [--format text|blocks]
+📘 syntax: DistroAgentsTools.fn.sh --member-slack-send-message <team-member> <magic-team|human-owner|event-track|event-alert|<channel>:<ts>> [text...]
+📘 syntax: DistroAgentsTools.fn.sh --member-slack-send-message <team-member> <target> --from-stdin [--format text|blocks]
+📘 syntax: DistroAgentsTools.fn.sh --member-slack-send-message <team-member> <target> --file <path> [--format text|blocks]
 📘 syntax: DistroAgentsTools.fn.sh --send-email-message <email@address>... -- <subject> -- <body...>
 📘 syntax: DistroAgentsTools.fn.sh --send-email-message <email@address>... -- <subject> -- --from-stdin
 📘 syntax: DistroAgentsTools.fn.sh --send-email-message <email@address>... -- <subject> -- --file <path>
@@ -102,7 +102,7 @@
 			NOT pass arbitrary free text (a message body, anything with
 			shell metacharacters like parentheses/quotes/semicolons) as the
 			trailing argument -- that has crashed a live console process for
-			real. For free text, call --send-message/--send-email-message as
+			real. For free text, call --member-slack-send-message/--send-email-message as
 			bare direct invocations instead; neither goes through
 			--send-console.
 
@@ -138,10 +138,17 @@
 			LocalTools.Config.include itself for the authoritative behavior
 			of each.
 
-		--send-message <target> [text...]
-		--send-message <target> --from-stdin [--format text|blocks]
-		--send-message <target> --file <path> [--format text|blocks]
-			Posts a message to Slack via chat.postMessage. <target> is
+		--member-slack-send-message <team-member> <target> [text...]
+		--member-slack-send-message <team-member> <target> --from-stdin [--format text|blocks]
+		--member-slack-send-message <team-member> <target> --file <path> [--format text|blocks]
+			Posts a message to Slack via chat.postMessage, attributed to
+			<team-member>. The only Slack-post op -- there is no separate
+			anonymous/unattributed variant. <team-member> is a required first
+			argument, validated as an existing skill directory under
+			~/.claude/skills/<team-member> (bare name, no path characters); the
+			outgoing text is prefixed with a "*<team-member>:*" attribution
+			line ahead of the message (also used as the --format blocks case's
+			own static text-fallback content). <target> is
 			`magic-team` or `human-owner` (channel id resolved from
 			SLACK_CHANNEL_MAGIC_TEAM/SLACK_CHANNEL_HUMAN_OWNER in
 			--agent-config-option), `event-track` or `event-alert` (fixed
@@ -160,7 +167,7 @@
 			content from a file instead — lets a caller
 			write content with a plain `Write` tool call first (no Bash
 			permission prompt for the write itself) and still invoke
-			--send-message as a single-line command, since a multi-line
+			--member-slack-send-message as a single-line command, since a multi-line
 			heredoc body means the invoked command no longer matches a
 			single-line settings.json allowlist glob the same way. Giving
 			both `--from-stdin`/`--message-from-stdin` and `--file` together
@@ -175,7 +182,7 @@
 			top-level array element must be a JSON object whose own `type` is
 			one of Slack's real top-level block types (`section`, `divider`,
 			`header`, `context`, `image`, `actions`, `input`, `video`,
-			`rich_text`, `file`) — otherwise `--send-message` fails immediately
+			`rich_text`, `file`) — otherwise `--member-slack-send-message` fails immediately
 			with a `⛔ ERROR: ... --format blocks stdin failed --validate-json`,
 			`... is valid JSON but not a bare array`, or `... has an
 			invalid/missing top-level 'type' at block index(es) ...` message
@@ -208,7 +215,7 @@
 		--send-email-message <email@address>... -- <subject> -- --file <path>
 			Real, standalone SMTP send via curl (EMAIL_USER/EMAIL_APP_PASSWORD/
 			EMAIL_SMTP_HOST/EMAIL_SMTP_PORT from --agent-config-option),
-			not just an internal fallback -- --send-message's exhausted-retry
+			not just an internal fallback -- --member-slack-send-message's exhausted-retry
 			path calls this same op via self-recursion. Multiple recipients
 			accepted before the first `--`; subject is everything between the
 			two `--` separators; everything after the second `--` becomes the
@@ -218,7 +225,7 @@
 			a heredoc, per the team-wide convention above), avoiding
 			multi-line/shell-metacharacter argv fragility. `--file <path>`
 			reads the body from a file instead — same motivation
-			as --send-message's own --file (write the body with a plain Write
+			as --member-slack-send-message's own --file (write the body with a plain Write
 			tool call first, then invoke this op as one single-line command).
 			Giving more than one of `--from-stdin`/`--file`/trailing body argv
 			together is an error (`⛔ ERROR: ... given alongside ... -- use one
@@ -230,17 +237,17 @@
 			target is required, this is a general-purpose single-target
 			reader, not the comms-sweep macro-op (see --sweep-read-incoming-comms
 			below; conflating the two into one op that accepted an optional
-			target would be a real design bug). Target grammar mirrors --send-message's:
+			target would be a real design bug). Target grammar mirrors --member-slack-send-message's:
 			`magic-team`/`human-owner`/`event-track`/`event-alert` reads that
 			watched target's conversations.history; `<channel>:<ts>` fetches
 			conversations.replies for that specific thread instead (same
-			addressing --send-message already uses for threaded replies).
+			addressing --member-slack-send-message already uses for threaded replies).
 			`--oldest <ts>` is passed through to the Slack API call as-is,
 			letting the caller pass its own last-check marker for an
 			incremental read. Channel ids are resolved the same way as
-			--send-message's (SLACK_CHANNEL_MAGIC_TEAM/SLACK_CHANNEL_HUMAN_OWNER
+			--member-slack-send-message's (SLACK_CHANNEL_MAGIC_TEAM/SLACK_CHANNEL_HUMAN_OWNER
 			via --agent-config-option). SLACK_BOT_TOKEN handling is identical
-			to --send-message's (resolved on demand, never echoed, private
+			to --member-slack-send-message's (resolved on demand, never echoed, private
 			temp header file).
 
 			**No retry logic** -- applies to the whole --check-* family.
@@ -267,7 +274,7 @@
 			design (`routine-communication-sweep`,
 			`routine-board-actualisation`'s pending-reaction lookup) calls
 			this op to actually post. SLACK_BOT_TOKEN handling identical to
-			--send-message/--read-slack (resolved on demand, never echoed,
+			--member-slack-send-message/--read-slack (resolved on demand, never echoed,
 			private temp header file). Prints the raw API response and returns
 			0 on `ok:true` -- an `already_reacted` error is treated as a
 			harmless no-op (also returns 0, with a `#` note, not an error),
@@ -330,7 +337,7 @@
 			syntactically valid JSON -- nothing more, no schema/shape check of
 			its own. `--format blocks` self-recurses through this same op
 			before it splices anything into the request payload (see
-			--send-message above), guarding against unvalidated stdin causing
+			--member-slack-send-message above), guarding against unvalidated stdin causing
 			Slack's `invalid_json`/`missing_charset` rejection. Uses
 			python3 (present on every supported OS here), not jq, matching
 			this tool family's existing jq-avoidance convention. Prints `#
@@ -343,7 +350,7 @@
 
 			**Not a required pre-step for other ops.** Every op that actually
 			consumes JSON content as part of its own normal operation (today:
-			`--send-message --format blocks`) already self-recurses through
+			`--member-slack-send-message --format blocks`) already self-recurses through
 			this same check internally and fails loud with a clear message at
 			the point of use -- callers never need to run `--validate-json`
 			first as a manual gate before calling the real op. This op's own
@@ -394,7 +401,7 @@
 		--write-slib <member-name> [--file <path>]
 			Regenerates one member's own <member-name>.SLIB.md -- content
 			comes from stdin by default, or from a plain file via --file <path>
-			(same shape as --send-message/--send-email-message's own --file:
+			(same shape as --member-slack-send-message/--send-email-message's own --file:
 			lets a caller write the regenerated content to a plain temp file
 			first, an ordinary Write tool call, and still invoke this op as
 			one single-line command, since a heredoc body spans multiple lines
@@ -719,20 +726,20 @@
 		`DistroAgentsTools.fn.sh --agent-config-option --select SLACK_BOT_TOKEN`
 
 		# Send a plain-text message to a fixed target
-		`DistroAgentsTools.fn.sh --send-message magic-team Build finished OK.`
+		`DistroAgentsTools.fn.sh --member-slack-send-message keeper-myx magic-team Build finished OK.`
 
 		# Send a threaded reply with rich Block Kit formatting from stdin -- heredoc,
 		# not a piping command in front; --from-stdin is the standardized name
 		# (--message-from-stdin still works too, same flag)
 		```
-		DistroAgentsTools.fn.sh --send-message C0123ABCD:1700000000.000100 --from-stdin --format blocks <<'EOF'
+		DistroAgentsTools.fn.sh --member-slack-send-message keeper-myx C0123ABCD:1700000000.000100 --from-stdin --format blocks <<'EOF'
 		[{"type":"section","text":{"type":"mrkdwn","text":"*done*"}}]
 		EOF
 		```
 
 		# Send the same via --file instead -- write content with a plain Write tool
 		# call first, then this stays a single-line command
-		`DistroAgentsTools.fn.sh --send-message magic-team --file /path/to/message.txt`
+		`DistroAgentsTools.fn.sh --member-slack-send-message keeper-myx magic-team --file /path/to/message.txt`
 
 		# Mark an email UID as read after processing it
 		`DistroAgentsTools.fn.sh --mark-email-seen 48`
@@ -803,8 +810,8 @@
 		`DistroAgentsTools.fn.sh --verify-permissions`
 
 		# Ad hoc: check a JSON file someone produced, independent of any op --
-		# NOT a required pre-step before --send-message --format blocks (that op
-		# already validates its own stdin internally, see --send-message above)
+		# NOT a required pre-step before --member-slack-send-message --format blocks (that op
+		# already validates its own stdin internally, see --member-slack-send-message above)
 		`DistroAgentsTools.fn.sh --validate-json /path/to/payload.json`
 
 		# Ad hoc: check JSON from stdin the same way -- heredoc, not a piping command in front

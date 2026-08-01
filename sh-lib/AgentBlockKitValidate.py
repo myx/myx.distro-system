@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Block Kit top-level type validator for DistroAgentsTools.fn.sh's --send-message
+# Block Kit top-level type validator for DistroAgentsTools.fn.sh's --member-slack-send-message
 # --format blocks path (myx.distro-system/sh-scripts/DistroAgentsTools.fn.sh).
 # Reads a JSON array on stdin -- already confirmed syntactically valid JSON and
 # array-shaped by the caller -- and prints a comma-joined list of array indices
