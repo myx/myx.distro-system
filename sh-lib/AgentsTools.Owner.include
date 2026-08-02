@@ -168,7 +168,7 @@ case "$1" in
 	## .vscode/mcp.json) -- both pointing at the same resolved myx.common
 	## agentMcpServer.sh. Non-destructive to unrelated MCP servers in either
 	## file: only upserts/overwrites the one "myx" server key. Requires the
-	## target workspace to already be a set-up myx workspace -- checks for
+	## target workspace to already be a set-up myx.distro workspace -- checks for
 	## .local/myx/myx.distro-.local/sh-lib/LocalContext.include, the same
 	## marker file SystemContext.SetInputSpec.include uses elsewhere in this
 	## codebase to detect a real origin -- before doing anything else.
@@ -197,7 +197,7 @@ case "$1" in
 
 		local localContextMarker="$workspace/.local/myx/myx.distro-.local/sh-lib/LocalContext.include"
 		if [ ! -f "$localContextMarker" ] ; then
-			echo "⛔ ERROR: $MDSC_CMD --owner-install-vscode-integrations: not a set-up myx workspace (missing $localContextMarker)" >&2
+			echo "⛔ ERROR: $MDSC_CMD --owner-install-vscode-integrations: not a set-up myx.distro workspace (missing $localContextMarker)" >&2
 			set +e ; return 1
 		fi
 

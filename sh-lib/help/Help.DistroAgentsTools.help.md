@@ -3,6 +3,7 @@
 📘 syntax: DistroAgentsTools.fn.sh --stop-console <channel>
 📘 syntax: DistroAgentsTools.fn.sh --list-consoles [--override-workspace <path>]
 📘 syntax: DistroAgentsTools.fn.sh --agent-config-option <operation>
+📘 syntax: DistroAgentsTools.fn.sh --members --backend <member-name> <operation>
 📘 syntax: DistroAgentsTools.fn.sh --member-slack-send-message <team-member> <magic-team|human-owner|event-track|event-alert|<channel>:<ts>> [text...]
 📘 syntax: DistroAgentsTools.fn.sh --member-slack-send-message <team-member> <target> --from-stdin [--format text|blocks]
 📘 syntax: DistroAgentsTools.fn.sh --member-slack-send-message <team-member> <target> --file <path> [--format text|blocks]
@@ -137,6 +138,33 @@
 			<ifval>, --delete <key>, --delete-if <key> <ifval> — see
 			LocalTools.Config.include itself for the authoritative behavior
 			of each.
+
+		--members --backend <member-name> <operation>
+			Per-member config-scope selector — mirrors
+			myx.distro-remote's RemoteConsole.fn.sh `--remotes --backend
+			<remote-name>` mechanism exactly, remote→member renamed
+			mechanically. Re-shapes the call into `--member-config-option
+			<member-name> <operation> [args...]` and reads/writes one
+			settings file per named team member,
+			$MMDAPP/agents/static/<member-name>.agent.env — NOT the same
+			store as --agent-config-option's global scope above (this
+			tool's own credential keys are globally unique; per-member
+			keys are not, hence the per-entity split, same reasoning as
+			myx.distro-.local's --remote-config-option). No chmod
+			hardening on creation — matches --remote-config-option's own
+			unhardened remote.env files; this scope holds ordinary
+			per-member settings, not credentials, unlike
+			--agent-config-option. <operation> is the same set
+			--agent-config-option accepts: --select-all, --select
+			<key>|--all, --select-default <key> <default>, --upsert <key>
+			<val>, --upsert-if <key> <val> <ifval>, --delete <key>,
+			--delete-if <key> <ifval> — see LocalTools.Config.include
+			itself for the authoritative behavior of each. Only --backend
+			is mirrored from Remote's own `--remotes` op group —
+			RemoteConsole.fn.sh's friendlier --upsert/--upsert-if/
+			--select/--delete wrappers (which self-recurse into
+			--backend) are not mirrored here; call --members --backend
+			directly for every operation.
 
 		--member-slack-send-message <team-member> <target> [text...]
 		--member-slack-send-message <team-member> <target> --from-stdin [--format text|blocks]
@@ -541,7 +569,7 @@
 			resolved myx.common `agentMcpServer.sh` path.
 			Default target workspace is the current shell directory; optional
 			`--workspace <path>` overrides it. Fails fast if the target isn't
-			already a set-up myx workspace (checks for
+			already a set-up myx.distro workspace (checks for
 			`.local/myx/myx.distro-.local/sh-lib/LocalContext.include`) or if
 			VS Code CLI (`code`) is not present in PATH. Prints a compact
 			OK/FAIL checklist, plus Command Palette trust/restart guidance
