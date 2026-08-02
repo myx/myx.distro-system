@@ -313,8 +313,13 @@ DistroAgentsTools(){
 
 			## Keep-alive FIFO-holder: opens the write end and sleeps, so the
 			## console's read end never sees EOF between rounds. Same mechanism as
-			## console-sessions.md's documented manual recipe.
-			nohup bash -c "exec 9>\"$fifo\"; sleep \"$ttl\"" >/dev/null 2>&1 &
+			## console-sessions.md's documented manual recipe. `sh -c`, not
+			## `bash -c`: this subshell body is plain POSIX (fd-9 `exec`
+			## redirect, `sleep`) with no bash-specific syntax, so it doesn't
+			## need this file's own bash requirement -- this file's shebang
+			## stays bash regardless, this is only about the disposable child
+			## process's own interpreter.
+			nohup sh -c "exec 9>\"$fifo\"; sleep \"$ttl\"" >/dev/null 2>&1 &
 			local holderPid=$!
 			disown 2>/dev/null || true
 			echo "$holderPid" > "$channelDir/holder.pid"
@@ -501,6 +506,42 @@ DistroAgentsTools(){
 		--agent-config-option)
 			. "$MDLT_ORIGIN/myx/myx.distro-.local/sh-lib/LocalTools.Config.include"
 			return $?
+		;;
+
+		## Per-member config-scope selector -- mirrors myx.distro-remote's
+		## RemoteConsole.fn.sh `DistroRemoteConsoleRemotes`' `--backend`
+		## case exactly, remote->member renamed mechanically (flag/variable
+		## names only): re-shapes the caller's own arguments into
+		## `--member-config-option <member-name> <operation> [args...]` and
+		## sources the same shared LocalTools.Config.include engine that
+		## --agent-config-option above already uses for its own, unrelated
+		## global scope. Human-owner's own framing: this selects "team
+		## member's name going to be used" as the config scope. Nested case
+		## (not a separate top-level function the way
+		## DistroRemoteConsoleRemotes is) since --backend is the only
+		## sub-op mirrored so far -- matches this file's own established
+		## "inline, especially single-liners... does NOT become a new
+		## top-level helper" convention rather than spinning up a sibling
+		## function for a single case. RemoteConsole's own --upsert/
+		## --upsert-if/--select/--delete friendlier wrappers (which
+		## internally self-recurse into --backend) are NOT mirrored here --
+		## out of this op's scope, not an oversight.
+		--members)
+			shift
+			case "$1" in
+				--backend)
+					shift
+					local scopeMemberName="$1"
+					shift
+					set -- --member-config-option "$scopeMemberName" "$@"
+					. "$MDLT_ORIGIN/myx/myx.distro-.local/sh-lib/LocalTools.Config.include"
+					return $?
+				;;
+				*)
+					echo "⛔ ERROR: $MDSC_CMD --members expects: --backend <member-name> <operation> [args...]" >&2
+					set +e ; return 1
+				;;
+			esac
 		;;
 
 		## Real, standalone op -- not just an internal-only fallback. Direct

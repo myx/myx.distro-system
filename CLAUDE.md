@@ -1,6 +1,6 @@
 # myx.distro-* — AI assistant context
 
-Applies to: myx.distro-.local, myx.distro-deploy, myx.distro-source, myx.distro-system, myx.distro-remote.
+Applies to: myx.distro-.local, myx.distro-deploy, myx.distro-source, myx.distro-system, myx.distro-remote, myx.distro-agents.
 
 Canonical human docs (don't restate here, read them instead):
 - Each repo's `README.md` — pipeline stages, folders, variables, `project.inf` properties.
@@ -14,9 +14,10 @@ This file is reasoning aid + flagged issues, not a rewrite of those docs.
 - `myx.distro-source` — builds distro indices from source.
 - `myx.distro-deploy` — package management/deploy tooling. Requires `myx/myx.distro-source`.
 - `myx.distro-remote` — remote-host tooling.
+- `myx.distro-agents` — starts a `claude`/`copilot` CLI console (`DistroAgentsConsole.sh`) instead of a bash session. No pipeline builders (console-launcher role, like `-remote`).
 - `myx.distro-.local` — bootstraps a fresh workspace, installs the other subsystems. No pipeline builders (boot-only).
 
-Only `myx.distro-source` and `myx.distro-deploy` have shell-side pipeline builders; `-system`/`-remote` don't (kernel/tooling roles).
+Only `myx.distro-source` and `myx.distro-deploy` have shell-side pipeline builders; `-system`/`-remote`/`-agents` don't (kernel/tooling roles).
 
 ## Command layout & help conventions
 

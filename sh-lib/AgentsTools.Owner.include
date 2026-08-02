@@ -276,45 +276,7 @@ case "$1" in
 				local mcpFile="${mcpTarget%%:*}"
 				local mcpKey="${mcpTarget#*:}"
 				echo "# Upserting MCP server entry in $mcpFile" >&2
-				if ! python3 - "$mcpFile" "$serverScript" "$mcpKey" <<'PY'
-import json
-import os
-import sys
-
-path = sys.argv[1]
-server_script = sys.argv[2]
-key = sys.argv[3]
-
-data = {}
-if os.path.exists(path):
-    with open(path, "r", encoding="utf-8") as f:
-        raw = f.read().strip()
-    if raw:
-        data = json.loads(raw)
-
-if not isinstance(data, dict):
-    raise SystemExit("%s top-level must be an object" % path)
-
-servers = data.get(key)
-if servers is None:
-    servers = {}
-if not isinstance(servers, dict):
-    raise SystemExit("%s '%s' must be an object" % (path, key))
-
-servers["myx"] = {
-    "type": "stdio",
-    "command": server_script,
-}
-data[key] = servers
-
-tmp = path + ".tmp"
-with open(tmp, "w", encoding="utf-8") as f:
-    json.dump(data, f, indent=2, ensure_ascii=True)
-    f.write("\n")
-os.replace(tmp, path)
-print("OK")
-PY
-				then
+				if ! python3 "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/AgentMcpServerJsonUpsert.py" "$mcpFile" "$serverScript" "$mcpKey" ; then
 					echo "FAIL mcp-upsert $mcpFile" >&2
 					failed=1
 				else

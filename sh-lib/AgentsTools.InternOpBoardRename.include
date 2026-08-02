@@ -31,9 +31,10 @@ case "$1" in
 	##      that missed step 1 still resolves forward. --do-not-track
 	##      skips this -- <old-name> then stops existing anywhere.
 	##
-	## gsub's one-line inline AWK (below): comfortably under this file's own
-	## externalization threshold, see AgentsTools.InternOpBoardUpsertMoveEdit
-	## .include's own header note on that.
+	## gsub's one-line inline AWK (below): a single-line literal
+	## substitution, not extracted by this pass -- whether it belongs in
+	## scope for this package's own externalize-awk/py convention is open,
+	## not decided by this comment.
 	--intern-op-board-rename)
 		shift
 		local oldName="$1"

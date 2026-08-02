@@ -21,12 +21,11 @@
 ## definition), not one caller's transition-specific policy, so every
 ## current/future header-writing caller gets the same check for free.
 ##
-## Every closing `}` in the AWK below is preceded by a `;` (magic-developer's
-## reference/shell.md axiom: some AWK builds reject the missing-semicolon
-## form as a hard parse error). Inline per this file's own established
-## size-based externalization threshold (~35 lines here, well under the
-## 171-268-line bar the two real externalized .awk files in this package
-## actually clear).
+## Header-ops apply logic (upsert/append/remove against the body's
+## frontmatter) is externalized to AgentBoardItemHeaderOpsApply.awk, per
+## this package's own externalize-awk/py convention (see
+## AgentBoardItemFrontmatterPrint.awk's own header comment for that name) --
+## unconditional, no size-based exception.
 ##
 
 case "$1" in
@@ -261,55 +260,7 @@ case "$1" in
 			local bodyTmp
 			bodyTmp="$( mktemp "${TMPDIR:-/tmp}/mdat-intern-op-body.XXXXXX" )" || { set +e ; return 1 ; }
 			printf '%s\n' "$body" > "$bodyTmp"
-			body="$( LC_ALL=C awk -v opsFile="$headerOpsFile" '
-				BEGIN {
-					n = 0 ;
-					while ( (getline line < opsFile) > 0 ) {
-						split(line, parts, "\t") ;
-						n++ ;
-						opType[n] = parts[1] ; opName[n] = parts[2] ; opValue[n] = parts[3] ;
-					} ;
-					close(opsFile) ;
-					for (i = 1 ; i <= n ; i++) {
-						nm = opName[i] ;
-						if (opType[i] == "remove") {
-							finalAction[nm] = "remove" ; listCount[nm] = 0 ;
-						} else if (opType[i] == "upsert") {
-							finalAction[nm] = "set" ; finalValue[nm] = opValue[i] ; listCount[nm] = 0 ;
-						} else if (opType[i] == "append") {
-							finalAction[nm] = "set" ;
-							listCount[nm]++ ;
-							pendingList[nm SUBSEP listCount[nm]] = opValue[i] ;
-						} ;
-					} ;
-					for (nm in finalAction) {
-						if (finalAction[nm] == "set" && listCount[nm] > 0) {
-							v = "" ;
-							for (k = 1 ; k <= listCount[nm] ; k++) { v = (v == "" ? pendingList[nm SUBSEP k] : v ", " pendingList[nm SUBSEP k]) ; } ;
-							finalValue[nm] = "[" v "]" ;
-						} ;
-					} ;
-					infm = 0 ; closed = 0 ;
-				} ;
-				$0 == "---" && closed == 0 {
-					if (infm == 0) { infm = 1 ; print ; next ; } ;
-					for (nm in finalAction) {
-						if (!seen[nm] && finalAction[nm] == "set") { print nm ": " finalValue[nm] ; seen[nm] = 1 ; } ;
-					} ;
-					infm = 0 ; closed = 1 ; print ; next ;
-				} ;
-				infm == 1 {
-					for (nm in finalAction) {
-						if ($0 ~ "^" nm ": ") {
-							seen[nm] = 1 ;
-							if (finalAction[nm] == "set") { print nm ": " finalValue[nm] ; } ;
-							next ;
-						} ;
-					} ;
-					print ; next ;
-				} ;
-				{ print ; }
-			' "$bodyTmp" )"
+			body="$( LC_ALL=C awk -v opsFile="$headerOpsFile" -f "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/AgentBoardItemHeaderOpsApply.awk" "$bodyTmp" )"
 			rm -f "$bodyTmp"
 		fi
 
