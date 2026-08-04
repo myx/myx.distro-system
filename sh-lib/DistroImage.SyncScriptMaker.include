@@ -118,7 +118,7 @@ then
 	syncCommandPath="$MDLT_ORIGIN/myx/myx.common/os-myx.common/host/tarball/share/myx.common/bin"
 	syncCommandName="git/clone${syncType}"
 elif \
-	command -v which myx.common >/dev/null 2>&1
+	command -v myx.common >/dev/null 2>&1
 then
 	syncCommandPath="$( dirname "$( dirname "$( myx.common which git/clone${syncType} )" )" )"
 	syncCommandName="git/clone${syncType}"
