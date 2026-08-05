@@ -69,7 +69,7 @@ fi
 
 case "$MDSC_INMODE" in
 	source) . "$MDLT_ORIGIN/myx/myx.distro-source/sh-lib/source-prepare/ScanSourceProjects.include"; return 0; ;;
-	deploy) . "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/deploy-context/ScanDistroProjects.include"; return 0; ;;
+	deploy) . "$MDLT_ORIGIN/myx/myx.distro-deploy/sh-lib/deploy-context/ScanDeployProjects.include"; return 0; ;;
 	*)
 		echo "⛔ ERROR: $MDSC_CMD: IndexNoCacheDistroProjects.include: invalid console mode: $MDSC_INMODE" >&2
 		set +e ; return 1
