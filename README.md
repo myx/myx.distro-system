@@ -1,54 +1,102 @@
 # myx.distro-system
 
-Shared system utilities for the myx.distro build and deployment system.
-Provides index building, source/output processing, and shared shell context
-utilities used by `myx.distro-source`, `myx.distro-deploy` and related components.
+Indexing and query tools shared by every myx.distro console. Use them to find
+projects, read project metadata, resolve build order, and sync source
+repositories.
 
----
+## Getting started
 
-## Components:
+These tools install together with the source, deploy and remote toolsets — there
+is nothing to install separately. Open a workspace console and they are on
+`PATH`:
 
-- **System tools** — index building, project scanning, folder sync/pack operations.
-- **Shell scripts** (`sh-scripts/`) — system-level context setup and integration helpers.
-- **Shell libs** (`sh-lib/`) — shared context includes used by source and deploy consoles.
+	./DistroSourceConsole.sh
 
----
+Inside a console, call a tool by its full name (`.fn.sh` included), or through the
+`Distro` dispatcher:
 
-## Commands:
+	ListDistroProjects.fn.sh --all-projects
+	Distro ListDistroProjects --all-projects
 
-- `Distro` (from `sh-lib/SystemContext.include`)
-	- Dispatches distro system/source/deploy/remote commands in active context.
-	- Help: `Distro --help`
-- `Action` (from `sh-lib/SystemContext.include`)
-	- Runs generated workspace actions from `actions/`.
-	- Help: `Action --help`
-- `DistroImageDownload` (todo)
-	- Fetches published pre-built images during the `image-prepare` stage. Referenced from `distro-source` and `distro-deploy` (see their `image-prepare` stage sections).
-	- Not yet implemented.
-- `DistroImageSync` (from `sh-scripts/DistroImageSync.fn.sh`)
-	- Builds, prints, or executes repo sync task scripts for the source/image pipeline stages (`source-prepare-pull`, `source-process-push`, `image-prepare-pull`, `image-process-push`, `image-install-pull`). Generic sync engine shared across stages/consumers — not stage-specific logic.
-	- Help: `DistroImageSync.fn.sh --help`
-- `DistroAgentsTools` (from `myx.distro-agents/sh-scripts/DistroAgentsTools.fn.sh`)
-	- Not distro build/deploy tooling — infrastructure for AI-agent sessions (the `magic-*` skill team, `main-loop` in particular) to operate reliably: Keep-Alive Workspace Console Sessions (`--start-console`/`--send-console`/`--stop-console`/`--list-consoles`), credential-bearing config (`--agents-config-option`, backed by `myx.distro-.local`'s shared `LocalTools.Config.include`), and Slack/email/Trello communication (`--member-slack-send-message`, `--send-email-message`, `--comms-email-check`, `--comms-trello-check`, `--sweep-read-incoming-comms`).
-	- Consumers: `magic-coordinator`'s `routine-main-loop`/`routine-board-actualisation`/`routine-communication-sweep` are the primary real users — every comms-sweep and board-actualisation pass in that loop calls this tool directly rather than hand-rolling curl/IMAP/Trello calls.
-	- Help: `DistroAgentsTools.fn.sh --help`. A team member runs `DistroAgentsTools.fn.sh --member-help <team-member>` for the operations prescribed to it.
+## Common tasks
 
----
+List every project in the workspace:
 
-## Update actions:
+	ListDistroProjects.fn.sh --all-projects
 
-- `actions/distro/local-tools/apply-distro-system-2-local.sh`
-	- Mirrors `source/myx/myx.distro-system` into `.local/myx/myx.distro-system`.
-- `actions/distro/system-tools/update-system-tools.sh`
-	- Wrapper entrypoint that runs `apply-distro-system-2-local.sh`.
+Show what one project provides:
 
----
+	ListDistroProvides.fn.sh --select-projects <project-name-part>
 
-## Distro components:
+Print the whole build order:
 
-See: [distro](https://github.com/myx/myx.distro?tab=readme-ov-file#myxdistro)
-See: [distro-.local](https://github.com/myx/myx.distro-.local?tab=readme-ov-file#myxdistro-.local)
-See: [distro-source](https://github.com/myx/myx.distro-source?tab=readme-ov-file#myxdistro-source)
-See: [distro-deploy](https://github.com/myx/myx.distro-deploy?tab=readme-ov-file#myxdistro-deploy)
-See: [distro-remote](https://github.com/myx/myx.distro-remote?tab=readme-ov-file#myxdistro-remote)
-See: [distro-agents](https://github.com/myx/myx.distro-agents?tab=readme-ov-file#myxdistro-agents)
+	ListDistroSequence.fn.sh --all-projects
+
+Change directory to a project without typing its path:
+
+	JumpTo.fn.sh <project-name-part>
+
+Pull every configured source repository:
+
+	DistroImageSync.fn.sh --all-tasks --execute-source-prepare-pull
+
+Find source directories that no repository declaration covers:
+
+	DistroImageSync.fn.sh --list-orphaned-projects
+
+Update the installed copy of these tools:
+
+	Action distro/system-tools/update-system-tools.sh
+
+## Selecting projects
+
+Most list commands take one or more selectors instead of a project name:
+
+	--select-all                       every project
+	--select-changed                   projects changed in this build
+	--select-sequence                  every project, in build order
+	--select-projects <name-glob>      match by project name
+	--select-provides <value-prefix>   match by Provides value
+	--select-keywords <keyword>        match by exact keyword
+	--select-declares <value-prefix>   match by Declares value
+
+Swap `--select-` for `--filter-` to narrow the current selection, or `--remove-`
+to subtract from it. Run any list command with `--help` for the full list.
+
+## Commands
+
+- `ListDistroProjects.fn.sh` — select, filter, print and run commands against project sets.
+- `ListDistroProvides.fn.sh` — print `Provides` values for all or selected projects.
+- `ListDistroDeclares.fn.sh` — print `Declares` values for all or selected projects.
+- `ListDistroKeywords.fn.sh` — print `Keywords` values for all or selected projects.
+- `ListDistroSequence.fn.sh` — print build sequence, globally or for a selection.
+- `ListDistroScripts.fn.sh` — list available distro script entry points by type.
+- `AllProjects.fn.sh` — list all projects found under registered namespace roots.
+- `AllNamespaces.fn.sh` — list all namespaces (repository roots).
+- `AllActions.fn.sh` — list workspace actions.
+- `AllBuilders.fn.sh` — list builder scripts found in source projects.
+- `JumpTo.fn.sh` — print and change directory to one resolved project path.
+- `DistroImageSync.fn.sh` — build, print or execute repository sync tasks for a pipeline stage.
+- `DistroSourceCommand.fn.sh` — run the Java source command with workspace roots preconfigured.
+- `DistroImageCommand.fn.sh` — run the Java image command with workspace roots preconfigured.
+
+Console dispatchers available in every distro console:
+
+- `Distro <command> [args...]` — run any distro command in the active context.
+- `Action <action-path>.sh [args...]` — run a generated workspace action from `actions/`.
+- `Require <command>` — load one tool into the current session.
+
+## Getting help
+
+- `<Tool>.fn.sh --help` prints full syntax, options and examples for any command above.
+- `Distro --help`, `Action --help` and `Require --help` print dispatcher syntax.
+- Press TAB after a command name and a space for shell completion.
+
+## Related packages
+
+- [myx.distro](https://github.com/myx/myx.distro) — the distro system overview.
+- [myx.distro-.local](https://github.com/myx/myx.distro-.local) — install and launch the toolsets.
+- [myx.distro-source](https://github.com/myx/myx.distro-source) — build source into a distro image.
+- [myx.distro-deploy](https://github.com/myx/myx.distro-deploy) — deploy a distro image to hosts.
+- [myx.distro-remote](https://github.com/myx/myx.distro-remote) — drive a workspace on another machine.
+- [myx.distro-agents](https://github.com/myx/myx.distro-agents) — start an AI-agent CLI console.
