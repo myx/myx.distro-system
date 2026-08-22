@@ -46,7 +46,7 @@ AllActions(){
 				shift
 			;;
 			--scripts)
-				sedEx="sed -e 's:^$MMDAPP/source/::' -e \"s:^$MDSC_SOURCE/::' -e 's:^$MDLT_ORIGIN/::'"
+				sedEx="sed -e 's:^$MMDAPP/source/::' -e 's:^$MDSC_SOURCE/::' -e 's:^$MDLT_ORIGIN/::'"
 				shift ;	break
 			;;
 			--full)
