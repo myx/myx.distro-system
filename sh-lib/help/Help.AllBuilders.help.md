@@ -2,7 +2,7 @@
 📘 syntax: AllBuilders.fn.sh --scripts
 📘 syntax: AllBuilders.fn.sh --full
 📘 syntax: AllBuilders.fn.sh [--all-build-stages]
-📘 syntax: AllBuilders.fn.sh [source-prepare|source-process|image-prepare|image-process|image-install]
+📘 syntax: AllBuilders.fn.sh [source-prepare|source-process|source-publish|image-prepare|image-process|image-install]
 
 ##  Summary:
 
@@ -12,7 +12,8 @@
 
 		stage
 			Optional positional argument. Allowed values are source-prepare,
-			source-process, image-prepare, image-process, image-install.
+			source-process, source-publish, image-prepare, image-process,
+			image-install.
 
 ##  Options:
 
@@ -41,7 +42,7 @@
 		--all-build-stages
 			Includes all build stages without filtering.
 
-		source-prepare|source-process|image-prepare|image-process|image-install
+		source-prepare|source-process|source-publish|image-prepare|image-process|image-install
 			Positional stage selector. Accepts one value from this set and filters output to that stage.
 
 ##  Examples:

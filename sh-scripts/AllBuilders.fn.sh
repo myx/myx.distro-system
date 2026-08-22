@@ -48,7 +48,7 @@ AllBuilders(){
 			--all-build-stages)
 				shift ;	break
 			;;
-			source-prepare|source-process|image-prepare|image-process|image-install)
+			source-prepare|source-process|source-publish|image-prepare|image-process|image-install)
 				stageFilter="$1"
 				sedEx="grep '/builders/$stageFilter/' | $sedEx"
 				shift ;	break
