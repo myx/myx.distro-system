@@ -22,3 +22,10 @@ Team-owned notes for the magic-* team. Durable facts this package's `README.md` 
 - A tool's manual sits at a deterministic path beside it: `sh-lib/help/Help.<Tool>.help.md`.
 - Read that file rather than running `--help`. The manual is already on disk.
 - Read it before choosing a tool.
+- The manual is paired with `sh-lib/help/Help.<Tool>.include`. Some `.include` files print their options directly instead of rendering the manual, and those copies can drift from it. The `.help.md` is the authority.
+- `Man.<Topic>.help.md` is a free-form reference document — a file format, an install guide — not a tool's manual and not paired with a tool.
+
+## How a tool file is built
+
+- A `sh-scripts/<Name>.fn.sh` file defines a shell function `<Name>`, then ends with a `case "$0" in */sh-scripts/<Name>.fn.sh) ... esac` block that calls it when the file is executed directly.
+- That is what makes both call forms work from one file: sourcing it defines the function, executing it runs the function.
