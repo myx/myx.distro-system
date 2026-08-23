@@ -92,7 +92,7 @@ case "$useStage" in
 		syncType="Sync"
 	;;
 	*)
-		echo "⛔ ERROR: $MDSC_CMD: invalid build stage ($useStage) ($MDSC_OPTION, $@)" >&2
+		echo "$MDSC_CMD: ⛔ ERROR: invalid build stage ($useStage) ($MDSC_OPTION, $@)" >&2
 		set +e ; return 1
 	;;
 esac
@@ -123,11 +123,11 @@ then
 	syncCommandPath="$( dirname "$( dirname "$( myx.common which git/clone${syncType} )" )" )"
 	syncCommandName="git/clone${syncType}"
 	if [ ! -x "$syncCommandPath/$syncCommandName.Common" ] ; then
-		echo "⛔ ERROR: $MDSC_CMD: myx.common which git/clone${syncType} failed ($MDSC_OPTION, $@)" >&2
+		echo "$MDSC_CMD: ⛔ ERROR: myx.common which git/clone${syncType} failed ($MDSC_OPTION, $@)" >&2
 		set +e ; return 1
 	fi
 else
-	echo "⛔ ERROR: $MDSC_CMD: can't locate myx.common ($useStage) ($MDSC_OPTION, $@)" >&2
+	echo "$MDSC_CMD: ⛔ ERROR: can't locate myx.common ($useStage) ($MDSC_OPTION, $@)" >&2
 	set +e ; return 1
 fi
 
@@ -141,7 +141,7 @@ case "$syncMode" in
 		parallelLimit=${2:-8}
 	;;
 	*)
-		echo "⛔ ERROR: $MDSC_CMD: invalid sync mode: $syncMode ($MDSC_OPTION, $@)" >&2
+		echo "$MDSC_CMD: ⛔ ERROR: invalid sync mode: $syncMode ($MDSC_OPTION, $@)" >&2
 		set +e ; return 1
 	;;
 esac
@@ -149,7 +149,7 @@ esac
 local REPO_LIST; REPO_LIST="$(DistroImageSync --intern-print-repo-list-from-stdin)"
 
 if [ -z "$REPO_LIST" ] ; then
-	echo "⛔ ERROR: $MDSC_CMD: empty repo list:" >&2
+	echo "$MDSC_CMD: ⛔ ERROR: empty repo list:" >&2
 	set +e ; return 1
 fi
 

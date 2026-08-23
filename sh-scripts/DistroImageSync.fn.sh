@@ -105,7 +105,7 @@ DistroImageSync(){
 					return 0
 				;;
 			esac
-			echo "⛔ ERROR: $MDSC_CMD: invalid build-stage: $1" >&2
+			echo "$MDSC_CMD: ⛔ ERROR: invalid build-stage: $1" >&2
 			set +e ; return 1
 		;;
 		--intern-print-script-from-stdin-task-list)
@@ -162,7 +162,7 @@ DistroImageSync(){
 			--select-from-env)
 				shift
 				if [ -z "${MDSC_SELECT_PROJECTS:0:1}" ] ; then
-					echo "⛔ ERROR: $MDSC_CMD: --select-from-env no projects selected!" >&2
+					echo "$MDSC_CMD: ⛔ ERROR: --select-from-env no projects selected!" >&2
 					set +e ; return 1
 				fi
 
@@ -191,7 +191,7 @@ DistroImageSync(){
 			--print-all-tasks)
 				shift
 				if [ -n "$1" ] ; then
-					echo "⛔ ERROR: $MDSC_CMD: no options allowed after --all-declares option ($MDSC_OPTION, $@)" >&2
+					echo "$MDSC_CMD: ⛔ ERROR: no options allowed after --all-declares option ($MDSC_OPTION, $@)" >&2
 					set +e ; return 1
 				fi
 
@@ -204,7 +204,7 @@ DistroImageSync(){
 			--list-orphaned-projects)
 				shift
 				if [ -n "$1" ] ; then
-					echo "⛔ ERROR: $MDSC_CMD: no options allowed after --list-orphaned-projects option ($MDSC_OPTION, $@)" >&2
+					echo "$MDSC_CMD: ⛔ ERROR: no options allowed after --list-orphaned-projects option ($MDSC_OPTION, $@)" >&2
 					set +e ; return 1
 				fi
 
@@ -236,7 +236,7 @@ DistroImageSync(){
 			--script-prune-orphaned-projects)
 				shift
 				if [ -n "$1" ] ; then
-					echo "⛔ ERROR: $MDSC_CMD: no options allowed after --script-prune-orphaned-projects option ($MDSC_OPTION, $@)" >&2
+					echo "$MDSC_CMD: ⛔ ERROR: no options allowed after --script-prune-orphaned-projects option ($MDSC_OPTION, $@)" >&2
 					set +e ; return 1
 				fi
 
@@ -291,7 +291,7 @@ DistroImageSync(){
 		case "$1" in
 			--print-tasks)
 				if [ -n "$2" ] ; then
-					echo "⛔ ERROR: $MDSC_CMD: no options allowed after $1 ($MDSC_OPTION, $@)" >&2
+					echo "$MDSC_CMD: ⛔ ERROR: no options allowed after $1 ($MDSC_OPTION, $@)" >&2
 					set +e ; return 1
 				fi
 
@@ -303,7 +303,7 @@ DistroImageSync(){
 			;;
 			--print-repo-list)
 				if [ -n "$2" ] ; then
-					echo "⛔ ERROR: $MDSC_CMD: no options allowed after $1 ($MDSC_OPTION, $@)" >&2
+					echo "$MDSC_CMD: ⛔ ERROR: no options allowed after $1 ($MDSC_OPTION, $@)" >&2
 					set +e ; return 1
 				fi
 
@@ -317,7 +317,7 @@ DistroImageSync(){
 			;;
 			--print-*)
 				if [ -n "$2" ] ; then
-					echo "⛔ ERROR: $MDSC_CMD: no options allowed after $1 option ($MDSC_OPTION, $@)" >&2
+					echo "$MDSC_CMD: ⛔ ERROR: no options allowed after $1 option ($MDSC_OPTION, $@)" >&2
 					set +e ; return 1
 				fi
 
@@ -355,11 +355,11 @@ DistroImageSync(){
 				return 0
 			;;
 			'')
-				echo "⛔ ERROR: $MDSC_CMD: one of --print-* or --execute-* commands is required" >&2
+				echo "$MDSC_CMD: ⛔ ERROR: one of --print-* or --execute-* commands is required" >&2
 				set +e ; return 1
 			;;
 			*)
-				echo "⛔ ERROR: $MDSC_CMD: invalid option: ${useCommand:-$1}" >&2
+				echo "$MDSC_CMD: ⛔ ERROR: invalid option: ${useCommand:-$1}" >&2
 				set +e ; return 1
 			;;
 		esac

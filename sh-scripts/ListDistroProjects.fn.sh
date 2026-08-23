@@ -34,7 +34,7 @@ ListDistroProjects(){
 		case "$1" in
 			--select-from-env)
 				if [ -z "${MDSC_SELECT_PROJECTS:0:1}" ] ; then
-					echo "⛔ ERROR: $MDSC_CMD: $1: no projects selected!" >&2
+					echo "$MDSC_CMD: ⛔ ERROR: $1: no projects selected!" >&2
 					set +e ; return 1
 				fi
 				shift
@@ -44,7 +44,7 @@ ListDistroProjects(){
 			--all-projects)
 				shift
 				[ -z "$1" ] || {
-					echo "⛔ ERROR: $MDSC_CMD: --all-projects, no extra options allowed" >&2
+					echo "$MDSC_CMD: ⛔ ERROR: --all-projects, no extra options allowed" >&2
 					set +e ; return 1
 				}
 				DistroSystemContext --index-projects cat
@@ -469,14 +469,14 @@ ListDistroProjects(){
 			;;
 			--save-to-env|--save-to-env-and-continue)
 				[ -z "$2" ] || {
-					echo "⛔ ERROR: $MDSC_CMD: $1, no extra options allowed" >&2
+					echo "$MDSC_CMD: ⛔ ERROR: $1, no extra options allowed" >&2
 					set +e ; return 1
 				}
 				MDSC_SELECT_PROJECTS="$selectProjects"
 				case "$1" in
 					*-and-continue)
 						[ -z "$2" ] || {
-							echo "⛔ ERROR: $MDSC_CMD: $1, no extra options allowed" >&2
+							echo "$MDSC_CMD: ⛔ ERROR: $1, no extra options allowed" >&2
 							set +e ; return 1
 						}
 						shift
@@ -491,7 +491,7 @@ ListDistroProjects(){
 				case "$1" in
 					*-and-continue)
 						[ -z "$3" ] || {
-							echo "⛔ ERROR: $MDSC_CMD: $1, no extra options allowed" >&2
+							echo "$MDSC_CMD: ⛔ ERROR: $1, no extra options allowed" >&2
 							set +e ; return 1
 						}
 						return 0

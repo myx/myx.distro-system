@@ -25,7 +25,7 @@ ListDistroKeywords(){
 			;;
 			--select-from-env)
 				if [ -z "${MDSC_SELECT_PROJECTS:0:1}" ] ; then
-					echo "⛔ ERROR: $MDSC_CMD: $1: no projects selected!" >&2
+					echo "$MDSC_CMD: ⛔ ERROR: $1: no projects selected!" >&2
 					set +e ; return 1
 				fi
 				shift; break
@@ -47,7 +47,7 @@ ListDistroKeywords(){
 		case "$1" in
 			--all-keywords)
 				if [ -n "$2" ] ; then
-					echo "⛔ ERROR: $MDSC_CMD: $1: no extra options allowed ($MDSC_OPTION, $@)" >&2
+					echo "$MDSC_CMD: ⛔ ERROR: $1: no extra options allowed ($MDSC_OPTION, $@)" >&2
 					set +e ; return 1
 				fi
 				shift
@@ -57,7 +57,7 @@ ListDistroKeywords(){
 			;;
 			--all-keywords-merged)
 				if [ -n "$2" ] ; then
-					echo "⛔ ERROR: $MDSC_CMD: $1: no extra options allowed ($MDSC_OPTION, $@)" >&2
+					echo "$MDSC_CMD: ⛔ ERROR: $1: no extra options allowed ($MDSC_OPTION, $@)" >&2
 					set +e ; return 1
 				fi
 				shift
@@ -67,7 +67,7 @@ ListDistroKeywords(){
 			;;
 			--add-own-keywords-column|--filter-own-keywords-column|--add-merged-keywords-column|--filter-merged-keywords-column)
 				if [ -z "$2" ] ; then
-					echo "⛔ ERROR: $MDSC_CMD: $1 project keywords filter is expected!" >&2
+					echo "$MDSC_CMD: ⛔ ERROR: $1 project keywords filter is expected!" >&2
 					set +e ; return 1
 				fi
 				local columnOp=${1%"-keywords-column"} columnMatch="$2"; shift 2
@@ -153,7 +153,7 @@ ListDistroKeywords(){
 				)"
 				
 				if [ -z "$indexColumns" ] ; then
-					echo "⛔ ERROR: $MDSC_CMD: ${columnOp}-keywords-column $columnMatch no projects selected!" >&2
+					echo "$MDSC_CMD: ⛔ ERROR: ${columnOp}-keywords-column $columnMatch no projects selected!" >&2
 					set +e ; return 1
 				fi
 
@@ -161,7 +161,7 @@ ListDistroKeywords(){
 			;;
 			--all-filter-and-cut)
 				if [ -z "$2" ] ; then
-					echo "⛔ ERROR: $MDSC_CMD: $1 project keywords filter is expected!" >&2
+					echo "$MDSC_CMD: ⛔ ERROR: $1 project keywords filter is expected!" >&2
 					set +e ; return 1
 				fi
 				local filter="$2"; shift 2
@@ -178,7 +178,7 @@ ListDistroKeywords(){
 			;;
 			--filter-and-cut)
 				if [ -z "$2" ] ; then
-					echo "⛔ ERROR: $MDSC_CMD: $1 project keywords filter is expected!" >&2
+					echo "$MDSC_CMD: ⛔ ERROR: $1 project keywords filter is expected!" >&2
 					set +e ; return 1
 				fi
 				local filter="$2"; shift 2
@@ -195,11 +195,11 @@ ListDistroKeywords(){
 			;;
 			--merge-sequence)
 				if [ -n "$2" ] ; then
-					echo "⛔ ERROR: $MDSC_CMD: $1: no extra options allowed ($MDSC_OPTION, $@)" >&2
+					echo "$MDSC_CMD: ⛔ ERROR: $1: no extra options allowed ($MDSC_OPTION, $@)" >&2
 					set +e ; return 1
 				fi
 				if [ -z "${MDSC_SELECT_PROJECTS:0:1}" ] ; then
-					echo "⛔ ERROR: $MDSC_CMD: $1, no projects selected!" >&2
+					echo "$MDSC_CMD: ⛔ ERROR: $1, no projects selected!" >&2
 					set +e ; return 1
 				fi
 				shift
@@ -210,7 +210,7 @@ ListDistroKeywords(){
 				return 0
 			;;
 			*)
-				echo "⛔ ERROR: $MDSC_CMD: invalid option: $1" >&2
+				echo "$MDSC_CMD: ⛔ ERROR: invalid option: $1" >&2
 				set +e ; return 1
 			;;
 		esac
@@ -221,7 +221,7 @@ ListDistroKeywords(){
 		return 0
 	fi
 	if [ -z "${MDSC_SELECT_PROJECTS:0:1}" ] ; then
-		echo "⛔ ERROR: $MDSC_CMD: no projects selected!" >&2
+		echo "$MDSC_CMD: ⛔ ERROR: no projects selected!" >&2
 		set +e ; return 1
 	fi
 

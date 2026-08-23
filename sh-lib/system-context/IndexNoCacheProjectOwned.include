@@ -6,7 +6,7 @@
 set -e
 
 if [ -z "$idx" ] || [ -z "$env" ] || [ -z "${MDSC_PRJ_NAME:0:1}" ] || [ -z "${cmd:0:1}" ]; then
-	echo "⛔ ERROR: $MDSC_CMD: IndexNoCacheProjectOwned.include: invalid invocation specific vars expected!" >&2
+	echo "$MDSC_CMD: ⛔ ERROR: IndexNoCacheProjectOwned.include: invalid invocation specific vars expected!" >&2
 	set +e ; return 1
 fi
 
@@ -25,7 +25,7 @@ case "$idx" in
 esac
 
 if [ ! -f "$MDSC_SOURCE/$MDSC_PRJ_NAME/project.inf" ]; then
-	echo "⛔ ERROR: $MDSC_CMD: $MDSC_PRJ_NAME: project.inf file is required." >&2
+	echo "$MDSC_CMD: ⛔ ERROR: $MDSC_PRJ_NAME: project.inf file is required." >&2
 	set +e ; return 1
 fi
 

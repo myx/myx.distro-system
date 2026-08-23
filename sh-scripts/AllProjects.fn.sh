@@ -40,7 +40,7 @@ AllProjects(){
 				return 0
 			;;
 			*)
-				echo "⛔ ERROR: $MDSC_CMD: invalid option: $1" >&2
+				echo "$MDSC_CMD: ⛔ ERROR: invalid option: $1" >&2
 				set +e ; return 1
 			;;
 		esac

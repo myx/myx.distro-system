@@ -12,13 +12,13 @@ fi
 
 local MDSC_CACHED="$1"
 if [ ! -d "$MDSC_CACHED" ] || [ "$MDSC_CACHED" = "$MMDAPP/.local/system-index" ]; then
-	echo "⛔ ERROR: $MDSC_CMD: ScanSyncSystemIndexChanges.fn.include: SRC is invalid: $MDSC_CACHED" >&2
+	echo "$MDSC_CMD: ⛔ ERROR: ScanSyncSystemIndexChanges.fn.include: SRC is invalid: $MDSC_CACHED" >&2
 	set +e ; return 1
 fi
 
 local INDEX_ROOT="${2:-$MMDAPP/.local/system-index}"
 if [ ! -d "$INDEX_ROOT" ] || [ "$MDSC_CACHED" = "$INDEX_ROOT" ]; then
-	echo "⛔ ERROR: $MDSC_CMD: ScanSyncSystemIndexChanges.fn.include: DST is invalid: $INDEX_ROOT" >&2
+	echo "$MDSC_CMD: ⛔ ERROR: ScanSyncSystemIndexChanges.fn.include: DST is invalid: $INDEX_ROOT" >&2
 	set +e ; return 1
 fi
 

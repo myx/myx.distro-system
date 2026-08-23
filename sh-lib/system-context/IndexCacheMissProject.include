@@ -6,7 +6,7 @@
 set -e
 
 if [ -z "$idx" ] || [ -z "$env" ] || [ -z "${MDSC_PRJ_NAME:0:1}" ] || [ -z "${cmd:0:1}" ]; then
-	echo "⛔ ERROR: $MDSC_CMD: IndexCacheMissProject.include: invalid invocation specific vars expected!" >&2
+	echo "$MDSC_CMD: ⛔ ERROR: IndexCacheMissProject.include: invalid invocation specific vars expected!" >&2
 	set +e ; return 1
 fi
 

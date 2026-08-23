@@ -25,7 +25,7 @@ ListDistroProvides(){
 			;;
 			--select-from-env)
 				if [ -z "${MDSC_SELECT_PROJECTS:0:1}" ] ; then
-					echo "⛔ ERROR: $MDSC_CMD: $1: no projects selected!" >&2
+					echo "$MDSC_CMD: ⛔ ERROR: $1: no projects selected!" >&2
 					set +e ; return 1
 				fi
 				shift; break
@@ -47,7 +47,7 @@ ListDistroProvides(){
 		case "$1" in
 			--all-provides)
 				if [ -n "$2" ] ; then
-					echo "⛔ ERROR: $MDSC_CMD: $1: no extra options allowed ($MDSC_OPTION, $@)" >&2
+					echo "$MDSC_CMD: ⛔ ERROR: $1: no extra options allowed ($MDSC_OPTION, $@)" >&2
 					set +e ; return 1
 				fi
 				shift
@@ -57,7 +57,7 @@ ListDistroProvides(){
 			;;
 			--all-provides-merged)
 				if [ -n "$2" ] ; then
-					echo "⛔ ERROR: $MDSC_CMD: $1: no extra options allowed ($MDSC_OPTION, $@)" >&2
+					echo "$MDSC_CMD: ⛔ ERROR: $1: no extra options allowed ($MDSC_OPTION, $@)" >&2
 					set +e ; return 1
 				fi
 				shift
@@ -67,7 +67,7 @@ ListDistroProvides(){
 			;;
 			--add-own-provides-column|--filter-own-provides-column|--add-merged-provides-column|--filter-merged-provides-column)
 				if [ -z "$2" ] ; then
-					echo "⛔ ERROR: $MDSC_CMD: $1 project provides filter is expected!" >&2
+					echo "$MDSC_CMD: ⛔ ERROR: $1 project provides filter is expected!" >&2
 					set +e ; return 1
 				fi
 				local columnOp=${1%"-provides-column"} columnMatch="$2"; shift 2
@@ -153,7 +153,7 @@ ListDistroProvides(){
 				)"
 				
 				if [ -z "$indexColumns" ] ; then
-					echo "⛔ ERROR: $MDSC_CMD: ${columnOp}-provides-column $columnMatch no projects selected!" >&2
+					echo "$MDSC_CMD: ⛔ ERROR: ${columnOp}-provides-column $columnMatch no projects selected!" >&2
 					set +e ; return 1
 				fi
 
@@ -161,7 +161,7 @@ ListDistroProvides(){
 			;;
 			--all-filter-and-cut)
 				if [ -z "$2" ] ; then
-					echo "⛔ ERROR: $MDSC_CMD: $1 project provides filter is expected!" >&2
+					echo "$MDSC_CMD: ⛔ ERROR: $1 project provides filter is expected!" >&2
 					set +e ; return 1
 				fi
 				local filter="$2"; shift 2
@@ -178,7 +178,7 @@ ListDistroProvides(){
 			;;
 			--filter-and-cut)
 				if [ -z "$2" ] ; then
-					echo "⛔ ERROR: $MDSC_CMD: $1 project provides filter is expected!" >&2
+					echo "$MDSC_CMD: ⛔ ERROR: $1 project provides filter is expected!" >&2
 					set +e ; return 1
 				fi
 				local filter="$2"; shift 2
@@ -195,7 +195,7 @@ ListDistroProvides(){
 			;;
 			--all-unroll-filter-and-cut)
 				if [ -z "$2" ] ; then
-					echo "⛔ ERROR: $MDSC_CMD: $1 project provides filter is expected!" >&2
+					echo "$MDSC_CMD: ⛔ ERROR: $1 project provides filter is expected!" >&2
 					set +e ; return 1
 				fi
 				local filter="$2"; shift 2
@@ -204,7 +204,7 @@ ListDistroProvides(){
 			;;
 			--unroll-filter-and-cut)
 				if [ -z "$2" ] ; then
-					echo "⛔ ERROR: $MDSC_CMD: $1 project provides filter is expected!" >&2
+					echo "$MDSC_CMD: ⛔ ERROR: $1 project provides filter is expected!" >&2
 					set +e ; return 1
 				fi
 				local filter="$2"; shift 2
@@ -213,7 +213,7 @@ ListDistroProvides(){
 			;;
 			--unroll-filter-and-cut-merged)
 				if [ -z "$2" ] ; then
-					echo "⛔ ERROR: $MDSC_CMD: $1 project provides filter is expected!" >&2
+					echo "$MDSC_CMD: ⛔ ERROR: $1 project provides filter is expected!" >&2
 					set +e ; return 1
 				fi
 				local filter="$2"; shift 2
@@ -222,11 +222,11 @@ ListDistroProvides(){
 			;;
 			--merge-sequence)
 				if [ -n "$2" ] ; then
-					echo "⛔ ERROR: $MDSC_CMD: $1: no extra options allowed ($MDSC_OPTION, $@)" >&2
+					echo "$MDSC_CMD: ⛔ ERROR: $1: no extra options allowed ($MDSC_OPTION, $@)" >&2
 					set +e ; return 1
 				fi
 				if [ -z "${MDSC_SELECT_PROJECTS:0:1}" ] ; then
-					echo "⛔ ERROR: $MDSC_CMD: $1, no projects selected!" >&2
+					echo "$MDSC_CMD: ⛔ ERROR: $1, no projects selected!" >&2
 					set +e ; return 1
 				fi
 				shift
@@ -237,7 +237,7 @@ ListDistroProvides(){
 				return 0
 			;;
 			*)
-				echo "⛔ ERROR: $MDSC_CMD: invalid option: $1" >&2
+				echo "$MDSC_CMD: ⛔ ERROR: invalid option: $1" >&2
 				set +e ; return 1
 			;;
 		esac
@@ -248,7 +248,7 @@ ListDistroProvides(){
 		return 0
 	fi
 	if [ -z "${MDSC_SELECT_PROJECTS:0:1}" ] ; then
-		echo "⛔ ERROR: $MDSC_CMD: no projects selected!" >&2
+		echo "$MDSC_CMD: ⛔ ERROR: no projects selected!" >&2
 		set +e ; return 1
 	fi
 

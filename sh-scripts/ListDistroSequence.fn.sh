@@ -22,7 +22,7 @@ ListDistroSequence(){
 			--all)
 				shift
 				if [ -n "$1" ] ; then
-					echo "⛔ ERROR: $MDSC_CMD: --all. no extra options allowed" >&2
+					echo "$MDSC_CMD: ⛔ ERROR: --all. no extra options allowed" >&2
 					set +e ; return 1
 				fi
 
@@ -32,7 +32,7 @@ ListDistroSequence(){
 			--all-projects)
 				shift
 				if [ -n "$1" ] ; then
-					echo "⛔ ERROR: $MDSC_CMD: --all-projects. no extra options allowed" >&2
+					echo "$MDSC_CMD: ⛔ ERROR: --all-projects. no extra options allowed" >&2
 					set +e ; return 1
 				fi
 
@@ -41,7 +41,7 @@ ListDistroSequence(){
 			;;
 			--select-from-env)
 				if [ -z "${MDSC_SELECT_PROJECTS:0:1}" ] ; then
-					echo "⛔ ERROR: $MDSC_CMD: $1: no projects selected!" >&2
+					echo "$MDSC_CMD: ⛔ ERROR: $1: no projects selected!" >&2
 					set +e ; return 1
 				fi
 				shift; break
@@ -51,14 +51,14 @@ ListDistroSequence(){
 				return 0
 			;;
 			*)
-				echo "⛔ ERROR: $MDSC_CMD: invalid option: $1" >&2
+				echo "$MDSC_CMD: ⛔ ERROR: invalid option: $1" >&2
 				set +e ; return 1
 				;;
 		esac
 	done
 
 	if [ -z "${MDSC_SELECT_PROJECTS:0:1}" ] ; then
-		echo "⛔ ERROR: $MDSC_CMD: no projects selected!" >&2
+		echo "$MDSC_CMD: ⛔ ERROR: no projects selected!" >&2
 		set +e ; return 1
 	fi
 

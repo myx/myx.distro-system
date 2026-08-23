@@ -13,7 +13,7 @@ Team-owned notes for the magic-* team. Durable facts this package's `README.md` 
 - `Require <name>` resolves against the package `sh-scripts/` directories in the fixed order `system source deploy remote agents .local`, and only sources; it does not call.
 - `Action <name>` is an unrelated third dispatcher: it runs `$MMDAPP/actions/<name>`, executing a `.sh` and opening a `.url`.
 - A bare name resolves exactly when the tool lives in an installed package's own `sh-scripts/`. A command kept in a project tree is called by full path.
-- Internal calls use `type <FunctionName> >/dev/null 2>&1 || . "$( myx.common which lib/<name> )"` — skip re-sourcing when the function is already defined, else resolve and source. This stays OS-aware, unlike `myx.common`'s own internal convention, which hardcodes `.Common` (see `os-myx.common`'s own MAGIC.md).
+- Internal calls use `type <FunctionName> >/dev/null 2>&1 || . "$( myx.common which lib/<name> )"` — skip re-sourcing when the function is already defined, else resolve and source. This stays OS-aware, unlike `myx.common`'s own internal convention, which hardcodes `.Common`.
 
 ## `Distro <name>` fails outside a console
 
@@ -37,10 +37,9 @@ Team-owned notes for the magic-* team. Durable facts this package's `README.md` 
 
 Follow the standard form for new or edited help. When touching one of these, ask first: do not silently "fix" it, and do not copy the divergent pattern elsewhere.
 
-- Standard `.include` echoes `📘 syntax: ...` lines and, on `--help`, calls `myx.common lib/catMarkdown` on the `.help.md`. These echo Options and Examples as raw `echo` instead: every `Help.ListDistro*.include` in this package **except** `Help.ListDistroScripts.include`, which is standard; `Help.ListSshTargets.include` in deploy; and `Help.DistroImageSync`, `Help.ListProjectSequence` and `Help.DistroSourceConsole` in source.
+- Standard `.include` echoes `📘 syntax: ...` lines and, on `--help`, calls `myx.common lib/catMarkdown` on the `.help.md`. These echo Options and Examples as raw `echo` instead: every `Help.ListDistro*.include` in this package **except** `Help.ListDistroScripts.include`, which is standard.
 - In `ListDistroDeclares` that duplicate has already drifted from its own `.help.md`, listing different options.
 - `--help` vs `--help-syntax` wiring differs per command — inline in the function body, or only in the outer `case "$0"` dispatcher, or `JumpTo`'s own split behaviour.
-- `myx.distro-remote/sh-lib/Help.DistroRemoteTools.help.md`, in the `sh-lib` root, is a stale orphaned duplicate of the real `sh-lib/help/` copy. Only the `help/` copy is referenced by code.
 
 ## How a tool file is built
 

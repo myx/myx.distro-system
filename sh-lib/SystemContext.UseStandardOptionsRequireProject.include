@@ -2,7 +2,7 @@
 # ^^^ for syntax checking in the editor only
 
 [ -z "$projectName" ] || {
-	echo "⛔ ERROR: $MDSC_CMD: RequireProjectArgument: projectName variable must be unset: $projectName" >&2
+	echo "$MDSC_CMD: ⛔ ERROR: RequireProjectArgument: projectName variable must be unset: $projectName" >&2
 	set +e ; return 1
 }
 
@@ -27,12 +27,12 @@ while [ $# -gt 0 ] ; do
 			continue
 		;;
 		'')
-			echo "⛔ ERROR: $MDSC_CMD: 'projectName' argument is empty!" >&2
+			echo "$MDSC_CMD: ⛔ ERROR: 'projectName' argument is empty!" >&2
 			set +e ; return 1
 		;;
 		--project-from-env)
 			projectName="$MDSC_PRJ_NAME" ; [ -n "$projectName" ] || {
-				echo "⛔ ERROR: $MDSC_CMD: --project-from-env: MDSC_PRJ_NAME is not set!" >&2
+				echo "$MDSC_CMD: ⛔ ERROR: --project-from-env: MDSC_PRJ_NAME is not set!" >&2
 				set +e ; return 1
 			}
 			shift
@@ -40,7 +40,7 @@ while [ $# -gt 0 ] ; do
 		;;
 		'.'|--project-from-pwd)
 			projectName="$( Distro ListDistroProjects --project '.' )" ; [ -n "$projectName" ] || {
-				echo "⛔ ERROR: $MDSC_CMD: --project-from-pwd: can't map working directory to project: $(pwd)" >&2
+				echo "$MDSC_CMD: ⛔ ERROR: --project-from-pwd: can't map working directory to project: $(pwd)" >&2
 				set +e ; return 1
 			}
 			shift
@@ -74,5 +74,5 @@ while [ $# -gt 0 ] ; do
 	return 0
 done
 
-echo "⛔ ERROR: $MDSC_CMD: 'projectName' argument is required!" >&2
+echo "$MDSC_CMD: ⛔ ERROR: 'projectName' argument is required!" >&2
 set +e ; return 1
