@@ -38,7 +38,7 @@ Team-owned notes for the magic-* team. Durable facts this package's `README.md` 
 Follow the standard form for new or edited help. When touching one of these, ask first: do not silently "fix" it, and do not copy the divergent pattern elsewhere.
 
 - Standard `.include` echoes `📘 syntax: ...` lines and, on `--help`, calls `myx.common lib/catMarkdown` on the `.help.md`. These echo Options and Examples as raw `echo` instead: every `Help.ListDistro*.include` in this package **except** `Help.ListDistroScripts.include`, which is standard.
-- In `ListDistroDeclares` that duplicate has already drifted from its own `.help.md`, listing different options.
+- In `ListDistroDeclares` that duplicate is out of step with its own `.help.md`, listing different options.
 - `--help` vs `--help-syntax` wiring differs per command — inline in the function body, or only in the outer `case "$0"` dispatcher, or `JumpTo`'s own split behaviour.
 
 ## How a tool file is built
