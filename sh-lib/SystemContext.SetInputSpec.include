@@ -35,7 +35,7 @@ case "$1" in
 					if [ -f "$MDLC_INMODE/myx/myx.distro-.local/sh-lib/LocalContext.include" ] ; then
 						export MDLT_ORIGIN="$MDLC_INMODE"
 						export MDLC_INMODE="extern"
-						export MDLT_OPTION="--run-from-path $MDLC_INMODE"
+						export MDLT_OPTION="--run-from-path $MDLT_ORIGIN"
 					else
 						echo "🙋 WARNING: Context.SetInputSpec: '$MDLC_INMODE' requested but source is not available, defaulting to --run-from-.local" >&2
 						export MDLT_ORIGIN="$MMDAPP/.local"
