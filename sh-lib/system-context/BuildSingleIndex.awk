@@ -206,7 +206,7 @@ END {
 
 	printf "PRJS="
 	sep=""
-	for (prj in projects) { printf "%s%s", sep, projects[prj]; sep=" " }
+	for (prj in projects) { printf "%s%s", sep, projects[prj]; sep=" " ; }
 	print ""
 
 }
