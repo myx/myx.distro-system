@@ -6,10 +6,12 @@ Team-owned notes for the magic-* team. Durable facts this package's `README.md` 
 
 - `sh-scripts/*.fn.sh` are the tools. Every other script in the package is a wrapper over them.
 - Call a tool by its full name, `.fn.sh` suffix included. Inside a console session the tool resolves on `PATH`.
-- Two call forms:
-  - `Distro <Tool>` — checks whether that function is already defined; only when it is not, resolves `<Tool>.fn.sh` on `PATH` and sources it; then calls the function. Heavier on the first call, cheaper on every call after it.
+- Three call forms:
+  - `Distro <Tool>` — checks whether that function is already defined; only when it is not, resolves `<Tool>.fn.sh` on `PATH` and sources it; then calls the function. The name is written without the `.fn.sh` suffix. Heavier on the first call, cheaper on every call after it.
   - `<Tool>.fn.sh` — executes the file every time.
+  - `<Tool>` — the bare function name, valid only where the environment already holds that definition. A script run through the `execute` operation is where that applies.
 - After editing a tool's own source, call `<Tool>.fn.sh`. The `Distro <Tool>` form reuses the function already loaded into the session and reports nothing to say it ignored the edit.
+- A `command not found` answers about the call, not about the tool: the form matched none of the three above. Check the form before concluding an operation is missing.
 - `Require <name>` resolves against the package `sh-scripts/` directories in the fixed order `system source deploy remote agents .local`, and only sources; it does not call.
 - `Action <name>` is an unrelated third dispatcher: it runs `$MMDAPP/actions/<name>`, executing a `.sh` and opening a `.url`.
 - A bare name resolves exactly when the tool lives in an installed package's own `sh-scripts/`. A command kept in a project tree is called by full path.
