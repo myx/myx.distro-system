@@ -52,7 +52,7 @@ case "$1" in
 			esac
 			if [ ! -f "$MDLT_ORIGIN/myx/myx.distro-.local/sh-lib/LocalContext.include" ] ; then
 				echo "⛔ ERROR: Context.SetInputSpec: ${1:---run-from-detect} can't find/detect origin" >&2
-				exit 1
+				set +e ; return 1
 			fi
 		fi
 		case "$1" in 
@@ -115,7 +115,7 @@ case "$1" in
 			shift ; set -- "--distro-from-distro" "$@"
 		else
 			echo "⛔ ERROR: SystemContext.SetInputSpec: can't detect proper input source" >&2
-			exit 1
+			set +e ; return 1
 		fi
 	;;
 esac
@@ -124,7 +124,7 @@ if [ "$adpcChangeSpec" = "true" ] ; then
 	: "${1:?⛔ ERROR: SystemContext.SetInputSpec: inputSpec argument is required}"
 	if ! DistroSystemContext --is-spec-option "$1" ; then
 		echo "⛔ ERROR: SystemContext.SetInputSpec: inputSpec argument is invalid: $1" >&2
-		exit 1
+		set +e ; return 1
 	fi
 	local previousSpec="$MDSC_OPTION"
 fi
@@ -167,7 +167,7 @@ case "$1" in
 	;;
 	*)
 		echo "⛔ ERROR: SystemContext.SetInputSpec: Invalid input spec: $1" >&2
-		exit 1
+		set +e ; return 1
 	;;
 esac
 
