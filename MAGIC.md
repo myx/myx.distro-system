@@ -51,13 +51,22 @@ Follow the standard form for new or edited help. When touching one of these, ask
 - A `sh-scripts/<Name>.fn.sh` file defines a shell function `<Name>`, then ends with a `case "$0" in */sh-scripts/<Name>.fn.sh) ... esac` block that calls it when the file is executed directly.
 - That is what makes both call forms work from one file: sourcing it defines the function, executing it runs the function.
 
-## `*Context.include` falls in two classes
+## `*Context.include`: index consumers and non-consumers
 
-- **Index consumers** — `SourceContext.include`, `DeployContext.include`. They source `SystemContext.include` at file top level, delegate to it, and define no `Require` of their own.
-- **Origin resolvers** — `LocalContext.include`, `RemoteContext.include`, `AgentsContext.include`. Each defines its own `Require` and its own `*Context.SetInputSpec.include`, and touches no `MDSC_*`.
-- **Two `Require` definitions in one process is the defect** — not two calls, and not two files. A package that sources `SystemContext.include` drops its own.
-- **`SystemContext.SetInputSpec.include` has a tier cascade and an origin-only one does not.** Its `--run-from-*` arms end `shift ; set -- "--distro-path-auto" "$@"` at four sites. That absence elsewhere is load-bearing: it is what lets an origin-only context run on a workspace with neither `source/` nor `distro/`, where the cascade reaches `⛔ can't detect proper input source` and **`exit 1`** — not `return 1`, so it kills a sourced tool.
+- **The distinction that holds is index consumption.** Consumers — source, deploy, agents — need this package's context and a tier. Non-consumers — `.local` and remote — make zero index reads each and need neither.
+- **`myx.distro-system` is the parent; source, deploy, agents, `.local` and remote are siblings.** A child using the parent is not a package reaching sideways. What is forbidden is duplicating a parent capability — **two `Require` implementations in one process** — and putting a per-entry-point decision inside a shared tool.
+- **`AgentsContext.SetInputSpec.include` is this package's own file with the tier half removed**: its arms `return 0` where this one falls through into `--distro-path-auto` and the five tier cases. It therefore sets no `MDSC_*` at all, which is why an origin-only call resolves no tier.
 - **The two `SetInputSpec` files apply different validity tests to the same origin decision**: the agents one probes for `myx.distro-agents`, this one for `myx.distro-.local` and `myx.distro-system`. Delegating the origin axis answers a different question, not the same one more generally.
+- **A guard at the call site tests a proxy for a file's contents and breaks when those contents change.** The house form is the opposite: source unconditionally, and let the file self-guard with a top-of-file quick-exit. An in-file quick-exit can only skip re-definition in a process that already holds the function; it can never prevent the file being reached.
+- **A console rc defines its package's command wrappers as shell functions** — `Distro`, `Deploy`, `Source`, `Agents`. A console relying on `PATH` additions for them instead fails wherever that `PATH` is absent, the MCP surface included, which carries no `sh-scripts` on `PATH`.
+
+## `exit` in a sourced include, and where a context failure actually surfaces
+
+- **An include reports failure with `set +e ; return 1`, never `exit`.** `exit` in a sourced file kills the caller's process. `SystemContext.SetInputSpec.include` carried four `exit 1` sites, and they made a cold workspace unprobeable: any caller resolving a spec there died rather than degrading.
+- **Converting `exit` to `return` is half a change.** A call site that follows the source with an unconditional `return 0` or `shift` swallows the new failure. Convert the sites and add propagation at each sourcer in the same change, or a fatal failure becomes a silent one.
+- **This package's top-level `case "$1"` reaches `SetInputSpec` only when `$1` matches `--distro-*|--run-from-*|--init-*`.** A tail guard sources the file with the *tool's* own first argument, which does not match, so the `.` returns 0 even on a cold workspace and the context failure appears later at the separate `DistroSystemContext` call. Testing the `.` status at those sites catches nothing.
+- **46 `.` sources of this file exist estate-wide and none tests what follows.** The uniform pattern is source, call context, proceed into an index read, index read fails, tool returns non-zero — the consumer catches it, not the context call. A known property, not a defect to normalise.
+- **What an audit of that pattern looks for**: a tool reading `$MDSC_SOURCE` or `$MDSC_CACHED` directly, without going through an index call, would build a path from an empty variable and could act on it. None found, and not exhaustively searched.
 - **A named tier overwrites a caller; an auto-detect does not.** `--distro-*` takes the arm setting `adpcChangeSpec="true"` and reassigns unconditionally; `--distro-path-auto` early-returns on both guards and never sets it. The distinction is naming a tier versus resolving one when none was named.
 - **A tier belongs at an entry point that knows its situation** — a console bashrc, or named at the call by a surface with no console above it. Never inside a shared tool, which cannot know.
 
