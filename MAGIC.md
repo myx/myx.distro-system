@@ -26,6 +26,14 @@ Team-owned notes for the magic-* team. Durable facts this package's `README.md` 
 - **A call site that must work outside a console takes the standard `*.fn.sh` bootstrap plus `Require <Tool> || :`.** That is the supported way to reach a tool without the console's own `PATH`.
 - **`ListDistroDeclares()` runs `set -e` internally and leaves it on when it returns 0**, so a bare in-process call leaks `set -e` into the caller. `var="$( … )" || status=$?` contains it inside the substitution subshell, which still inherits the exported `MDSC_CACHED`, so caching is not affected by containing it.
 
+## `JumpTo.fn.sh` writes `MDSC_INT_CD` into a channel that does not carry it
+
+- `JumpTo` is the only writer of `MDSC_INT_CD` — three consecutive statements, a `declare -x`, a plain assignment and an `export`. Its only reader is the `--shell-prompt` arm of `SourceConsole.include`/`DeployConsole.include`, which runs two subshells below the interactive shell and cannot apply what it reads.
+- **This is the writer's end of that defect and not the same claim as the consumer's end.** The two pointers in `myx.distro-source`/`myx.distro-deploy` describe a hook that cannot apply a value; this one describes a value written into a channel that does not carry it. A reader arriving from either side needs the other half.
+- Run as a script, the tool changes its own process and exports into it, so neither the working directory nor the variable reaches the caller — measured.
+- **Open, not measured:** whether the `cd` at the end of the `JumpTo` function body moves a console that called it as a function. A bare harness cannot settle it — `JumpTo` calls `Distro ListDistroProjects` internally, which is the case "`Distro <name>` fails outside a console" above describes — so it takes a real console session. A reader working in this package is the one placed to settle it.
+- Full finding, with both controls: `myx.distro-.local/MAGIC.md`, "The prompt hook announces a change it cannot apply" — read there, not duplicated here.
+
 ## Which layer to reach for
 
 **Which layer to reach for is decided by the caller, not by which is better.** An action exists so a person, or a task-menu binding, can fire a prepared parameter set without assembling one; when that is the caller, running the existing action directly beats re-deriving the equivalent `sh-scripts` invocation. A member doing the work calls the building block instead, because the work requires knowing which tool ran and with which parameters, and an action hides both.
