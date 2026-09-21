@@ -1,8 +1,25 @@
 #!/usr/bin/env bash
 # ^^^ for syntax checking in the editor only
 
-set -e 
-case "$1" in 
+set -e
+case "$1" in
+	## the single reader of the project-declared commands index, serving both consumers:
+	## the console PATH fragment (default) and the completion name list (--completion).
+	--shell-path-append)
+		set +ex
+		[ -f "$MMDAPP/.local/distro-commands.txt" ] || return 0
+		case "$2" in
+			--completion)
+				awk '!seenCommand[$2]++ { print $2 ".fn.sh" ; }' "$MMDAPP/.local/distro-commands.txt"
+			;;
+			*)
+				## ENVIRON, never -v: -v escape-decodes the value, and the dedup below then never matches,
+				## so PROMPT_COMMAND re-appends the same directory every prompt until PATH grows the console to a crawl.
+				awk '!seenScriptsDir[$3]++ && index( ":" ENVIRON["PATH"] ":", ":" $3 ":" ) == 0 { printf ":%s", $3 ; }' "$MMDAPP/.local/distro-commands.txt"
+			;;
+		esac
+		return 0
+	;;
 	--completion-*)
 		( . "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/SystemConsole.CompletionCommands.include" )
 		return 0
