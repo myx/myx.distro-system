@@ -77,6 +77,9 @@ function SystemConsoleCompletionHelperSystem(){
 
 				find $MDPATH -type 'f' -name '*.fn.sh' \
 				| sed -E "s:^$MDLT_ORIGIN/myx/myx.distro-(.local|system|deploy|source|remote)/sh-scripts/::g"
+
+				# project-declared commands; COMP_* cleared, else Distro routes back into completion
+				( COMP_LINE= COMP_WORDS= ; Distro --shell-path-append --completion )
 			) \
 			| grep "$compGrepOthers"
 
@@ -90,7 +93,7 @@ function SystemConsoleCompletionHelperSystem(){
 			| grep '^.*.fn.sh$'
 		} \
 		| sort -u \
-		| sed 's:\.fn\.sh$::' 
+		| sed 's:\.fn\.sh$::'
 	)
 
 	# 2nd token? complete the subcommands…

@@ -105,7 +105,7 @@ case "$cmd" in
 			COMPREPLY+=("$line")
 		done < <( Distro --completion-helper-system \
 			"$COMP_LINE" "system" \
-			'^\(All\Distro\|Build\|Clean\|List\).*.fn.sh$' \
+			'^\(All\Distro\|Build\|Clean\|Deploy\|List\|Source\).*.fn.sh$' \
 		) && return 0
 		# otherwise fall through so default/file-name completion can fire	
 	;;
