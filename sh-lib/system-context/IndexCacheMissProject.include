@@ -29,20 +29,23 @@ if [ "$MDSC_NO_CACHE" != "--no-cache" ]; then
 
 		## Build cache index file
 
-		if [ 'cat ' = "$cmd $1" ]; then
-			[ -z "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: IndexCacheMissProject.include: --project-index-* caching+piping index ($idx)" >&2
-			mkdir -p "${cacheFile%/*}"
-			. "$MDLT_ORIGIN/$gen" | tee "$cacheFile.$$.tmp"
-			mv -f -- "$cacheFile.$$.tmp" "$cacheFile" || :
-			# eval export "${env}='$cacheFile'" # <<<--- no env here, unless ochestrated with MDSC_PRJ_NAME
-			return 0
-		fi
-
-		[ -z "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: IndexCacheMissProject.include: --project-index-* caching index file ($idx)" >&2
+		[ -z "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: IndexCacheMissProject.include: --project-index-* caching index ($idx)" >&2
 		mkdir -p "${cacheFile%/*}"
-		. "$MDLT_ORIGIN/$gen" >"$cacheFile.$$.tmp"
-		mv -f -- "$cacheFile.$$.tmp" "$cacheFile" || :
+
+		## Tested subshell, so the status read here is the generator's own. Sourced plainly
+		## its 'set +e ; return 1' disarms this shell and execution runs on to install the
+		## empty output as an authoritative cache entry; through a pipe the status read is
+		## the consumer's. Either way a failed generator is published and then served.
+		if ! ( . "$MDLT_ORIGIN/$gen" ) >"$cacheFile.$$.tmp" ; then
+			rm -f -- "$cacheFile.$$.tmp"
+			echo "$MDSC_CMD: ⛔ ERROR: IndexCacheMissProject.include: $idx generator failed for $MDSC_PRJ_NAME -- cache left unchanged" >&2
+			set +e ; return 1
+		fi
+		mv -f -- "$cacheFile.$$.tmp" "$cacheFile"
 		# eval export "${env}='$cacheFile'" # <<<--- no env here, unless ochestrated with MDSC_PRJ_NAME
+
+		[ 'cat ' != "$cmd $1" ] || { cat "$cacheFile" ; return 0 ; }
+
 		"$cmd" "$@" "$cacheFile"
 		return 0
 

@@ -47,9 +47,16 @@ if [ "$MDSC_NO_INDEX" != "--no-index" ] && [ -d "$MDSC_CACHED" ]; then
 				continue
 			fi
 			[ -z "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: IndexNoCacheProjectOwned.include: --all-${idx} making index" >&2
-			DistroSystemContext --index-projects awk -v source="$MDSC_SOURCE" \
+			## Tested: an unreachable project list returns nothing, and an index built over it
+			## installs clean and empty, after which every query answers from it.
+			if ! DistroSystemContext --index-projects awk -v source="$MDSC_SOURCE" \
 				-f "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/system-context/BuildSingleIndex.awk" \
-				>"$indexFile.$$.tmp"
+				>"$indexFile.$$.tmp" \
+			; then
+				rm -f -- "$indexFile.$$.tmp"
+				echo "$MDSC_CMD: ⛔ ERROR: IndexNoCacheProjectOwned.include: project list unavailable -- index not written" >&2
+				set +e ; return 1
+			fi
 			mv -f -- "$indexFile.$$.tmp" "$indexFile"
 		else
 			[ -z "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: IndexNoCacheProjectOwned.include: --all-${idx} using index" >&2

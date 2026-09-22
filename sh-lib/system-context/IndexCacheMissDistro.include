@@ -40,18 +40,23 @@ if [ "$MDSC_NO_CACHE" != "--no-cache" ]; then
 
 		## Build cache index file
 
-		if [ 'cat ' = "$cmd $1" ]; then
-			[ -z "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: IndexCacheMissDistro.include: --index-* caching+piping index ($idx)" >&2
-			. "$MDLT_ORIGIN/$gen" | tee "$cacheFile.$$.tmp"
-			mv -f -- "$cacheFile.$$.tmp" "$cacheFile" || :
-			eval export "${env}='$cacheFile'"
-			return 0
-		fi
+		[ -z "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: IndexCacheMissDistro.include: --index-* caching index ($idx)" >&2
 
-		[ -z "$MDSC_DETAIL" ] || echo "| $MDSC_CMD: IndexCacheMissDistro.include: --index-* caching index file ($idx)" >&2
-		. "$MDLT_ORIGIN/$gen" >"$cacheFile.$$.tmp"
-		mv -f -- "$cacheFile.$$.tmp" "$cacheFile" || :
+		## Tested subshell, so the status read here is the generator's own. Sourced plainly
+		## its 'set +e ; return 1' disarms this shell and execution runs on to install the
+		## empty output as an authoritative cache entry; through a pipe the status read is
+		## the consumer's. The export below then pins that file for the rest of the process,
+		## where the env short-circuit reaches it without consulting the freshness test.
+		if ! ( . "$MDLT_ORIGIN/$gen" ) >"$cacheFile.$$.tmp" ; then
+			rm -f -- "$cacheFile.$$.tmp"
+			echo "$MDSC_CMD: ⛔ ERROR: IndexCacheMissDistro.include: $idx generator failed -- cache left unchanged" >&2
+			set +e ; return 1
+		fi
+		mv -f -- "$cacheFile.$$.tmp" "$cacheFile"
 		eval export "${env}='$cacheFile'"
+
+		[ 'cat ' != "$cmd $1" ] || { cat "$cacheFile" ; return 0 ; }
+
 		"$cmd" "$@" "$cacheFile"
 		return 0
 
