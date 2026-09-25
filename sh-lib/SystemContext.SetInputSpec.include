@@ -5,7 +5,7 @@
 
 case "$1" in
 	''|--run-from-detect|--init-variables|--distro-*)
-		if [ -n "$MDLT_OPTION" ] && [ -n "$MDLT_ORIGIN" ] && [ -f "$MDLT_ORIGIN/myx/myx.distro-.local/sh-lib/LocalContext.include" ] ; then
+		if [ -n "$MDLT_OPTION" ] && [ -n "$MDLT_ORIGIN" ] ; then
 			:
 		else
 			MDLC_INMODE="$(
