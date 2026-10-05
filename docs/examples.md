@@ -2,4 +2,28 @@
 
 [Back to the README](../README.md)
 
-Scope: worked examples from start to finish.
+## List what a project provides
+
+	ListDistroProvides.fn.sh --select-projects macosx
+
+Include the inherited values:
+
+	ListDistroProvides.fn.sh --select-projects macosx --merge-sequence
+
+## Select projects by value
+
+	ListDistroProvides.fn.sh --select-keywords l6
+	ListDistroProvides.fn.sh --select-provides deploy-ssh-target:
+
+## Narrow a selection
+
+	ListDistroDeclares.fn.sh --select-projects myx --filter-projects l6b2 --no-cache --no-index | sort
+
+## Find a provide name that two projects carry
+
+	ListDistroProvides.fn.sh --all-provides --no-cache --no-index | sort
+
+## Print, then run, a repository sync
+
+	DistroImageSync.fn.sh --all-tasks --print-source-prepare-pull
+	DistroImageSync.fn.sh --all-tasks --execute-source-prepare-pull
