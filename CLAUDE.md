@@ -3,7 +3,7 @@
 Applies to: myx.distro-.local, myx.distro-deploy, myx.distro-source, myx.distro-system, myx.distro-remote, myx.distro-agents.
 
 Canonical human docs (don't restate here, read them instead):
-- Each repo's `README.md` — pipeline stages, folders, variables, `project.inf` properties.
+- Each repo's `docs/formats.md` — pipeline stages, folders, variables, `project.inf` properties.
 - `myx.distro-.local/sh-lib/help/Man.Project.Inf.file.help.md` — `project.inf` file-format grammar.
 
 This file is reasoning aid + flagged issues, not a rewrite of those docs.

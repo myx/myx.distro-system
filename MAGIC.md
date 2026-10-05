@@ -1,6 +1,6 @@
 # MAGIC.md — myx.distro-system
 
-Team-owned notes for the magic-* team. Durable facts this package's `README.md` and help files do not state. Read `README.md` for structure, and each tool's own `sh-lib/help/Help.<Tool>.help.md` for its call contract.
+Team-owned notes for the magic-* team. Durable facts this package's `README.md`, `docs/` pages and help files do not state. Read `README.md` and `docs/` for structure, and each tool's own `sh-lib/help/Help.<Tool>.help.md` for its call contract.
 
 ## Calling a tool
 
@@ -109,4 +109,4 @@ Follow the standard form for new or edited help. When touching one of these, ask
 
 - `DistroImageSync` lives in this package, not `myx.distro-source`, because it is the generic sync engine shared across stages: its case already spans all five of `source-prepare-pull`, `source-process-push`, `image-prepare-pull`, `image-process-push`, `image-install-pull`. `DistroImagePrepare` stays in `-source` as stage-3-specific build orchestration.
 - The stated longer-term direction is a goal to stay aligned with, **not a committed design and not a flag spec** — nothing in it is literal. It may grow to represent any sync method a stage or subsystem needs, beyond the current git clone/pull mechanism (`myx.common`'s `git/clonePull`, invoked from `DistroImage.SyncScriptMaker.include`); it may take on bootstrapping the subsystems themselves as prebuilt bundles, distinct from what `-.local` does at install time; and it may handle other prebuilt or exported artifacts of the kind `DistroImagePublish`/`DistroImageDownload` are meant to produce and consume. Both of those remain unimplemented — no file for either exists.
-- Do not treat this as scope to implement against, or as licence to expand the README Commands entry into a spec.
+- Do not treat this as scope to implement against, or as licence to expand the `docs/commands.md` entry into a spec.
