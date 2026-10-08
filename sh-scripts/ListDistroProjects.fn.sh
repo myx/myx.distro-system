@@ -47,7 +47,7 @@ ListDistroProjects(){
 					echo "$MDSC_CMD: ⛔ ERROR: --all-projects, no extra options allowed" >&2
 					set +e ; return 1
 				}
-				DistroSystemContext --index-projects cat
+				DistroSystemContext --index-projects cat || { set +e ; return 1 ; }
 				return 0
 
 			;;
@@ -61,9 +61,11 @@ ListDistroProjects(){
 				## Replaces selection with 'all projects'
 				##
 				shift
+				## Tested, not left to set -e: a caller reading this under '||' disables it,
+				## and an index that could not be read would then pass as an empty selection.
 				selectProjects="$( 
 					DistroSystemContext --index-projects cat
-				)"
+				)" || { set +e ; return 1 ; }
 				continue
 			;;
 			--select-sequence)
@@ -73,7 +75,7 @@ ListDistroProjects(){
 				shift
 				selectProjects="$( 
 					DistroSystemContext --index-sequence-joined cat
-				)"
+				)" || { set +e ; return 1 ; }
 				continue
 			;;
 			--select-none)

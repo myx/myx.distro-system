@@ -92,10 +92,15 @@ if [ 'echo ' = "$cmd $1" ]; then
 	return 0
 fi
 
+## The generator's own status is returned, never dropped: a generator that fails ends
+## with 'set +e ; return 1', so without the test this file would run on to return 0 and
+## hand its caller an empty index as if it were the real one.
 if [ 'cat ' = "$cmd $1" ]; then
-	. "$MDLT_ORIGIN/$gen"
+	. "$MDLT_ORIGIN/$gen" || { set +e ; return 1 ; }
 	return 0
 fi
 
 . "$MDLT_ORIGIN/$gen" | "$cmd" "$@"
+local pipeStatus=( "${PIPESTATUS[@]}" )
+[ "${pipeStatus[0]}" = 0 ] && [ "${pipeStatus[1]}" = 0 ] || { set +e ; return 1 ; }
 return 0
