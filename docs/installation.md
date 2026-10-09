@@ -4,7 +4,7 @@
 
 ## Install
 
-These tools install together with the source, deploy and remote toolsets — there
+These tools install together with the source or deploy toolset — there
 is nothing to install separately. Open a workspace console and they are on
 `PATH`:
 

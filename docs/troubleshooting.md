@@ -20,7 +20,7 @@ Run as a plain script, such as `bash sh-scripts/Foo.fn.sh`, any `Distro <name>` 
 
 ## JumpTo prints a directory change and nothing moves
 
-`JumpTo.fn.sh` announces `Changing directory: <path>`. The console does not change directory.
+After `JumpTo.fn.sh`, the source or deploy console prints `Changing directory: <path>` at each prompt. The console does not change directory.
 
 Run as a script, `JumpTo` changes only its own process. The prompt hook that should apply the change runs two subshells below your shell, so it cannot. Change directory yourself, with the path `JumpTo` prints.
 

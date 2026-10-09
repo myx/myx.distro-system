@@ -4,6 +4,16 @@ Indexing and query tools shared by every myx.distro console. Use them to find
 projects, read project metadata, resolve build order, and sync source
 repositories.
 
+Use it from any source or deploy console. You do not install it on its own. It
+comes with those toolsets.
+
+## First command
+
+Open a console, then list every project in the workspace:
+
+	./DistroSourceConsole.sh
+	ListDistroProjects.fn.sh --all-projects
+
 ## Documentation
 
 - [Installation](docs/installation.md) — requirements, install, upgrade and uninstall.

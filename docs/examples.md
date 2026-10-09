@@ -12,12 +12,12 @@ Include the inherited values:
 
 ## Select projects by value
 
-	ListDistroProvides.fn.sh --select-keywords l6
+	ListDistroProvides.fn.sh --select-keywords <keyword>
 	ListDistroProvides.fn.sh --select-provides deploy-ssh-target:
 
 ## Narrow a selection
 
-	ListDistroDeclares.fn.sh --select-projects myx --filter-projects l6b2 --no-cache --no-index | sort
+	ListDistroDeclares.fn.sh --select-projects myx --filter-projects <host-name-part> --no-cache --no-index | sort
 
 ## Find a provide name that two projects carry
 
