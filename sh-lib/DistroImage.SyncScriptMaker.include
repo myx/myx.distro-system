@@ -22,17 +22,21 @@ case "$1" in
 		echo 'if [ -n "$MMDAPP" ] && [ -d "$MMDAPP/.local" ]; then'
 		echo '  tmpdir="$MMDAPP/.local/temp/ssh"'
 		echo 'else'
-		# fallback into system temp: TMPDIR on macOS, /tmp elsewhere
-		echo '  tmpdir="${TMPDIR:-/tmp}/ssh-cmx"'
+		# no workspace: the running user's own ssh folder, never the system temp folder (shared with every user of the machine)
+		echo '  [ -d "${HOME:?}/.ssh" ] || { mkdir -p "$HOME/.ssh" && chmod 700 "$HOME/.ssh" ; }'
+		echo '  tmpdir="${HOME:?}/.ssh/cmx"'
+		echo '  [ -d "$tmpdir" ] || { mkdir -p "$tmpdir" && chmod 700 "$tmpdir" ; }'
 		echo 'fi'
 		echo 'mkdir -p "$tmpdir"'
 
-		# shorten long tmpdir paths via a symlink if over 60 chars
+		# shorten long tmpdir paths via a symlink if over 60 chars: a control socket path must stay under about 104 bytes,
+		# and the link stands in the same private ssh folder of the running user
 		echo 'if [ ${#tmpdir} -gt 60 ]; then'
-		echo '  shorttmp="/tmp/sshcmx-$$"'
+		echo '  [ -d "${HOME:?}/.ssh" ] || { mkdir -p "$HOME/.ssh" && chmod 700 "$HOME/.ssh" ; }'
+		echo '  shorttmp="${HOME:?}/.ssh/cmx-$$"'
 		echo '  ln -s "$tmpdir" "$shorttmp"'
 		echo '  tmpdir="$shorttmp"'
-		echo "  trap 'rm -f $tmpdir' EXIT"
+		echo "  trap 'rm -f \"\$shorttmp\"' EXIT"
 		[ -z "$MDSC_DETAIL" ] || printf '  echo "🍏 %s: link short control master path: $shorttmp -> $tmpdir" >&2\n' "$MDSC_CMD"
 		echo 'fi'
 
