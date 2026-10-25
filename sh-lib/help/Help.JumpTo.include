@@ -10,5 +10,5 @@ echo
 echo "  Examples:"
 echo
 echo "    JumpTo.fn.sh ndss113"
-echo "    JumpTo.fn.sh ndm/cloud.knt/setup.host-ndss112r3.example.org"
+echo "    JumpTo.fn.sh example/cloud.fleet4/setup.host-ndss112r3.example.org"
 echo
