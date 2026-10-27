@@ -113,6 +113,13 @@ case "$1" in
 			shift ; set -- "--distro-from-source" "$@"
 		elif [ -d "$MMDAPP/distro/" ] ; then
 			shift ; set -- "--distro-from-distro" "$@"
+		elif [ -d "$MMDAPP/.local" ] ; then
+			export MDLT_ORIGIN="$MMDAPP/.local"
+			export MDLC_INMODE=".local"
+			export MDLT_OPTION="--run-from-.local"
+			export MDSC_INMODE=".local"
+			export MDSC_OPTION="--run-from-.local"
+			return 0
 		else
 			echo "⛔ ERROR: SystemContext.SetInputSpec: can't detect proper input source" >&2
 			set +e ; return 1
