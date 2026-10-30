@@ -61,10 +61,28 @@
 			image-prepare-pull, image-process-push, image-install-pull.
 
 		--script-<stage> [<script-args>...]
-			Prints executable script for selected stage.
+			Prints executable script for selected stage. The script arguments are independent of each other:
+			--parallel [N] and --sequence set the count, --portable the bundling, --xargs the runner.
 
 		--execute-<stage> [<script-args>...]
 			Executes script for selected stage.
+
+		--parallel [N]
+			Runs N jobs at once in the generated script. Default 8. --portable accepts the same count.
+
+		--sequence
+			Runs one job at a time in the generated script, from any of the runners.
+
+		--portable
+			Bundles every command the generated script runs, so it works where myx.common is not installed.
+			Without it the script needs the installed myx.common, and may still use anything better on the host.
+
+		--xargs
+			Runs the generated script's jobs through xargs, in every mode, portable included.
+			Without it the script runs them through the runner its own bundling allows.
+
+		--no-ssh-mx / --one-ssh-mx / --ssh-defaults
+			Control ssh multiplexing, and the advanced ssh settings the script's git uses.
 
 		--help
 			Prints command help and exits.
