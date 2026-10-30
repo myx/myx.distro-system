@@ -117,8 +117,9 @@ DistroImageSync(){
 		;;
 		--intern-execute-script-from-stdin)
 			[ "$MDSC_DETAIL" == "full" ] || echo "> $MDSC_CMD $MDSC_NO_CACHE $MDSC_NO_INDEX $@" >&2
+			## The script's own status is the answer: a sync that failed must not report success.
 			( eval "$( cat )" )
-			return 0
+			return $?
 		;;
 	esac
 
@@ -272,7 +273,7 @@ DistroImageSync(){
 					export syncMode="${1:---parallel}"
 					eval "$( DistroImageSync --script-from-stdin-repo-list )" 
 				)
-				return 0
+				return $?
 			;;
 			--print-*|--script-*|--execute-*)
 				break
@@ -346,13 +347,17 @@ DistroImageSync(){
 				local selectVariant="${1#--execute-}"
 				DistroImageSync --intern-check-build-stage "$selectVariant"
 				shift
-				
-				echo "$useJobList" \
-				| grep -e "^${selectVariant}" \
+
+				## No matching task is nothing to do, never a failure: an empty list must not read as one.
+				local syncTasks=""
+				syncTasks="$( echo "$useJobList" | grep -e "^${selectVariant}" || : )"
+				[ -n "$syncTasks" ] || return 0
+
+				echo "$syncTasks" \
 				| DistroImageSync --intern-print-script-from-stdin-task-list "$@" \
 				| DistroImageSync --intern-execute-script-from-stdin
-				
-				return 0
+
+				return $?
 			;;
 			'')
 				echo "$MDSC_CMD: ⛔ ERROR: one of --print-* or --execute-* commands is required" >&2

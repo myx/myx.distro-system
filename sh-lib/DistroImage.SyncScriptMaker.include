@@ -46,9 +46,10 @@ case "$1" in
 		return 0
 	;;
 	--intern-stdin-parallel-block)
+		## A failed job exits 1, never 255: xargs stops at a 255 (ssh's own), and the rest would die with the run.
 		printf '( %s | %s ) <<XARGS_INPUT\n' \
 			"tr '\n' '\0'" \
-			"xargs -0 -P '$parallelLimit' -I% -- sh -c 'myx.common lib/prefix -o -3 %'"
+			"xargs -0 -P '$parallelLimit' -I% -- sh -c 'myx.common lib/prefix -o -3 % || exit 1'"
 		
 		# awk '$0 !~ /^$|^[ \t]+$|^#|^[ \t]+#/ { print $0; }' | \
 		local itemTarget itemSource useBranch
@@ -162,12 +163,14 @@ echo 'set -e'
 printf 'export MMDAPP="${MMDAPP:-%s}"\n' "$MMDAPP"
 echo 'mkdir -p "$MMDAPP/source"'
 echo 'cd "$MMDAPP/source"'
+echo 'syncJobs="" syncFailed="" # a pid per backgrounded server block, and whether one of them failed'
 echo
 
 # 1) Common SSH flags (cipher-suite, KEX, hostkeys, compression, batching…)
 echo 'export SSH_COMMON_OPTS="\'
 echo '  -T -q \'
 echo '  -o BatchMode=yes \'
+echo '  -o ConnectTimeout=${MYX_GIT_CONNECT_TIMEOUT:-15} \' # an unreachable host must not hold the whole run
 [ -n "$SYNC_SSH_DEFAULTS" ] || {
 	echo '  -4 \'
 	# bitbucket needs aes128-ctr:
@@ -191,7 +194,13 @@ case "$syncMode" in
 	;;
 esac
 
-local SSH_REPO_LIST=$( printf '%s\n' "$REPO_LIST" | awk '$2 !~ /^https?:\/\// { print $0 }' )
+## Only a genuine ssh remote takes a control master: `ssh://`, or the scp form `host:path`. Every other
+## form (`https://`, `git://`, `file://`, a local directory) is left to GitClonePull on its own.
+local SSH_REPO_LIST=$( printf '%s\n' "$REPO_LIST" | awk '
+	$2 ~ /^ssh:\/\// { print ; next }
+	$2 ~ /:\/\// { next }
+	$2 ~ /^[^\/]*:/ { print }
+' )
 local SSH_USE_ROOT_MX SSH_ROOT_MX_USED SSH_NEED_WAIT	
 
 # ─── configure SSH for multiplexing via this temp dir ────────────────────────
@@ -274,7 +283,7 @@ if [ -z "$SYNC_NO_SSH_MX" ] && [ "$(printf '%s\n' "$SSH_REPO_LIST" | wc -l)" -gt
 			. "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/DistroImage.SyncScriptMaker.include" 
 		)
 
-		echo ") &"
+		echo ") & syncJobs=\"\$syncJobs \$!\""
 
 		REPO_LIST="$( printf '%s\n' "$REPO_LIST" | grep -Fvxf <( printf '%s\n' "$SERVER_REPO_LIST" ) || : )"
 
@@ -304,7 +313,9 @@ if [ -n "$REPO_LIST" ] ; then
 fi
 
 if [ -n "$SSH_NEED_WAIT" ] ; then
-	echo wait
+	## A backgrounded server block that failed must reach the caller, where a bare `wait` answers zero.
+	echo 'for syncJob in $syncJobs ; do wait "$syncJob" || syncFailed=1 ; done'
+	echo '[ -z "$syncFailed" ] || exit 1'
 fi
 
 #!/usr/bin/env bash
