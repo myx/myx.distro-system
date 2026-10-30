@@ -272,7 +272,8 @@ if [ -z "$SYNC_NO_SSH_MX" ] && [ "$(printf '%s\n' "$SSH_REPO_LIST" | wc -l)" -gt
 		
 		# export a minimal, high-throughput SSH for Git
 		echo "export GIT_SSH_COMMAND=\"sh -c '"
-		echo "idx=\\\$(awk '\''BEGIN { srand(); print int(rand()*$MASTER_COUNT) }'\'')"
+		## a hash of the ssh call (host and repo) picks the master: the same repo always takes the same one, and a burst spreads
+		echo "idx=\\\$(( \\\$(printf %s \\\"\\\$*\\\" | cksum | cut -d\\\" \\\" -f1) % $MASTER_COUNT ))"
 		echo "slot=\\\$( [ \\\"\\\$idx\\\" -eq 0 ] && echo \\\"%r,%h,%p\\\" || echo \\\"%r,%h,%p,\\\$idx\\\" )"
 		echo "exec ssh \$SSH_COMMON_OPTS -o ControlMaster=auto -o ControlPath=\$tmpdir/\\\$slot -o ControlPersist=3m \\\"\\\$@\\\""
 		echo "' ssh\""
@@ -305,11 +306,14 @@ if [ -n "$REPO_LIST" ] ; then
 		echo 'export GIT_SSH_COMMAND="ssh $SSH_COMMON_OPTS"'
 	fi
 
+	## backgrounded and waited like every server block: a foreground failure under set -e left the others running orphaned
+	echo "("
 	printf '%s\n' "$REPO_LIST" \
 	| (
 		set -- --intern-stdin-${syncMode#--}-block
 		. "$MDLT_ORIGIN/myx/myx.distro-system/sh-lib/DistroImage.SyncScriptMaker.include" 
 	)
+	echo ") & syncJobs=\"\$syncJobs \$!\""
 fi
 
 if [ -n "$SSH_NEED_WAIT" ] ; then
