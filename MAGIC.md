@@ -96,3 +96,10 @@ Follow the standard form for new or edited help. When touching one of these, ask
 - `DistroImageSync` lives in this package, not `myx.distro-source`, because it is the generic sync engine shared across stages. Its case already spans all five of `source-prepare-pull`, `source-process-push`, `image-prepare-pull`, `image-process-push` and `image-install-pull`. `DistroImagePrepare` stays in `-source` as stage-3-specific build orchestration.
 - The stated longer-term direction is a goal to stay aligned with, **not a committed design and not a flag spec**. Nothing in it is literal. It may grow to represent any sync method a stage or subsystem needs, beyond the current git clone/pull mechanism (`myx.common`'s `git/clonePull`, invoked from `DistroImage.SyncScriptMaker.include`). It may take on bootstrapping the subsystems themselves as prebuilt bundles, distinct from what `-.local` does at install time. It may also handle other prebuilt or exported artifacts of the kind `DistroImagePublish`/`DistroImageDownload` are meant to produce and consume. Both of those remain unimplemented — no file for either exists.
 - Do not treat this as scope to implement against, or as licence to expand the `docs/commands.md` entry into a spec.
+
+## Sync generator axes (owner, 2026-10-30)
+
+- Three independent axes: `--portable` sets bundling, `--xargs` sets the runner, `--parallel [N]` or `--sequence` sets the count.
+- The default runner is `myx.common lib/parallel -S`. The generator never picks xargs by itself. A portable script never uses `Parallel`.
+- Every job runs and every failure is recorded. The run returns non-zero after all jobs end, never on the first failure.
+- The ssh control masters a run opened are closed when it ends.

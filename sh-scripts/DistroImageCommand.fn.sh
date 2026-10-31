@@ -3,8 +3,8 @@
 if [ -z "$MMDAPP" ] ; then
 	set -e
 	export MMDAPP="$( cd $(dirname "$0")/../../../.. ; pwd )"
-	echo "$0: Working in: $MMDAPP"  >&2
-	[ -d "$MMDAPP/source" ] || ( echo "⛔ ERROR: expecting 'source' directory." >&2 && exit 1 )
+	echo "$0: Working in: $MMDAPP" >&2
+	[ -d "$MMDAPP/.local" ] || ( echo "⛔ ERROR: expecting '.local' directory." >&2 && exit 1 )
 fi
 
 if [ -z "$MDLT_ORIGIN" ] || ! type DistroSystemContext >/dev/null 2>&1 ; then
@@ -42,7 +42,7 @@ DistroImageCommand(){
 	fi
 	
 	if [ -f "$DIR_SRC/java/ru/myx/distro/DistroImageCommand.class" ] ; then
-		java -cp "$DIR_OUT/bin" ru.myx.distro.DistroImageCommand \
+		java -cp "$DIR_SRC/java" ru.myx.distro.DistroImageCommand \
 			--output-root "$MDSC_OUTPUT" \
 			--source-root "$MDSC_SOURCE" \
 			--cached-root "$MDSC_CACHED" \

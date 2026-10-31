@@ -55,7 +55,7 @@ case "$1" in
 		else
 			printf '( %s | %s ) <<XARGS_INPUT\n' \
 				"tr '\n' '\0'" \
-				"xargs -0 -P '$parallelLimit' -I% -- sh -c '$syncJobPrefix % || exit 1'"
+				"xargs -0 -P $parallelLimit -I% -- sh -c '$syncJobPrefix % || exit 1'"
 			local itemTarget itemSource useBranch
 			while read -r itemTarget itemSource useBranch _; do
 				echo "$syncJobCommand" "$itemTarget" "$itemSource" "$useBranch"

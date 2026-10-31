@@ -3,7 +3,7 @@
 if [ -z "$MMDAPP" ] ; then
 	set -e
 	export MMDAPP="$( cd $(dirname "$0")/../../../.. ; pwd )"
-	echo "$0: Working in: $MMDAPP"  >&2
+	echo "$0: Working in: $MMDAPP" >&2
 	[ -d "$MMDAPP/.local" ] || ( echo "⛔ ERROR: expecting '.local' directory." >&2 && exit 1 )
 fi
 

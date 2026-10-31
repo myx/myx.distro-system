@@ -3,8 +3,8 @@
 if [ -z "$MMDAPP" ] ; then
 	set -e
 	export MMDAPP="$( cd $(dirname "$0")/../../../.. ; pwd )"
-	echo "$0: Working in: $MMDAPP"  >&2
-	[ -d "$MMDAPP/source" ] || ( echo "⛔ ERROR: expecting 'source' directory." >&2 && exit 1 )
+	echo "$0: Working in: $MMDAPP" >&2
+	[ -d "$MMDAPP/.local" ] || ( echo "⛔ ERROR: expecting '.local' directory." >&2 && exit 1 )
 fi
 
 if [ -z "$MDLT_ORIGIN" ] || ! type DistroSystemContext >/dev/null 2>&1 ; then
@@ -49,7 +49,7 @@ DistroSourceCommand(){
 	CHECK_DIR="$MDLT_ORIGIN/temp/javac/myx/myx.distro-system/java"
 	if [ -f "$CHECK_DIR/ru/myx/distro/DistroSourceCommand.class" ] ; then
 		[ full != "$MDSC_DETAIL" ] || echo "> DistroSourceCommand: running java origin + local tools java/" >&2
-		java -cp "$CHECK_DIR:$CLS_PATH" 
+		java -cp "$CHECK_DIR:$CLS_PATH" \
 			ru.myx.distro.DistroSourceCommand \
 			--output-root "$MDSC_OUTPUT" \
 			--source-root "$MDSC_SOURCE" \
@@ -59,9 +59,9 @@ DistroSourceCommand(){
 	fi
 
 	CHECK_DIR="$MDSC_CACHED/myx/myx.distro-system"
-	if [ -f "$DIR_SRC/java/ru/myx/distro/DistroSourceCommand.class" ] ; then
+	if [ -f "$CHECK_DIR/java/ru/myx/distro/DistroSourceCommand.class" ] ; then
 		[ full != "$MDSC_DETAIL" ] || echo "> DistroSourceCommand: running java cached + /java" >&2
-		java -cp "$DIR_SRC/bin:$CLS_PATH" \
+		java -cp "$CHECK_DIR/java:$CLS_PATH" \
 			ru.myx.distro.DistroSourceCommand \
 			--output-root "$MDSC_OUTPUT" \
 			--source-root "$MDSC_SOURCE" \
