@@ -103,3 +103,17 @@ Follow the standard form for new or edited help. When touching one of these, ask
 - The default runner is `myx.common lib/parallel -S`. The generator never picks xargs by itself. A portable script never uses `Parallel`.
 - Every job runs and every failure is recorded. The run returns non-zero after all jobs end, never on the first failure.
 - The ssh control masters a run opened are closed when it ends.
+
+## The ssh short-path link is the one approved symlink (owner, 2026-11-01)
+
+- `DistroImage.SyncScriptMaker.include`, in its `--intern-ssh-mx-root-temp-block` arm, links `~/.ssh/cmx-$$` to the socket folder when that folder's path is over 60 characters. A control socket path must stay under about 104 bytes.
+- The link points at `$MMDAPP/.local/temp/ssh`, or at `~/.ssh/cmx`, never into source. The exit trap removes only the link, with `rm -f`.
+- Runs reuse the control sockets kept in that shared folder. A per-run folder in its place loses them. That change was made on 2026-10-31 and reverted on 2026-11-01.
+
+## The tool form, and the two context options (owner, 2026-10-31)
+
+- `sh-scripts/ListDistroDeclares.fn.sh` is the typical correct tool. Its top is the six-line `MMDAPP` validator that tests `$MMDAPP/.local`. Its context block sits only in the `case "$0"` arm, after the help check.
+- `--distro-path-auto` selects the data input: the `MDSC_*` tier a tool reads its index from.
+- `--run-from-detect` selects the tool origin: where `MDLT_ORIGIN` points.
+- The two answer different questions. Swapping one for the other is a regression, never a cleanup.
+- `DistroSourceCommand.fn.sh` and `DistroImageCommand.fn.sh` wrap Java commands. They are specials and may differ from the typical form.
