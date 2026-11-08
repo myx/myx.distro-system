@@ -91,6 +91,20 @@ Follow the standard form for new or edited help. When touching one of these, ask
 - **A name with two providers is a question, not a defect.** `os.any` is provided by all three of `os-myx.common-freebsd`, `os-myx.common-macosx` and `os-myx.common-ubuntu` and required by no project — a deliberate any-OS selector. Ask what each repeated name is for; zero duplicates is not the correct state to assert.
 - The source-only `--all-provides` recipes sit in `sh-lib/help/Help.ListDistroProvides.include`, not in `Help.ListDistroProvides.help.md`, which is the authority. They are one of the drifted `.include` copies "Help-file inconsistencies" already names. A reader checking the authority alone does not find the flags.
 
+## The cache freshness clause answers a newer-file question, not a tree question
+
+The clause in the `--index-*` and `--project-index-*` arms of `sh-lib/SystemContext.include` decides whether a cached index file may be served. Read its answer as exactly what it tests, never as more.
+
+- **It asks one thing: is the newest `project.inf` under `$MDSC_SOURCE` newer than the cache file.** A served cache means that answer was no. It does not mean the index matches the tree.
+- **The tree is walked once per process.** `DistroSystemContextNewestProjectInf` finds the newest `project.inf` and keeps its path in `MDSC_IDXSRC_NEWEST`; every read then compares that one file with `-nt`. `--uncache` clears it, so the next read walks again. A `project.inf` edited or added after the walk, other than the kept one, is not seen until the next process or `--uncache`, the same bound the env short-circuit already has.
+- **A walk that fails decides a miss.** The helper returns 1 and keeps nothing when `find` exits non-zero, so an empty `MDSC_SOURCE`, a missing directory and an unreadable subtree all rebuild the cache instead of serving it, and walk again on the next read. `find`'s diagnostic reaches stderr; never silence it, because a silenced walk is indistinguishable from a clean one.
+- **`$MDSC_SOURCE` is the tree the calling console reads.** A source console reads `source/`, and a deploy console reads `distro/`. Same clause, different subject, so a value read on one says nothing about the other.
+- **The deploy arm's walk cannot see a stale deploy cache.** `distro/` holds no `project.inf`, so the walk keeps `-` there and the cache is always served. The deploy tree's own `build-time-stamp.txt` and `distro-index.env.inf` are the markers a test for that arm would need, and the clause does not walk for them.
+- **A project removed or renamed is decided fresh.** The clause tests for a newer file, never for a missing one, so an index naming a project that no longer exists is served.
+- **The decision is strict newer-than.** A `project.inf` with the same mtime to the nanosecond as the cache is decided fresh, because the cache is rebuilt in the same instant it is read. On a one-second-granularity volume that equal case widens to the whole second.
+- **One process pays one walk, however many reads it makes.** The distro arm's env short-circuit is reached only after an in-process rebuild exports it, and the project arm has no short-circuit at all, so the kept `MDSC_IDXSRC_NEWEST` is what makes a second read cheap. A single walk on a 9,875-entry tree took 273 to 398 ms.
+- **A test of the clause carries five rows, two of them controls.** The controls are the positive pair: a clean tree serves, and one edited `project.inf` misses. Without them a test cannot tell a working clause from one that always serves or always misses. The other three are an empty source, an unreadable subtree, and the deploy arm's decision.
+
 ## DistroImageSync is direction, not a spec
 
 - `DistroImageSync` lives in this package, not `myx.distro-source`, because it is the generic sync engine shared across stages. Its case already spans all five of `source-prepare-pull`, `source-process-push`, `image-prepare-pull`, `image-process-push` and `image-install-pull`. `DistroImagePrepare` stays in `-source` as stage-3-specific build orchestration.
