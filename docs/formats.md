@@ -7,6 +7,7 @@
 A tool's manual is a plain file beside it: `sh-lib/help/Help.<Tool>.help.md`. A matching `Help.<Tool>.include` holds the syntax lines that `--help` prints.
 
 - The `.help.md` file is the authority. Some `.include` files print their own copy of the options, and those copies can drift from it.
+- An operation's help lists its most preferred and most frequent form first, and its least preferred last. That order holds in the syntax lines, the option lists and the text. Where an operation takes a body, the patch form `--edit-patch-from-stdin` comes before the whole-body forms, which create or replace a document.
 - `Man.<Topic>.help.md` is a free-form reference, such as a file format or an install guide. No tool owns it.
 
 ## project.inf

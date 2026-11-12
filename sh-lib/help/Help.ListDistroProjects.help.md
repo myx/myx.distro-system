@@ -10,7 +10,13 @@
 ##  Arguments:
 
 		project-selector
-			Selector options are option-driven; there is no required positional selector token.
+			One or more project selector options, given first:
+			--select-{all|sequence|changed|none|from-env}
+			--{select|filter|remove}-{projects|declares|[merged-]provides|[merged-]keywords|one-project} <filter>
+			--help lists each of them.
+
+		command-options
+			The print, save and execute options, given after the selector options.
 
 		execute-extra-args
 			Optional tail forwarded to command selected by --select-execute-default or
@@ -85,7 +91,7 @@
 		--affected-projects
 			Prints required/affected sets for current selection.
 
-		--select-execute-default <command>
+		--select-execute-default <command> [<args>...]
 			Sets downstream command used with remaining args and current selection env.
 
 		--select-execute-command <command> [<args>...]
@@ -101,3 +107,12 @@
 
 		--help
 			Prints command help and exits.
+
+##  Examples:
+
+		# Print every project in the index
+		`ListDistroProjects.fn.sh --all-projects`
+		# Select one namespace and print the selection
+		`ListDistroProjects.fn.sh --select-projects myx/`
+		# Select, then run a command over the selected projects
+		`ListDistroProjects.fn.sh --select-projects myx/ --select-execute-default /bin/echo MARK`
