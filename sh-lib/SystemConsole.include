@@ -13,9 +13,19 @@ case "$1" in
 				awk '!seenCommand[$2]++ { print $2 ".fn.sh" ; }' "$MMDAPP/.local/distro-commands.txt"
 			;;
 			*)
-				## ENVIRON, never -v: -v escape-decodes the value, and the dedup below then never matches,
-				## so PROMPT_COMMAND re-appends the same directory every prompt until PATH grows the console to a crawl.
-				awk '!seenScriptsDir[$3]++ && index( ":" ENVIRON["PATH"] ":", ":" $3 ":" ) == 0 { printf ":%s", $3 ; }' "$MMDAPP/.local/distro-commands.txt"
+				## The derived line the source-prepare builder writes beside the index (the distinct sh-scripts folders, colon-joined): one read
+				## and a match in the shell a prompt, no awk. Without it, the index is walked by awk as before.
+				if [ -f "$MMDAPP/.local/distro-command-path.txt" ] && [ ! "$MMDAPP/.local/distro-commands.txt" -nt "$MMDAPP/.local/distro-command-path.txt" ] ; then
+					IFS=: read -r -a shellPathFolders < "$MMDAPP/.local/distro-command-path.txt" || shellPathFolders=()
+					for shellPathFolder in ${shellPathFolders[@]+"${shellPathFolders[@]}"} ; do
+						case "$shellPathFolder" in ''|*[[:space:]]*) continue ;; esac
+						case ":$PATH:" in *":$shellPathFolder:"*) ;; *) printf ':%s' "$shellPathFolder" ;; esac
+					done
+				else
+					## ENVIRON, never -v: -v escape-decodes the value, and the dedup below then never matches,
+					## so PROMPT_COMMAND re-appends the same directory every prompt until PATH grows the console to a crawl.
+					awk '!seenScriptsDir[$3]++ && index( ":" ENVIRON["PATH"] ":", ":" $3 ":" ) == 0 { printf ":%s", $3 ; }' "$MMDAPP/.local/distro-commands.txt"
+				fi
 			;;
 		esac
 		return 0
